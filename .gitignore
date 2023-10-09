@@ -10,3 +10,7 @@
 # Other
 *.pdf
 *.html
+
+# Distribution
+dist
+*.egg-info
