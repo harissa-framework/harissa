@@ -1,11 +1,10 @@
 from setuptools import setup, find_packages
-import harissa
 
 setup(
 
     name='harissa',
 
-    version=harissa.__version__,
+    version='3.0.7',
 
     packages=find_packages(),
 
