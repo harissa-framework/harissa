@@ -2,8 +2,9 @@
 Generate cascade networks
 """
 import numpy as np
+from .network_model import NetworkModel
 
-def cascade(n_genes):
+def _cascade(n_genes):
     """
     Generate a simple activation cascade (1) -> (2) -> ... -> (n_genes).
     """
@@ -15,8 +16,22 @@ def cascade(n_genes):
         inter[i,i+1] = 10
     return basal, inter
 
+class Cascade(NetworkModel):
+    """
+    Particular network with a cascade structure.
+    """
+    def __init__(self, n_genes, autoactiv=False):
+        # Get NetworkModel default features
+        super().__init__(self, n_genes)
+        # New network parameters
+        basal, inter = _cascade(n_genes)
+        if autoactiv:
+            for i in range(1,n_genes+1):
+                inter[i,i] = 5
+        self.basal = basal
+        self.inter = inter
 
 # Tests
 if __name__ == '__main__':
-    basal, inter = cascade(5)
+    basal, inter = _cascade(5)
     print(inter)
