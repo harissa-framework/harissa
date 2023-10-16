@@ -43,16 +43,14 @@ class ApproxODE(Simulation):
         # Simulation parameter
         euler_step = 1e-3/np.max(degradation_protein)
 
-        # Default state
-        types = [('M','float'), ('P','float')]
-        self.state = np.array([(0,0) for i in range(nb_genes)], dtype=types)
-        # state  = np.zeros((2, nb_genes))
+        # Default state: row 0 <-> M, row 1 <-> P
+        self.state = np.zeros((2, nb_genes))
 
         # Burnin simulation without stimulus
         if self.M0 is not None:
-            self.state['M'][1:] = self.M0[1:]
+            self.state[0, 1:] = self.M0[1:]
         if self.P0 is not None: 
-            self.state['P'][1:] = self.P0[1:]
+            self.state[1, 1:] = self.P0[1:]
         if self.burn_in is not None: 
             self._simulation(time_points=np.array([self.burn_in]),
                              basal=basal,
@@ -66,7 +64,7 @@ class ApproxODE(Simulation):
                              dt=euler_step)
         
         # Activate the stimulus
-        self.state['P'][0] = 1
+        self.state[1, 0] = 1
 
         # Final simulation with stimulus
         res = self._simulation(time_points=time_points,
@@ -80,8 +78,7 @@ class ApproxODE(Simulation):
                                b=burst_size,
                                dt=euler_step)
         
-        return Simulation.Result(time_points, res['M'], res['P'])
-        # return Simulation.Result(time_points, res[:, 0], res[:, 1])
+        return Simulation.Result(time_points, res[:, 0], res[:, 1])
 
     def _simulation(self, time_points, basal, inter, 
                    d0, d1, s1, k0, k1, b, dt):
@@ -92,10 +89,9 @@ class ApproxODE(Simulation):
         2. Mean level of mRNA given protein levels
         """
         nb_genes = basal.size
+        states = np.empty((time_points.size, 2, nb_genes - 1))
         if np.size(time_points) > 1:
             dt = np.min([dt, np.min(time_points[1:] - time_points[:-1])])
-        types = [('M','float'), ('P','float')]
-        sim = []
         T, c = 0, 0
         # Core loop for simulation and recording
         for t in time_points:
@@ -103,9 +99,7 @@ class ApproxODE(Simulation):
                 self._step(basal, inter, d0, d1, s1, k0, k1, b, dt)
                 T += dt
                 c += 1
-            M, P = self.state['M'], self.state['P']
-            sim += [np.array([(M[i],P[i]) for i in range(1, nb_genes)], 
-                             dtype=types)]
+            states[t] = self.state[:, 1:]
         
         # Display info about steps
         if self.is_verbose:
@@ -113,16 +107,16 @@ class ApproxODE(Simulation):
                 print(f'ODE simulation used {c} steps (step size = {dt:.5f})')
             else: 
                 print('ODE simulation used no step')
-        return np.array(sim)
+        return states
 
     def _step(self, basal, inter, d0, d1, s1, k0, k1, b, dt):
         """
         Euler step for the deterministic limit model.
         """
-        m, p = self.state['M'], self.state['P']
+        m, p = self.state
         a = kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
         m_new = a/b # Mean level of mRNA given protein levels
         p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
         m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
         
-        self.state['M'], self.state['P'] = m_new, p_new
+        self.state[0], self.state[1] = m_new, p_new

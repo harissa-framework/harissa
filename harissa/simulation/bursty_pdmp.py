@@ -42,16 +42,14 @@ class BurstyPDMP(Simulation):
 
         nb_genes = basal.size
 
-        # Default state
-        types = [('M','float'), ('P','float')]
-        self.state = np.array([(0,0) for i in range(nb_genes)], dtype=types)
-        # state  = np.zeros((2, nb_genes))
+        # Default state: row 0 <-> M, row 1 <-> P
+        self.state = np.zeros((2, nb_genes))
 
         # Burnin simulation without stimulus
         if self.M0 is not None:
-            self.state['M'][1:] = self.M0[1:]
+            self.state[0, 1:] = self.M0[1:]
         if self.P0 is not None: 
-            self.state['P'][1:] = self.P0[1:]
+            self.state[1, 1:] = self.P0[1:]
         if self.burn_in is not None: 
             self._simulation(time_points=np.array([self.burn_in]),
                              basal=basal,
@@ -65,7 +63,7 @@ class BurstyPDMP(Simulation):
                              tau=tau)
         
         # Activate the stimulus
-        self.state['P'][0] = 1
+        self.state[1, 0] = 1
         # Final simulation with stimulus
         res = self._simulation(time_points=time_points,
                                basal=basal,
@@ -78,28 +76,23 @@ class BurstyPDMP(Simulation):
                                b=burst_size,
                                tau=tau)
         
-        return Simulation.Result(time_points, res['M'], res['P'])
-        # return Simulation.Result(time_points, res[:, 0], res[:, 1])
+        return Simulation.Result(time_points, res[:, 0], res[:, 1])
 
     def _simulation(self, time_points, basal, inter, 
                     d0, d1, s1, k0, k1, b, tau):
         """
         Exact simulation of the network in the bursty PDMP case.
         """
-        types = [('M','float'), ('P','float')]
         nb_genes = basal.size
-        # states = np.empty((time_points.size, 2, nb_genes - 1))
-        sim = [] # List of states to be recorded
+        states = np.empty((time_points.size, 2, nb_genes - 1))
         phantom_jump_count, true_jump_count = 0, 0
         t = 0
         # Core loop for simulation
         for time_point in time_points:
             # Recording
-            M, P = flow(time_point - t, self.state, d0, d1, s1)
-            sim += [np.array([(M[i],P[i]) for i in range(1, nb_genes)], 
-                             dtype=types)]
-            # states[time_point, 0] = M[1:]
-            # states[time_point, 1] = P[1:]
+            m, p = flow(time_point - t, self.state, d0, d1, s1)
+            states[time_point, 0] = m[1:]
+            states[time_point, 1] = p[1:]
 
             while t < time_point:
                 U, jump = self._step(basal, inter, d0, d1, s1, k0, k1, b, tau)
@@ -119,7 +112,7 @@ class BurstyPDMP(Simulation):
             else: 
                 print('Exact simulation used no jump')
 
-        return np.array(sim)
+        return states
 
     def _step(self, basal, inter, d0, d1, s1, k0, k1, b, tau):
         """
@@ -136,16 +129,15 @@ class BurstyPDMP(Simulation):
         U = np.random.exponential(scale=1/tau)
         
         # 1. Update the continuous states
-        self.state['M'], self.state['P'] = flow(U, self.state, d0, d1, s1)
+        self.state = flow(U, self.state, d0, d1, s1)
         
         # 2. Compute the next jump
         G = basal.size # Genes plus stimulus
-        v = kon(self.state['P'], k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
+        v = kon(self.state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
         v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
         i = np.random.choice(G, p=v)
         if i > 0:
-            r = b[i]
-            self.state['M'][i] += np.random.exponential(1/r)
+            self.state[0, i] += np.random.exponential(1/b[i])
             jump = True
         
         return U, jump

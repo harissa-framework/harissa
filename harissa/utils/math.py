@@ -60,9 +60,8 @@ def kon_bound(state, basal, inter, d0, d1, s1, k0, k1):
     """
     Compute the current kon upper bound.
     """
-    m, p = state['M'], state['P']
-    # m, p = state
-    # explicit upper bound for p
+    m, p = state
+    # Explicit upper bound for p
     time = np.log(d0/d1)/(d0-d1) # vector of critical times
     p_max = p + (s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
     p_max[0] = p[0] # Discard stimulus
@@ -76,11 +75,10 @@ def flow(time, state, d0, d1, s1):
     """
     Deterministic flow for the bursty model.
     """
-    m, p = state['M'], state['P']
-    # m, p = state
-    # explicit solution of the ode generating the flow
+    m, p = state
+    # Explicit solution of the ode generating the flow
     m_new = m*np.exp(-time*d0)
     p_new = ((s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
             + p*np.exp(-time*d1))
     m_new[0], p_new[0] = m[0], p[0] # discard stimulus
-    return m_new, p_new
+    return np.concatenate((m_new, p_new))
