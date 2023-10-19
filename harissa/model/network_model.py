@@ -3,21 +3,15 @@ Main class for network inference and simulation
 """
 import numpy as np
 from ..inference.hartree import Inference, Hartree
-from ..simulation.bursty_pdmp import Simulation, BurstyPDMP
+from ..simulation.bursty_pdmp_numba import Simulation, BurstyPDMP_Numba
 
 class NetworkModel:
     """
     Handle networks within Harissa.
     """
-    DEFAULT_BURST_FREQUENCY_MIN = 0.0
-    DEFAULT_BURST_FREQUENCY_MAX = 2.0
-    DEFAULT_BURST_SIZE          = 0.02
-    DEFAULT_DEGRADATION_RNA     = np.log(2)/9
-    DEFAULT_DEGRADATION_PROTEIN = np.log(2)/46
-
     def __init__(self, n_genes: int | None = None, *, 
                  inference: Inference = Hartree(), 
-                 simulation: Simulation = BurstyPDMP()):
+                 simulation: Simulation = BurstyPDMP_Numba()):
         # Kinetic parameters
         self.burst_frequency_min : np.ndarray | None = None # Minimal Kon rate (normalized)
         self.burst_frequency_max : np.ndarray | None = None # Maximal Kon rate (normalized)
@@ -39,13 +33,13 @@ class NetworkModel:
         if n_genes is not None:
             G = n_genes + 1 # Genes plus stimulus
             # Default bursting parameters
-            self.burst_frequency_min = np.full(G, self.DEFAULT_BURST_FREQUENCY_MIN)
-            self.burst_frequency_max = np.full(G, self.DEFAULT_BURST_FREQUENCY_MAX)  
-            self.burst_size          = np.full(G, self.DEFAULT_BURST_SIZE)          
-            
+            self.burst_frequency_min = np.full(G, 0.0)
+            self.burst_frequency_max = np.full(G, 2.0)  
+            self.burst_size          = self.burst_frequency_max / 100
+
             # Default degradation rates
-            self.degradation_rna     = np.full(G, self.DEFAULT_DEGRADATION_RNA)     
-            self.degradation_protein = np.full(G, self.DEFAULT_DEGRADATION_PROTEIN) 
+            self.degradation_rna     = np.log(self.burst_frequency_max) / 9.0
+            self.degradation_protein = np.log(self.burst_frequency_max) / 46.0 
             
             # Default network parameters
             self.basal       = np.zeros(G)
@@ -76,8 +70,8 @@ class NetworkModel:
             raise ValueError('Model parameters not yet specified')
         
         # if np.size(time_points) == 1: time_points = np.array([time_points])
-        # if np.any(time_points != np.sort(time_points)):
-        #     raise ValueError('Time points must appear in increasing order')
+        if np.any(time_points != np.sort(time_points)):
+            raise ValueError('Time points must appear in increasing order')
 
         res : Simulation.Result = self.simulation.run(time_points,
                                                       self.burst_frequency_min,

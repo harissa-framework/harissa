@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.special import expit
 
 def estim_gamma(x):
     """
@@ -47,16 +46,27 @@ def transform(x):
         a, b = np.abs(a), np.abs(b)
     return (a + x)/(b + 1)
 
-def kon(p, basal, inter, k0, k1):
+def kon(p: np.ndarray, 
+        basal: np.ndarray, 
+        inter: np.ndarray, 
+        k0: np.ndarray, 
+        k1: np.ndarray) -> float:
     """
     Interaction function kon (off->on rate), given protein levels p.
     """
-    sigma = expit(basal + p @ inter)
-    k_on = (1 - sigma) * k0 + sigma * k1
+    phi = np.exp(basal + p @ inter)
+    k_on = (k0 + k1*phi)/(1 + phi)
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
-def kon_bound(state, basal, inter, d0, d1, s1, k0, k1):
+def kon_bound(state: np.ndarray, 
+              basal: np.ndarray, 
+              inter: np.ndarray, 
+              d0: np.ndarray, 
+              d1: np.ndarray, 
+              s1: np.ndarray, 
+              k0: np.ndarray, 
+              k1: np.ndarray) -> float:
     """
     Compute the current kon upper bound.
     """
@@ -66,12 +76,16 @@ def kon_bound(state, basal, inter, d0, d1, s1, k0, k1):
     p_max = p + (s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
     p_max[0] = p[0] # Discard stimulus
     # Explicit upper bound for Kon
-    sigma = expit(basal + p_max @ ((inter > 0) * inter))
-    k_on = (1-sigma)*k0 + sigma*k1 + 1e-10 # Fix precision errors
+    phi = np.exp(basal + p_max @ ((inter > 0) * inter))
+    k_on = (k0 + k1*phi)/(1 + phi) + 1e-10 # Fix precision errors
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
-def flow(time, state, d0, d1, s1):
+def flow(time: float,
+         state: np.ndarray,
+         d0: np.ndarray,
+         d1: np.ndarray,
+         s1: np.ndarray) -> np.ndarray:
     """
     Deterministic flow for the bursty model.
     """
@@ -81,4 +95,4 @@ def flow(time, state, d0, d1, s1):
     p_new = ((s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
             + p*np.exp(-time*d1))
     m_new[0], p_new[0] = m[0], p[0] # discard stimulus
-    return np.concatenate((m_new, p_new))
+    return np.vstack((m_new, p_new))
