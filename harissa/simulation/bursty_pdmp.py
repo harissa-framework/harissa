@@ -94,13 +94,11 @@ def simulation(state: np.ndarray,
     """
     states = np.empty((time_points.size, *state.shape))
     phantom_jump_count, true_jump_count = 0, 0
-    t = 0.0
+    t, t_old, state_old = 0.0, 0.0, state
     # Core loop for simulation
     for i, time_point in enumerate(time_points):
-        # Recording
-        states[i] = flow(time_point - t, state, d0, d1, s1)
-
         while t < time_point:
+            t_old, state_old = t, state
             U, jump, state = step(state, basal, inter, d0, d1, 
                                   s1, k0, k1, b, tau)
             t += U
@@ -108,6 +106,9 @@ def simulation(state: np.ndarray,
                 true_jump_count += 1
             else: 
                 phantom_jump_count += 1
+        # Recording
+        states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
+
 
     return states, phantom_jump_count, true_jump_count
 
@@ -154,11 +155,11 @@ class BurstyPDMP(Simulation):
                              d1=degradation_protein,
                              s1=s1, k0=k0, k1=k1, b=burst_size,
                              tau=tau)
-            state = res[0][-1]
+            state = res[0][-1] # Update the current state
             self._display_jump_info(res[1], res[2])
         
         # Activate the stimulus
-        state[1, 0] = 1
+        state[1, 0] = 1.0
         # Final simulation with stimulus
         res = simulation(state=state,
                          time_points=time_points,
