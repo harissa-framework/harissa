@@ -107,11 +107,11 @@ class BurstyPDMP_Numba(BurstyPDMP):
         """
         Perform simulation of the network model (bursty PDMP version).
         """
-        state, k0, k1, s1, tau = super()._prepare_run(burst_frequency_min,
-                                                      burst_frequency_max,
-                                                      burst_size,
-                                                      degradation_rna,
-                                                      degradation_protein)
+        state, k0, k1, s1, tau = self._prepare_run(burst_frequency_min,
+                                                   burst_frequency_max,
+                                                   burst_size,
+                                                   degradation_rna,
+                                                   degradation_protein)
         if self.burn_in is not None: 
             res = simulation(state=state,
                              time_points=np.array([self.burn_in]),
@@ -122,7 +122,7 @@ class BurstyPDMP_Numba(BurstyPDMP):
                              s1=s1, k0=k0, k1=k1, b=burst_size,
                              tau=tau)
             state = res[0][-1]
-            super()._display_jump_info(res[1], res[2])
+            self._display_jump_info(res[1], res[2])
         
         # Activate the stimulus
         state[1, 0] = 1
@@ -136,6 +136,6 @@ class BurstyPDMP_Numba(BurstyPDMP):
                          s1=s1, k0=k0, k1=k1, b=burst_size,
                          tau=tau)
         states = res[0][..., 1:]
-        super()._display_jump_info(res[1], res[2])
+        self._display_jump_info(res[1], res[2])
 
         return BurstyPDMP.Result(time_points, states[:, 0], states[:, 1])
