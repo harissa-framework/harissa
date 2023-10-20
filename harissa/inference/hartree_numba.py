@@ -1,24 +1,16 @@
 """
 Core functions for network inference using likelihood maximization
 """
-from .inference import Inference
-from ..utils.math import estim_gamma_poisson
+from .hartree import Hartree, p1, grad_p1, infer_proteins
 import numpy as np
-from scipy.special import psi, polygamma, expit, gammaln
+from scipy.special import psi, expit, gammaln
 from scipy.optimize import minimize
+from numba import njit
 
-def p1(x, s):
-    """
-    Smoothed L1 penalization.
-    """
-    return (x-s/2)*(x>s) - (x+s/2)*(-x>s) + ((x**2)/(2*s))*(x<=s and -x<=s)
+p1 = njit()(p1)
+grad_p1 = njit()(grad_p1)
 
-def grad_p1(x, s):
-    """
-    Smoothed L1 penalization gradient.
-    """
-    return 1*(x>s) - 1*(-x>s) + (x/s)*(x<=s and -x<=s)
-
+@njit
 def penalization(theta, theta0, t, s):
     """
     Penalization of network parameters.
@@ -41,6 +33,7 @@ def penalization(theta, theta0, t, s):
     # Final penalization
     return p
 
+@njit
 def grad_penalization(theta, theta0, t, s):
     """
     Penalization gradient of network parameters.
@@ -102,92 +95,6 @@ def grad_theta(theta, theta0, x, y, a, c, d, l, t, s):
     dq = l*grad_penalization(theta, theta0, t, s) - dq/C
     return dq.reshape(nb_genes**2)
 
-def infer_kinetics(x: np.ndarray, 
-                   times: np.ndarray, 
-                   tolerance: float, 
-                   max_iteration: int) -> tuple[np.ndarray, np.ndarray, int]:
-    """
-    Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson 
-    model with time-dependant a and constant b 
-    for a given gene at m time points.
-
-    Parameters
-    ----------
-    x[k] = gene expression in cell k
-    times[k] = time point of cell k
-    """
-    t = np.sort(list(set(times)))
-    m = t.size
-    n = np.zeros(m) # Number of cells for each time point
-    a = np.zeros(m)
-    b = np.zeros(m)
-    # Initialization of a and b
-    for i in range(m):
-        cells = (times == t[i])
-        n[i] = np.sum(cells)
-        a[i], b[i] = estim_gamma_poisson(x[cells])
-    b = np.mean(b)
-    # Newton-like method
-    k, c = 0, 0
-    sx = np.sum(x)
-    while (k == 0) or (k < max_iteration and c > tolerance):
-        da = np.zeros(m)
-        for i in range(m):
-            if a[i] > 0:
-                cells = (times == t[i])
-                z = a[i] + x[cells]
-                p0 = np.sum(psi(z))
-                p1 = np.sum(polygamma(1, z))
-                d = n[i]*(np.log(b)-np.log(b+1)-psi(a[i])) + p0
-                h = p1 - n[i]*polygamma(1, a[i])
-                da[i] = -d/h
-        anew = a + da
-        if np.sum(anew < 0) == 0: 
-            a[:] = anew
-        else:
-            max_test = 5
-            test = 0
-            da *= 0.5
-            while (np.sum(a + da < 0) > 0) and (test < max_test):
-                da *= 0.5
-                test += 1
-            if test < max_test: 
-                a[:] = a + da
-            else: 
-                print('Warning: parameter a not improved')
-        b = np.sum(n*a)/sx if np.sum(a == 0) == 0 else 1
-        c = np.max(np.abs(da))
-        k += 1
-    if (k == max_iteration) and (c > tolerance):
-        # print('Warning: bad convergence (b = {})'.format(b))
-        a, b = a/b, 1
-    if np.sum(a < 0) > 0:
-        print('WARNING: a < 0')
-    if b < 0: 
-        print('WARNING: b < 0')
-    if np.all(a == 0): 
-        print('WARNING: a == 0')
-    # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
-    return a, b, k
-
-def infer_proteins(x: np.ndarray, a: np.ndarray) -> np.ndarray:
-    """
-    Estimate y directly from data.
-    """
-    nb_cells, nb_genes = x.shape
-    y = np.ones((nb_cells, nb_genes))
-    z = np.ones((2, nb_genes))
-    z[0] = a[0]/a[1]
-    z[z<1e-5] = 1e-5
-    az = a[1]*z
-    for k in range(nb_cells):
-        v = az*np.log(a[2]/(a[2]+1)) + gammaln(az+x[k]) - gammaln(az)
-        for i in range(1, nb_genes):
-            y[k,i] = z[np.argmax(v[:,i]),i]
-    # Stimulus off at t <= 0
-    y[x[:, 0]<=0, 0] = 0
-    return y
-
 def infer_network(x: np.ndarray,
                   y: np.ndarray,
                   a: np.ndarray,
@@ -232,21 +139,19 @@ def infer_network(x: np.ndarray,
         theta[t] = theta0
     return theta, res.nit
 
-class Hartree(Inference):    
+class Hartree_Numba(Hartree):    
     def __init__(self, 
-                 penalization_strength: float = 1.0, 
+                 penalization_strength : float = 1, 
                  tolerance: float = 1e-5, 
                  max_iteration: int = 100, 
                  verbose: bool = False):
-        self.penalization_strength: float = penalization_strength
-        self.tolerance: float = tolerance
-        self.max_iteration: int = max_iteration
-        self.is_verbose: bool = verbose
-        # Smoothing threshold
-        self.smoothing_threshold: float = 0.1
+        super().__init__(penalization_strength, 
+                         tolerance, 
+                         max_iteration, 
+                         verbose)
 
 
-    def run(self, data: np.ndarray) -> Inference.Result:
+    def run(self, data: np.ndarray) -> Hartree.Result:
         """
         Infers the network model from the data.
         """
@@ -272,49 +177,16 @@ class Hartree(Inference):
         basal_time = {time: np.zeros(nb_genes) for time in times}
         inter_time = {time: np.zeros((nb_genes, nb_genes)) for time in times}
         for t, time in enumerate(times):
-            basal_time[time] = theta[t][:, 0]
-            inter_time[time][:, 1:] = theta[t][:, 1:]
+            basal_time[time][:] = theta[t][:,0]
+            inter_time[time][:,1:] = theta[t][:,1:]
         
-        res = Inference.Result(burst_frequency_min=a[0], 
-                               burst_frequency_max=a[1], 
-                               burst_size=a[2],
-                               basal=basal_time[times[-1]],
-                               interaction=inter_time[times[-1]])
+        res = Hartree.Result(burst_frequency_min=a[0], 
+                             burst_frequency_max=a[1], 
+                             burst_size=a[2],
+                             basal=basal_time[times[-1]],
+                             interaction=inter_time[times[-1]])
         res.basal_time = basal_time
         res.interaction_time = inter_time
         res.y = y
-
+        
         return res
-    
-        # TODO test this syntax
-        # return Inference.Result(burst_frequency_min=a[0], 
-        #                         burst_frequency_max=a[1], 
-        #                         burst_size=a[2],
-        #                         basal=basal_time.items()[-1], 
-        #                         basal_time=basal_time,
-        #                         interaction=inter_time.items()[-1],
-        #                         interaction_time=inter_time)
-
-    def get_kinetics(self, data: np.ndarray) -> np.ndarray:
-        """
-        Compute the basal parameters of all genes.
-        """
-        times = data[:, 0]
-        # nb_genes = data[0].size
-        nb_genes = data.shape[1]
-        # Kinetic values for each gene
-        a = np.empty((3, nb_genes))
-        a[:, 0] = 1.0
-        for g in range(1, nb_genes):
-            if self.is_verbose:
-                print(f'Calibrating gene {g}...')
-            a_g, b_g, k = infer_kinetics(x=data[:, g], 
-                                         times=times, 
-                                         tolerance=self.tolerance, 
-                                         max_iteration=self.max_iteration)
-            if self.is_verbose:
-                print(f'Estimation done in {k} iterations')
-            a[0, g] = np.min(a_g)
-            a[1, g] = np.max(a_g)
-            a[2, g] = b_g
-        return a

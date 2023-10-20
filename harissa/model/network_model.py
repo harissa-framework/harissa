@@ -2,7 +2,7 @@
 Main class for network inference and simulation
 """
 import numpy as np
-from ..inference.hartree import Inference, Hartree
+from ..inference.hartree_numba import Inference, Hartree_Numba
 from ..simulation.bursty_pdmp_numba import Simulation, BurstyPDMP_Numba
 
 class NetworkModel:
@@ -10,7 +10,7 @@ class NetworkModel:
     Handle networks within Harissa.
     """
     def __init__(self, n_genes: int | None = None, *, 
-                 inference: Inference = Hartree(), 
+                 inference: Inference = Hartree_Numba()(), 
                  simulation: Simulation = BurstyPDMP_Numba()):
         # Kinetic parameters
         self.burst_frequency_min : np.ndarray | None = None # Minimal Kon rate (normalized)
