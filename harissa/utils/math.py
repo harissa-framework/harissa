@@ -1,5 +1,9 @@
 import numpy as np
 
+## --------------------------
+## ------- Inference --------
+## --------------------------
+
 def estim_gamma(x):
     """
     Estimate the parameters of a gamma distribution using
@@ -45,6 +49,11 @@ def transform(x):
             'almost zero (sum(x) = {}).').format(np.sum(x)))
         a, b = np.abs(a), np.abs(b)
     return (a + x)/(b + 1)
+
+
+## --------------------------
+## ------ Simulation --------
+## --------------------------
 
 def kon(p: np.ndarray, 
         basal: np.ndarray, 
