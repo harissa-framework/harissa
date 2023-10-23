@@ -59,7 +59,7 @@ def kon(p: np.ndarray,
         basal: np.ndarray, 
         inter: np.ndarray, 
         k0: np.ndarray, 
-        k1: np.ndarray) -> float:
+        k1: np.ndarray) -> np.ndarray:
     """
     Interaction function kon (off->on rate), given protein levels p.
     """
@@ -75,7 +75,7 @@ def kon_bound(state: np.ndarray,
               d1: np.ndarray, 
               s1: np.ndarray, 
               k0: np.ndarray, 
-              k1: np.ndarray) -> float:
+              k1: np.ndarray) -> np.ndarray:
     """
     Compute the current kon upper bound.
     """
