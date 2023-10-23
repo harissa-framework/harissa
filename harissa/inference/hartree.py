@@ -13,11 +13,17 @@ def p1(x, s):
     """
     return (x-s/2)*(x>s) - (x+s/2)*(-x>s) + ((x**2)/(2*s))*(x<=s and -x<=s)
 
+_p1 = p1
+_p1_jit = None
+
 def grad_p1(x, s):
     """
     Smoothed L1 penalization gradient.
     """
     return 1*(x>s) - 1*(-x>s) + (x/s)*(x<=s and -x<=s)
+
+_grad_p1 = grad_p1
+_grad_p1_jit = None
 
 def penalization(theta, theta0, t, s):
     """
@@ -25,21 +31,24 @@ def penalization(theta, theta0, t, s):
     """
     nb_genes = theta.shape[0]
     p = 0
-    for i in range (1, nb_genes):
+    for i in range(1, nb_genes):
         # Penalization of basal parameters
-        p += 2 * t * p1(theta[i,0]-theta0[i,0], s)
+        p += 2 * t * _p1(theta[i,0]-theta0[i,0], s)
         # Penalization of stimulus parameters
-        p += t * p1(theta[0,i]-theta0[0,i], s)
+        p += t * _p1(theta[0,i]-theta0[0,i], s)
         # Penalization of diagonal parameters
         p += (theta[i,i]-theta0[i,i])**2
         for j in range(1, nb_genes):
             # Penalization of interaction parameters
-            p += p1(theta[i,j]-theta0[i,j], s)
+            p += _p1(theta[i,j]-theta0[i,j], s)
             if i < j:
                 # Competition between interaction parameters
-                p += p1(theta[i,j], s) * p1(theta[j,i], s)
+                p += _p1(theta[i,j], s) * _p1(theta[j,i], s)
     # Final penalization
     return p
+
+_penalization = penalization
+_penalization_jit = None
 
 def grad_penalization(theta, theta0, t, s):
     """
@@ -49,19 +58,22 @@ def grad_penalization(theta, theta0, t, s):
     gradp = np.zeros((nb_genes, nb_genes))
     for i in range (1, nb_genes):
         # Penalization of basal parameters
-        gradp[i,0] += 2 * t * grad_p1(theta[i,0]-theta0[i,0], s)
+        gradp[i,0] += 2 * t * _grad_p1(theta[i,0]-theta0[i,0], s)
         # Penalization of stimulus parameters
-        gradp[0,i] += t * grad_p1(theta[0,i]-theta0[0,i], s)
+        gradp[0,i] += t * _grad_p1(theta[0,i]-theta0[0,i], s)
         # Penalization of diagonal parameters
         gradp[i,i] += 2*(theta[i,i]-theta0[i,i])
         for j in range(1, nb_genes):
             # Penalization of interaction parameters
-            gradp[i,j] += grad_p1(theta[i,j]-theta0[i,j], s)
+            gradp[i,j] += _grad_p1(theta[i,j]-theta0[i,j], s)
             if i != j:
                 # Competition between interaction parameters
-                gradp[i,j] += grad_p1(theta[i,j], s) * p1(theta[j,i], s)
+                gradp[i,j] += _grad_p1(theta[i,j], s) * _p1(theta[j,i], s)
     # Final penalization
     return gradp
+
+_grad_penalization = grad_penalization
+_grad_penalization_jit = None
 
 def objective(theta, theta0, x, y, a, c, d, l, t, s):
     """
@@ -78,7 +90,7 @@ def objective(theta, theta0, x, y, a, c, d, l, t, s):
     cxi = c * (e + (1-e)*sigma)
     q = (d*ay + gammaln(ay + x) - gammaln(ay) - c*y
         + (cxi-1)*np.log(y) + np.log(c)*cxi - gammaln(cxi))
-    return l*penalization(theta, theta0, t, s) - np.sum(q)/C
+    return l*_penalization(theta, theta0, t, s) - np.sum(q)/C
 
 def grad_theta(theta, theta0, x, y, a, c, d, l, t, s):
     """
@@ -99,7 +111,7 @@ def grad_theta(theta, theta0, x, y, a, c, d, l, t, s):
     dq[1:,0] += np.sum(u, axis=0)
     # Interaction parameters
     dq[:,1:] += y.T @ u
-    dq = l*grad_penalization(theta, theta0, t, s) - dq/C
+    dq = l*_grad_penalization(theta, theta0, t, s) - dq/C
     return dq.reshape(nb_genes**2)
 
 def infer_kinetics(x: np.ndarray, 
@@ -232,18 +244,53 @@ def infer_network(x: np.ndarray,
         theta[t] = theta0
     return theta, res.nit
 
-class Hartree(Inference):    
+class Hartree(Inference):
     def __init__(self, 
                  penalization_strength: float = 1.0, 
                  tolerance: float = 1e-5, 
                  max_iteration: int = 100, 
-                 verbose: bool = False):
+                 verbose: bool = False,
+                 use_numba: bool = True):
         self.penalization_strength: float = penalization_strength
         self.tolerance: float = tolerance
         self.max_iteration: int = max_iteration
         self.is_verbose: bool = verbose
         # Smoothing threshold
         self.smoothing_threshold: float = 0.1
+        self._use_numba = False
+        self.use_numba = use_numba
+
+    @property
+    def use_numba(self):
+        return self._use_numba
+    
+    @use_numba.setter
+    def use_numba(self, use_numba: bool):
+        global _p1, _p1_jit
+        global _grad_p1, _grad_p1_jit
+        global _penalization, _penalization_jit
+        global _grad_penalization, _grad_penalization_jit
+
+        if self._use_numba != use_numba:
+            if use_numba:
+                if _p1_jit is None:
+                    from numba import njit
+                    _p1_jit = njit()(p1)
+                    _grad_p1_jit = njit()(grad_p1)
+                    _penalization_jit = njit()(penalization)
+                    _grad_penalization = njit()(grad_penalization)
+                _p1 = _p1_jit
+                _grad_p1 = _grad_p1_jit
+                _penalization = _penalization_jit
+                _grad_penalization = _grad_penalization_jit
+            else:
+                _p1 = p1
+                _grad_p1 = grad_p1
+                _penalization = penalization
+                _grad_penalization = grad_penalization
+            
+            self._use_numba = use_numba
+            
 
 
     def run(self, data: np.ndarray) -> Inference.Result:

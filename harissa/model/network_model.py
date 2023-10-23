@@ -2,16 +2,16 @@
 Main class for network inference and simulation
 """
 import numpy as np
-from ..inference.hartree_numba import Inference, Hartree_Numba
-from ..simulation.bursty_pdmp_numba import Simulation, BurstyPDMP_Numba
+from ..inference.hartree import Inference, Hartree
+from ..simulation.bursty_pdmp import Simulation, BurstyPDMP
 
 class NetworkModel:
     """
     Handle networks within Harissa.
     """
     def __init__(self, n_genes: int | None = None, *, 
-                 inference: Inference = Hartree_Numba()(), 
-                 simulation: Simulation = BurstyPDMP_Numba()):
+                 inference: Inference = Hartree(), 
+                 simulation: Simulation = BurstyPDMP()):
         # Kinetic parameters
         self.burst_frequency_min : np.ndarray | None = None # Minimal Kon rate (normalized)
         self.burst_frequency_max : np.ndarray | None = None # Maximal Kon rate (normalized)
@@ -69,7 +69,13 @@ class NetworkModel:
             or self.interaction is None):
             raise ValueError('Model parameters not yet specified')
         
-        # if np.size(time_points) == 1: time_points = np.array([time_points])
+        nb_dim = time_points.ndim 
+        if nb_dim == 0:
+            time_points = np.array([time_points])
+        elif nb_dim >= 2:
+            raise ValueError(f'Time points is a {nb_dim}D np.ndarray. '
+                              'It must be a 0D or 1D np.ndarray.')
+        
         if np.any(time_points != np.sort(time_points)):
             raise ValueError('Time points must appear in increasing order')
 

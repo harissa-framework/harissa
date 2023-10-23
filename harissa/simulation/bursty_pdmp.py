@@ -42,6 +42,12 @@ import numpy as np
 #     k_on[0] = 0 # Ignore stimulus
 #     return k_on
 
+_kon_jit = None
+_kon_bound_jit = None
+
+_flow = flow
+_flow_jit = None
+
 def step(state: np.ndarray,
          basal: np.ndarray,
          inter: np.ndarray,
@@ -78,6 +84,43 @@ def step(state: np.ndarray,
     
     return U, jump, state
 
+def _step_jit(state: np.ndarray,
+              basal: np.ndarray,
+              inter: np.ndarray,
+              d0: np.ndarray, 
+              d1: np.ndarray,
+              s1: np.ndarray,
+              k0: np.ndarray,
+              k1: np.ndarray,
+              b: np.ndarray,
+              tau: float | None) -> tuple[float, bool, np.ndarray]:
+    """
+    Compute the next jump and the next step of the
+    thinning method, in the case of the bursty model.
+    """
+    if tau is None:
+        # Adaptive thinning parameter
+        tau = np.sum(_kon_bound_jit(state, basal, inter, d0, d1, s1, k0, k1))
+    jump = False # Test if the jump is a true or phantom jump
+    
+    # 0. Draw the waiting time before the next jump
+    U = np.random.exponential(scale=1/tau)
+    
+    # 1. Update the continuous states
+    state = _flow_jit(U, state, d0, d1, s1)
+    
+    # 2. Compute the next jump
+    v = _kon_jit(state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
+    v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
+    i = np.nonzero(np.random.multinomial(1, v))[0][0]
+    if i > 0:
+        state[0, i] += np.random.exponential(1/b[i])
+        jump = True
+    
+    return U, jump, state
+
+_step = step
+
 def simulation(state: np.ndarray, 
                time_points: np.ndarray, 
                basal: np.ndarray, 
@@ -99,18 +142,21 @@ def simulation(state: np.ndarray,
     for i, time_point in enumerate(time_points):
         while t < time_point:
             t_old, state_old = t, state
-            U, jump, state = step(state, basal, inter, d0, d1, 
-                                  s1, k0, k1, b, tau)
+            U, jump, state = _step(state, basal, inter, d0, d1, 
+                                   s1, k0, k1, b, tau)
             t += U
             if jump:
                 true_jump_count += 1
             else: 
                 phantom_jump_count += 1
         # Recording
-        states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
+        states[i] = _flow(time_point - t_old, state_old, d0, d1, s1)
 
 
     return states, phantom_jump_count, true_jump_count
+
+_simulation = simulation
+_simulation_jit = None
 
 class BurstyPDMP(Simulation):
     """
@@ -120,12 +166,45 @@ class BurstyPDMP(Simulation):
     def __init__(self, 
                  M0: np.ndarray | None = None, P0: np.ndarray | None = None, 
                  burnin: float | None = None, 
-                 thin_adapt: bool = True, verbose: bool = False) -> None:
+                 thin_adapt: bool = True, 
+                 verbose: bool = False, use_numba: bool = True) -> None:
         self.M0 : np.ndarray | None = M0
         self.P0 : np.ndarray | None = P0
         self.burn_in : float | None = burnin
         self.thin_adapt : bool  = thin_adapt
         self.is_verbose : bool  = verbose
+        self._use_numba: bool = False
+        self.use_numba = use_numba
+
+    @property
+    def use_numba(self):
+        return self._use_numba
+    
+    @use_numba.setter
+    def use_numba(self, use_numba: bool):
+        global _kon_jit, _kon_bound_jit
+        global _flow, _flow_jit
+        global _step, _step_jit
+        global _simulation, _simulation_jit
+
+        if self._use_numba != use_numba:
+            if use_numba:
+                if _flow_jit is None:
+                    from numba import njit
+                    _kon_jit = njit()(kon)
+                    _kon_bound_jit = njit()(kon_bound)
+                    _flow_jit = njit()(flow)
+                    _step_jit = njit()(_step_jit)
+                    _simulation_jit = njit()(simulation)
+                _flow = _flow_jit
+                _step = _step_jit
+                _simulation = _simulation_jit
+            else:
+                _flow = flow
+                _step = step
+                _simulation = simulation
+            
+            self._use_numba = use_numba
     
     def run(self, 
             time_points: np.ndarray, 
@@ -147,28 +226,28 @@ class BurstyPDMP(Simulation):
         
         # Burnin simulation without stimulus
         if self.burn_in is not None: 
-            res = simulation(state=state,
-                             time_points=np.array([self.burn_in]),
-                             basal=basal,
-                             inter=interaction,
-                             d0=degradation_rna,
-                             d1=degradation_protein,
-                             s1=s1, k0=k0, k1=k1, b=burst_size,
-                             tau=tau)
+            res = _simulation(state=state,
+                              time_points=np.array([self.burn_in]),
+                              basal=basal,
+                              inter=interaction,
+                              d0=degradation_rna,
+                              d1=degradation_protein,
+                              s1=s1, k0=k0, k1=k1, b=burst_size,
+                              tau=tau)
             state = res[0][-1] # Update the current state
             self._display_jump_info(res[1], res[2])
         
         # Activate the stimulus
         state[1, 0] = 1.0
         # Final simulation with stimulus
-        res = simulation(state=state,
-                         time_points=time_points,
-                         basal=basal,
-                         inter=interaction,
-                         d0=degradation_rna,
-                         d1=degradation_protein,
-                         s1=s1, k0=k0, k1=k1, b=burst_size,
-                         tau=tau)
+        res = _simulation(state=state,
+                          time_points=time_points,
+                          basal=basal,
+                          inter=interaction,
+                          d0=degradation_rna,
+                          d1=degradation_protein,
+                          s1=s1, k0=k0, k1=k1, b=burst_size,
+                          tau=tau)
         states = res[0][..., 1:]
         self._display_jump_info(res[1], res[2])
         
