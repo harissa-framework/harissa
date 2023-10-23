@@ -257,15 +257,15 @@ class Hartree(Inference):
         self.is_verbose: bool = verbose
         # Smoothing threshold
         self.smoothing_threshold: float = 0.1
-        self._use_numba = False
-        self.use_numba = use_numba
+        self._use_numba: bool = False
+        self.use_numba: bool = use_numba
 
     @property
-    def use_numba(self):
+    def use_numba(self) -> bool:
         return self._use_numba
     
     @use_numba.setter
-    def use_numba(self, use_numba: bool):
+    def use_numba(self, use_numba: bool) -> None:
         global _p1, _p1_jit
         global _grad_p1, _grad_p1_jit
         global _penalization, _penalization_jit
@@ -278,7 +278,7 @@ class Hartree(Inference):
                     _p1_jit = njit()(p1)
                     _grad_p1_jit = njit()(grad_p1)
                     _penalization_jit = njit()(penalization)
-                    _grad_penalization = njit()(grad_penalization)
+                    _grad_penalization_jit = njit()(grad_penalization)
                 _p1 = _p1_jit
                 _grad_p1 = _grad_p1_jit
                 _penalization = _penalization_jit

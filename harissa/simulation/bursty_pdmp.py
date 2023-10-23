@@ -167,21 +167,22 @@ class BurstyPDMP(Simulation):
                  M0: np.ndarray | None = None, P0: np.ndarray | None = None, 
                  burnin: float | None = None, 
                  thin_adapt: bool = True, 
-                 verbose: bool = False, use_numba: bool = True) -> None:
+                 verbose: bool = False, 
+                 use_numba: bool = True) -> None:
         self.M0 : np.ndarray | None = M0
         self.P0 : np.ndarray | None = P0
         self.burn_in : float | None = burnin
         self.thin_adapt : bool  = thin_adapt
         self.is_verbose : bool  = verbose
         self._use_numba: bool = False
-        self.use_numba = use_numba
+        self.use_numba: bool = use_numba
 
     @property
-    def use_numba(self):
+    def use_numba(self) -> bool:
         return self._use_numba
     
     @use_numba.setter
-    def use_numba(self, use_numba: bool):
+    def use_numba(self, use_numba: bool) -> None:
         global _kon_jit, _kon_bound_jit
         global _flow, _flow_jit
         global _step, _step_jit

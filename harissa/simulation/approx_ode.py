@@ -5,6 +5,9 @@ from .bursty_pdmp import Simulation
 from ..utils.math import kon 
 import numpy as np
 
+_kon = kon
+_kon_jit = None
+
 def step(state: np.ndarray,
          basal: np.ndarray,
          inter: np.ndarray,
@@ -15,13 +18,15 @@ def step(state: np.ndarray,
     Euler step for the deterministic limit model.
     """
     m, p = state
-    a = kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
+    a = _kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
     m_new = a/b # Mean level of mRNA given protein levels
     p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
     m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
     
     return np.vstack((m_new, p_new))
 
+_step = step
+_step_jit = None
 
 def simulation(state: np.ndarray,
                time_points: np.ndarray,
@@ -47,22 +52,60 @@ def simulation(state: np.ndarray,
     # Core loop for simulation and recording
     for i, time_point in enumerate(time_points):
         while t < time_point:
-            state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
+            state = _step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
             t += dt
             step_count += 1
         states[i] = state
     
     return states, step_count, dt
 
+_simulation = simulation
+_simulation_jit = None
+
 class ApproxODE(Simulation):
     """
     ODE version of the network model (very rough approximation of the PDMP)
     """
-    def __init__(self, M0=None, P0=None, burnin=None, verbose=False):
-        self.M0 : np.ndarray | None = M0
-        self.P0 : np.ndarray | None = P0
-        self.burn_in : float | None = burnin
-        self.is_verbose : bool  = verbose
+    def __init__(self, 
+                 M0: np.ndarray | None = None, 
+                 P0: np.ndarray | None = None, 
+                 burnin: float | None = None, 
+                 verbose: bool = False, 
+                 use_numba: bool = True):
+        self.M0: np.ndarray | None = M0
+        self.P0: np.ndarray | None = P0
+        self.burn_in: float | None = burnin
+        self.is_verbose: bool  = verbose
+        self._use_numba: bool = False
+        self.use_numba: bool = use_numba
+
+    @property
+    def use_numba(self) -> bool:
+        return self._use_numba
+    
+    @use_numba.setter
+    def use_numba(self, use_numba: bool) -> None:
+        global _kon, _kon_jit
+        global _step, _step_jit
+        global _simulation, _simulation_jit
+
+        if self._use_numba != use_numba:
+            if use_numba:
+                if _step_jit is None:
+                    from numba import njit
+                    _kon_jit = njit()(kon)
+                    _step_jit = njit()(step)
+                    _simulation_jit = njit()(simulation)
+                _kon = _kon_jit
+                _step = _step_jit
+                _simulation = _simulation_jit
+            else:
+                _kon = kon
+                _step = step
+                _simulation = simulation
+            
+            self._use_numba = use_numba
+    
 
     def run(self, 
             time_points: np.ndarray, 
