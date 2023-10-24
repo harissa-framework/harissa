@@ -22,16 +22,11 @@ class Cascade(NetworkModel):
     """
     def __init__(self, n_genes, autoactiv=False):
         # Get NetworkModel default features
-        super().__init__(self, n_genes)
+        super().__init__(n_genes)
         # New network parameters
         basal, inter = _cascade(n_genes)
         if autoactiv:
-            for i in range(1,n_genes+1):
+            for i in range(1, n_genes+1):
                 inter[i,i] = 5
         self.basal = basal
         self.inter = inter
-
-# Tests
-if __name__ == '__main__':
-    basal, inter = _cascade(5)
-    print(inter)

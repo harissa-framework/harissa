@@ -16,10 +16,15 @@ def _loop_erasure(path):
     """
     Compute the loop erasure of a given path.
     """
-    if path[0] == path[-1]: return [path[0]]
-    else: i = np.max(np.arange(len(path))*(np.array(path)==path[0]))
-    if path[i+1] == path[-1]: return [path[0], path[i+1]]
-    else: return [path[0]] + _loop_erasure(path[i+1:])
+    if path[0] == path[-1]: 
+        return [path[0]]
+    else: 
+        i = np.max(np.arange(len(path))*(np.array(path)==path[0]))
+    
+    if path[i+1] == path[-1]: 
+        return [path[0], path[i+1]]
+    else: 
+        return [path[0]] + _loop_erasure(path[i+1:])
 
 def _random_tree(a):
     """
@@ -30,6 +35,7 @@ def _random_tree(a):
     tree = [[] for i in range(n)]
     v = {0} # Vertices of the tree
     r = list(range(1,n)) # Remaining vertices
+    
     while len(r) > 0:
         state = r[0]
         path = [state]
@@ -43,7 +49,10 @@ def _random_tree(a):
             v.add(path[i])
             r.remove(path[i])
             tree[path[i+1]].append(path[i])
-    for i in range(n): tree[i].sort()
+    
+    for i in range(n): 
+        tree[i].sort()
+    
     return tuple([tuple(tree[i]) for i in range(n)])
 
 # Main function
@@ -57,7 +66,8 @@ def _tree(n_genes, weight=None):
     if weight is not None:
         if weight.shape != (G,G):
             raise ValueError('Weight must be n_genes+1 by n_genes+1')
-    else: weight = np.ones((G,G))
+    else: 
+        weight = np.ones((G,G))
     # Enforcing the proper structure
     weight[:,0] = 0
     weight = weight - np.diag(np.diag(weight))
@@ -77,7 +87,7 @@ class Tree(NetworkModel):
     """
     def __init__(self, n_genes, autoactiv=False):
         # Get NetworkModel default features
-        super().__init__(self, n_genes)
+        super().__init__(n_genes)
         # New network parameters
         basal, inter = _tree(n_genes)
         if autoactiv:
@@ -85,10 +95,3 @@ class Tree(NetworkModel):
                 inter[i,i] = 5
         self.basal = basal
         self.inter = inter
-
-
-# Tests
-if __name__ == '__main__':
-    basal, inter = _tree(5)
-    print(basal)
-    print(inter)
