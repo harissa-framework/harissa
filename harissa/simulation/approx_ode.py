@@ -5,61 +5,64 @@ from .bursty_pdmp import Simulation
 from ..utils.math import kon 
 import numpy as np
 
-_kon = kon
-_kon_jit = None
 
-def step(state: np.ndarray,
-         basal: np.ndarray,
-         inter: np.ndarray,
-         d0: np.ndarray, d1: np.ndarray,
-         s1: np.ndarray, k0: np.ndarray, k1: np.ndarray, b: np.ndarray,
-         dt: float) -> np.ndarray:
-    """
-    Euler step for the deterministic limit model.
-    """
-    m, p = state
-    a = _kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
-    m_new = a/b # Mean level of mRNA given protein levels
-    p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
-    m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
+def _create_step(kon):
+    def step(state: np.ndarray,
+             basal: np.ndarray,
+             inter: np.ndarray,
+             d0: np.ndarray, d1: np.ndarray,
+             s1: np.ndarray, k0: np.ndarray, k1: np.ndarray, b: np.ndarray,
+             dt: float) -> np.ndarray:
+        """
+        Euler step for the deterministic limit model.
+        """
+        m, p = state
+        a = kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
+        m_new = a/b # Mean level of mRNA given protein levels
+        p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
+        m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
+        
+        return np.vstack((m_new, p_new))
     
-    return np.vstack((m_new, p_new))
+    return step
 
-_step = step
-_step_jit = None
+step = _create_step(kon)
 
-def simulation(state: np.ndarray,
-               time_points: np.ndarray,
-               basal: np.ndarray,
-               inter: np.ndarray,
-               d0: np.ndarray,
-               d1: np.ndarray,
-               s1: np.ndarray,
-               k0: np.ndarray,
-               k1: np.ndarray,
-               b: np.ndarray,
-               dt:float) -> np.ndarray:
-    """
-    Simulation of the deterministic limit model, which is relevant when
-    promoters and mRNA are much faster than proteins.
-    1. Nonlinear ODE system involving proteins only
-    2. Mean level of mRNA given protein levels
-    """
-    states = np.empty((time_points.size, *state.shape))
-    if time_points.size > 1:
-        dt = np.min([dt, np.min(time_points[1:] - time_points[:-1])])
-    t, step_count = 0.0, 0
-    # Core loop for simulation and recording
-    for i, time_point in enumerate(time_points):
-        while t < time_point:
-            state = _step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
-            t += dt
-            step_count += 1
-        states[i] = state
+def _create_simulation(step):
+    def simulation(state: np.ndarray,
+                time_points: np.ndarray,
+                basal: np.ndarray,
+                inter: np.ndarray,
+                d0: np.ndarray,
+                d1: np.ndarray,
+                s1: np.ndarray,
+                k0: np.ndarray,
+                k1: np.ndarray,
+                b: np.ndarray,
+                dt:float) -> np.ndarray:
+        """
+        Simulation of the deterministic limit model, which is relevant when
+        promoters and mRNA are much faster than proteins.
+        1. Nonlinear ODE system involving proteins only
+        2. Mean level of mRNA given protein levels
+        """
+        states = np.empty((time_points.size, *state.shape))
+        if time_points.size > 1:
+            dt = min(dt, np.min(time_points[1:] - time_points[:-1]))
+        t, step_count = 0.0, 0
+        # Core loop for simulation and recording
+        for i, time_point in enumerate(time_points):
+            while t < time_point:
+                state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
+                t += dt
+                step_count += 1
+            states[i] = state
+        
+        return states, step_count, dt
     
-    return states, step_count, dt
+    return simulation
 
-_simulation = simulation
+simulation = _create_simulation(step)
 _simulation_jit = None
 
 class ApproxODE(Simulation):
@@ -76,7 +79,7 @@ class ApproxODE(Simulation):
         self.P0: np.ndarray | None = P0
         self.burn_in: float | None = burnin
         self.is_verbose: bool  = verbose
-        self._use_numba: bool = False
+        self._use_numba, self._simulation = False, simulation 
         self.use_numba: bool = use_numba
 
     @property
@@ -85,24 +88,18 @@ class ApproxODE(Simulation):
     
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
-        global _kon, _kon_jit
-        global _step, _step_jit
-        global _simulation, _simulation_jit
+        global _simulation_jit
 
         if self._use_numba != use_numba:
             if use_numba:
-                if _step_jit is None:
+                if _simulation_jit is None:
                     from numba import njit
-                    _kon_jit = njit()(kon)
-                    _step_jit = njit()(step)
-                    _simulation_jit = njit()(simulation)
-                _kon = _kon_jit
-                _step = _step_jit
-                _simulation = _simulation_jit
+                    kon_jit = njit()(kon)
+                    step_jit = njit()(_create_step(kon_jit))
+                    _simulation_jit = njit()(_create_simulation(step_jit))
+                self._simulation = _simulation_jit
             else:
-                _kon = kon
-                _step = step
-                _simulation = simulation
+                self._simulation = simulation
             
             self._use_numba = use_numba
     
@@ -131,15 +128,15 @@ class ApproxODE(Simulation):
 
         # Burnin simulation without stimulus
         if self.burn_in is not None: 
-            res = simulation(state=state,
-                               time_points=np.array([self.burn_in]),
-                               basal=basal,
-                               inter=interaction,
-                               d0=degradation_rna,
-                               d1=degradation_protein,
-                               s1=s1, k0=k0, k1=k1,
-                               b=burst_size,
-                               dt=euler_step)
+            res = self._simulation(state=state,
+                                   time_points=np.array([self.burn_in]),
+                                   basal=basal,
+                                   inter=interaction,
+                                   d0=degradation_rna,
+                                   d1=degradation_protein,
+                                   s1=s1, k0=k0, k1=k1,
+                                   b=burst_size,
+                                   dt=euler_step)
             state = res[0][-1]
             self._display_step_info(res[1], res[2])
         
@@ -147,15 +144,15 @@ class ApproxODE(Simulation):
         state[1, 0] = 1
 
         # Final simulation with stimulus
-        res = simulation(state=state, 
-                         time_points=time_points,
-                         basal=basal,
-                         inter=interaction,
-                         d0=degradation_rna,
-                         d1=degradation_protein,
-                         s1=s1, k0=k0, k1=k1,
-                         b=burst_size,
-                         dt=euler_step)
+        res = self._simulation(state=state, 
+                               time_points=time_points,
+                               basal=basal,
+                               inter=interaction,
+                               d0=degradation_rna,
+                               d1=degradation_protein,
+                               s1=s1, k0=k0, k1=k1,
+                               b=burst_size,
+                               dt=euler_step)
         states = res[0][..., 1:]
         self._display_step_info(res[1], res[2])
         

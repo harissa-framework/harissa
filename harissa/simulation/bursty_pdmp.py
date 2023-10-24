@@ -44,8 +44,6 @@ import numpy as np
 
 _kon_jit = None
 _kon_bound_jit = None
-
-_flow = flow
 _flow_jit = None
 
 def step(state: np.ndarray,
@@ -119,43 +117,43 @@ def _step_jit(state: np.ndarray,
     
     return U, jump, state
 
-_step = step
+def _create_simulation(step, flow):
+    def simulation(state: np.ndarray, 
+                time_points: np.ndarray, 
+                basal: np.ndarray, 
+                inter: np.ndarray, 
+                d0: np.ndarray, 
+                d1: np.ndarray, 
+                s1: np.ndarray,
+                k0: np.ndarray,
+                k1: np.ndarray,
+                b: np.ndarray,
+                tau: float | None) -> tuple[np.ndarray, int, int]:
+        """
+        Exact simulation of the network in the bursty PDMP case.
+        """
+        states = np.empty((time_points.size, *state.shape))
+        phantom_jump_count, true_jump_count = 0, 0
+        t, t_old, state_old = 0.0, 0.0, state
+        # Core loop for simulation
+        for i, time_point in enumerate(time_points):
+            while t < time_point:
+                t_old, state_old = t, state
+                U, jump, state = step(state, basal, inter, d0, d1, 
+                                    s1, k0, k1, b, tau)
+                t += U
+                if jump:
+                    true_jump_count += 1
+                else: 
+                    phantom_jump_count += 1
+            # Recording
+            states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
 
-def simulation(state: np.ndarray, 
-               time_points: np.ndarray, 
-               basal: np.ndarray, 
-               inter: np.ndarray, 
-               d0: np.ndarray, 
-               d1: np.ndarray, 
-               s1: np.ndarray,
-               k0: np.ndarray,
-               k1: np.ndarray,
-               b: np.ndarray,
-               tau: float | None) -> tuple[np.ndarray, int, int]:
-    """
-    Exact simulation of the network in the bursty PDMP case.
-    """
-    states = np.empty((time_points.size, *state.shape))
-    phantom_jump_count, true_jump_count = 0, 0
-    t, t_old, state_old = 0.0, 0.0, state
-    # Core loop for simulation
-    for i, time_point in enumerate(time_points):
-        while t < time_point:
-            t_old, state_old = t, state
-            U, jump, state = _step(state, basal, inter, d0, d1, 
-                                   s1, k0, k1, b, tau)
-            t += U
-            if jump:
-                true_jump_count += 1
-            else: 
-                phantom_jump_count += 1
-        # Recording
-        states[i] = _flow(time_point - t_old, state_old, d0, d1, s1)
+        return states, phantom_jump_count, true_jump_count
+    
+    return simulation
 
-
-    return states, phantom_jump_count, true_jump_count
-
-_simulation = simulation
+simulation = _create_simulation(step, flow)
 _simulation_jit = None
 
 class BurstyPDMP(Simulation):
@@ -174,7 +172,7 @@ class BurstyPDMP(Simulation):
         self.burn_in : float | None = burnin
         self.thin_adapt : bool  = thin_adapt
         self.is_verbose : bool  = verbose
-        self._use_numba: bool = False
+        self._use_numba, self._simulation = False, simulation
         self.use_numba: bool = use_numba
 
     @property
@@ -183,27 +181,21 @@ class BurstyPDMP(Simulation):
     
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
-        global _kon_jit, _kon_bound_jit
-        global _flow, _flow_jit
-        global _step, _step_jit
-        global _simulation, _simulation_jit
+        global _kon_jit, _kon_bound_jit, _flow_jit, _step_jit, _simulation_jit
 
         if self._use_numba != use_numba:
             if use_numba:
-                if _flow_jit is None:
+                if _simulation_jit is None:
                     from numba import njit
                     _kon_jit = njit()(kon)
                     _kon_bound_jit = njit()(kon_bound)
                     _flow_jit = njit()(flow)
                     _step_jit = njit()(_step_jit)
-                    _simulation_jit = njit()(simulation)
-                _flow = _flow_jit
-                _step = _step_jit
-                _simulation = _simulation_jit
+                    _simulation_jit = njit()(_create_simulation(_step_jit, 
+                                                                _flow_jit))
+                self._simulation = _simulation_jit
             else:
-                _flow = flow
-                _step = step
-                _simulation = simulation
+                self._simulation = simulation
             
             self._use_numba = use_numba
     
@@ -227,28 +219,28 @@ class BurstyPDMP(Simulation):
         
         # Burnin simulation without stimulus
         if self.burn_in is not None: 
-            res = _simulation(state=state,
-                              time_points=np.array([self.burn_in]),
-                              basal=basal,
-                              inter=interaction,
-                              d0=degradation_rna,
-                              d1=degradation_protein,
-                              s1=s1, k0=k0, k1=k1, b=burst_size,
-                              tau=tau)
+            res = self._simulation(state=state,
+                                   time_points=np.array([self.burn_in]),
+                                   basal=basal,
+                                   inter=interaction,
+                                   d0=degradation_rna,
+                                   d1=degradation_protein,
+                                   s1=s1, k0=k0, k1=k1, b=burst_size,
+                                   tau=tau)
             state = res[0][-1] # Update the current state
             self._display_jump_info(res[1], res[2])
         
         # Activate the stimulus
         state[1, 0] = 1.0
         # Final simulation with stimulus
-        res = _simulation(state=state,
-                          time_points=time_points,
-                          basal=basal,
-                          inter=interaction,
-                          d0=degradation_rna,
-                          d1=degradation_protein,
-                          s1=s1, k0=k0, k1=k1, b=burst_size,
-                          tau=tau)
+        res = self._simulation(state=state,
+                               time_points=time_points,
+                               basal=basal,
+                               inter=interaction,
+                               d0=degradation_rna,
+                               d1=degradation_protein,
+                               s1=s1, k0=k0, k1=k1, b=burst_size,
+                               tau=tau)
         states = res[0][..., 1:]
         self._display_jump_info(res[1], res[2])
         
