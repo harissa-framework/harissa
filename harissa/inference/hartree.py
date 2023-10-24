@@ -313,7 +313,7 @@ class Hartree(Inference):
         nb_genes = x.shape[1]
 
         # Kinetic parameters
-        a = self.get_kinetics(data)
+        a = self._get_kinetics(data)
         # Concentration parameter
         c = 100 * np.ones(nb_genes)
         # Get protein levels
@@ -352,7 +352,7 @@ class Hartree(Inference):
         #                         interaction=inter_time.items()[-1],
         #                         interaction_time=inter_time)
 
-    def get_kinetics(self, data: np.ndarray) -> np.ndarray:
+    def _get_kinetics(self, data: np.ndarray) -> np.ndarray:
         """
         Compute the basal parameters of all genes.
         """
@@ -375,3 +375,13 @@ class Hartree(Inference):
             a[1, g] = np.max(a_g)
             a[2, g] = b_g
         return a
+    
+    def binarize(self, data: np.ndarray):
+        """
+        Return a binarized version of the data using gene-specific thresholds
+        derived from the data-calibrated mechanistic model.
+        """
+        # Get binarized values (gene-specific thresholds)
+        y = infer_proteins(data, self._get_kinetics(data))[:, 1:].astype(int)
+        data_type = data.dtype
+        return np.hstack((data[:, 0], y.astype(data_type)), dtype=data_type)
