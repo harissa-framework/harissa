@@ -2,8 +2,8 @@
 Main class for network inference and simulation
 """
 import numpy as np
-from ..inference.hartree import Inference, Hartree
-from ..simulation.bursty_pdmp import Simulation, BurstyPDMP
+from ..inference.hartree.hartree import Inference, Hartree
+from ..simulation.bursty_pdmp.bursty_pdmp import Simulation, BurstyPDMP
 
 class NetworkModel:
     """

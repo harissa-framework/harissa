@@ -1,9 +1,9 @@
 """
 Perform simulations using the ODE model
 """
-from .bursty_pdmp import Simulation
-from ..utils.math import kon 
 import numpy as np
+from ..simulation import Simulation
+from ...utils.math import kon 
 
 
 def _create_step(kon):
@@ -74,7 +74,7 @@ class ApproxODE(Simulation):
                  P0: np.ndarray | None = None, 
                  burnin: float | None = None, 
                  verbose: bool = False, 
-                 use_numba: bool = True):
+                 use_numba: bool = False):
         self.M0: np.ndarray | None = M0
         self.P0: np.ndarray | None = P0
         self.burn_in: float | None = burnin

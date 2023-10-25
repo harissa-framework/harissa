@@ -1,10 +1,10 @@
 """
 Perform simulations using the PDMP model
 """
-from .simulation import Simulation
-from ..utils.math import kon, kon_bound, flow
-
 import numpy as np
+from ..simulation import Simulation
+from ...utils.math import kon, kon_bound, flow
+
 # from scipy.special import expit
 
 # def kon(p: np.ndarray, 
@@ -166,7 +166,7 @@ class BurstyPDMP(Simulation):
                  burnin: float | None = None, 
                  thin_adapt: bool = True, 
                  verbose: bool = False, 
-                 use_numba: bool = True) -> None:
+                 use_numba: bool = False) -> None:
         self.M0 : np.ndarray | None = M0
         self.P0 : np.ndarray | None = P0
         self.burn_in : float | None = burnin
@@ -241,7 +241,7 @@ class BurstyPDMP(Simulation):
                                d1=degradation_protein,
                                s1=s1, k0=k0, k1=k1, b=burst_size,
                                tau=tau)
-        states = res[0][..., 1:]
+        states = res[0][:, :, 1:]
         self._display_jump_info(res[1], res[2])
         
         return Simulation.Result(time_points, states[:, 0], states[:, 1])

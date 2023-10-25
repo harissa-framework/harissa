@@ -1,11 +1,11 @@
 """
 Core functions for network inference using likelihood maximization
 """
-from .inference import Inference
-from ..utils.math import estim_gamma_poisson
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
+from ..inference import Inference
+from ...utils.math import estim_gamma_poisson
 
 def p1(x, s):
     """
@@ -319,10 +319,10 @@ class Hartree(Inference):
         # Get protein levels
         y = infer_proteins(x, a)
         # Inference procedure
-        theta, nb_iterations = infer_network(x, y, a, c,
-                                             self.penalization_strength,
-                                             self.tolerance,
-                                             self.smoothing_threshold)
+        theta, nb_iterations =  self._infer_network(x, y, a, c,
+                                                    self.penalization_strength,
+                                                    self.tolerance,
+                                                    self.smoothing_threshold)
         if self.is_verbose: 
             print(f'Fitted theta in {nb_iterations} iterations')
         # Build the results
