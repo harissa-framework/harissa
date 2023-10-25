@@ -5,9 +5,12 @@ from numpy import ndarray
 class Simulation(ABC):
     @dataclass
     class Result:
+        """
+        Result of Simulation
+        """
         time_points: ndarray
-        rna: ndarray
-        protein: ndarray
+        rna_levels: ndarray
+        protein_levels: ndarray
 
     @abstractmethod
     def run(self, 

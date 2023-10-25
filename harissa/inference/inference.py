@@ -5,6 +5,9 @@ from numpy import ndarray
 class Inference(ABC):
     @dataclass
     class Result:
+        """
+        Result of inference
+        """
         # Kinetic parameters
         burst_frequency_min : ndarray | None = None
         burst_frequency_max : ndarray | None = None
