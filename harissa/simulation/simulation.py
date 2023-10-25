@@ -13,7 +13,8 @@ class Simulation(ABC):
         protein_levels: ndarray
 
     @abstractmethod
-    def run(self, 
+    def run(self,
+            initial_state: ndarray, 
             time_points: ndarray, 
             burst_frequency_min: ndarray, 
             burst_frequency_max: ndarray, 

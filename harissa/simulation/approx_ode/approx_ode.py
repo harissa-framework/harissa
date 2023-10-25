@@ -39,7 +39,7 @@ def _create_simulation(step):
                 k0: np.ndarray,
                 k1: np.ndarray,
                 b: np.ndarray,
-                dt:float) -> np.ndarray:
+                euler_step:float) -> np.ndarray:
         """
         Simulation of the deterministic limit model, which is relevant when
         promoters and mRNA are much faster than proteins.
@@ -48,7 +48,7 @@ def _create_simulation(step):
         """
         states = np.empty((time_points.size, *state.shape))
         if time_points.size > 1:
-            dt = min(dt, np.min(time_points[1:] - time_points[:-1]))
+            dt = min(euler_step, np.min(time_points[1:] - time_points[:-1]))
         t, step_count = 0.0, 0
         # Core loop for simulation and recording
         for i, time_point in enumerate(time_points):
@@ -58,7 +58,8 @@ def _create_simulation(step):
                 step_count += 1
             states[i] = state
         
-        return states, step_count, dt
+        # Remove the stimulus
+        return states[..., 1:], step_count, dt
     
     return simulation
 
@@ -69,15 +70,7 @@ class ApproxODE(Simulation):
     """
     ODE version of the network model (very rough approximation of the PDMP)
     """
-    def __init__(self, 
-                 M0: np.ndarray | None = None, 
-                 P0: np.ndarray | None = None, 
-                 burnin: float | None = None, 
-                 verbose: bool = False, 
-                 use_numba: bool = False):
-        self.M0: np.ndarray | None = M0
-        self.P0: np.ndarray | None = P0
-        self.burn_in: float | None = burnin
+    def __init__(self, verbose: bool = False, use_numba: bool = False) -> None:
         self.is_verbose: bool  = verbose
         self._use_numba, self._simulation = False, simulation 
         self.use_numba: bool = use_numba
@@ -104,7 +97,8 @@ class ApproxODE(Simulation):
             self._use_numba = use_numba
     
 
-    def run(self, 
+    def run(self,
+            initial_state: np.ndarray, 
             time_points: np.ndarray, 
             burst_frequency_min: np.ndarray, 
             burst_frequency_max: np.ndarray, 
@@ -120,75 +114,25 @@ class ApproxODE(Simulation):
         p: solution of a nonlinear ODE system involving proteins only
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
-        state, k0, k1, s1, euler_step = self._prepare_run(burst_frequency_min, 
-                                                          burst_frequency_max, 
-                                                          burst_size, 
-                                                          degradation_rna, 
-                                                          degradation_protein)
-
-        # Burnin simulation without stimulus
-        if self.burn_in is not None: 
-            res = self._simulation(state=state,
-                                   time_points=np.array([self.burn_in]),
-                                   basal=basal,
-                                   inter=interaction,
-                                   d0=degradation_rna,
-                                   d1=degradation_protein,
-                                   s1=s1, k0=k0, k1=k1,
-                                   b=burst_size,
-                                   dt=euler_step)
-            state = res[0][-1]
-            self._display_step_info(res[1], res[2])
+        states, step_count, dt = self._simulation(
+            state=initial_state, 
+            time_points=time_points,
+            basal=basal,
+            inter=interaction,
+            d0=degradation_rna,
+            d1=degradation_protein,
+            s1=degradation_protein * burst_size / burst_frequency_max, 
+            k0=burst_frequency_min * degradation_rna, 
+            k1=burst_frequency_max * degradation_rna,
+            b=burst_size,
+            euler_step=1e-3/np.max(degradation_protein))
         
-        # Activate the stimulus
-        state[1, 0] = 1
-
-        # Final simulation with stimulus
-        res = self._simulation(state=state, 
-                               time_points=time_points,
-                               basal=basal,
-                               inter=interaction,
-                               d0=degradation_rna,
-                               d1=degradation_protein,
-                               s1=s1, k0=k0, k1=k1,
-                               b=burst_size,
-                               dt=euler_step)
-        states = res[0][..., 1:]
-        self._display_step_info(res[1], res[2])
-        
-        return Simulation.Result(time_points, states[:, 0], states[:, 1])
-    
-    def _prepare_run(self, 
-                     burst_frequency_min, burst_frequency_max, burst_size, 
-                     degradation_rna, degradation_protein):
-        
-        k0 = burst_frequency_min * degradation_rna
-        k1 = burst_frequency_max * degradation_rna
-
-        # Normalize protein scales
-        s1 = degradation_protein * burst_size / burst_frequency_max
-
-        # Simulation parameter
-        euler_step = 1e-3/np.max(degradation_protein)
-
-        # Default state: row 0 <-> M, row 1 <-> P
-        nb_genes = degradation_rna.size
-        state = np.zeros((2, nb_genes))
-
-        if self.M0 is not None:
-            state[0, 1:] = self.M0[1:]
-        if self.P0 is not None: 
-            state[1, 1:] = self.P0[1:]
-
-        return state, k0, k1, s1, euler_step
-    
-    def _display_step_info(self, step_count: int, dt: float):
-        """
-        Display info about steps
-        """
         if self.is_verbose:
+            # Display info about steps
             if step_count > 0:
                 print(f'ODE simulation used {step_count} steps ' 
                       f'(step size = {dt:.5f})')
             else: 
                 print('ODE simulation used no step')
+        
+        return Simulation.Result(time_points, states[:, 0], states[:, 1])

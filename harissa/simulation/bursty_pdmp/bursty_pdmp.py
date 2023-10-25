@@ -149,7 +149,8 @@ def _create_simulation(step, flow):
             # Recording
             states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
 
-        return states, phantom_jump_count, true_jump_count
+        # Remove the stimulus
+        return states[..., 1:], phantom_jump_count, true_jump_count
     
     return simulation
 
@@ -162,14 +163,9 @@ class BurstyPDMP(Simulation):
     """
 
     def __init__(self, 
-                 M0: np.ndarray | None = None, P0: np.ndarray | None = None, 
-                 burnin: float | None = None, 
                  thin_adapt: bool = True, 
                  verbose: bool = False, 
                  use_numba: bool = False) -> None:
-        self.M0 : np.ndarray | None = M0
-        self.P0 : np.ndarray | None = P0
-        self.burn_in : float | None = burnin
         self.thin_adapt : bool  = thin_adapt
         self.is_verbose : bool  = verbose
         self._use_numba, self._simulation = False, simulation
@@ -199,7 +195,8 @@ class BurstyPDMP(Simulation):
             
             self._use_numba = use_numba
     
-    def run(self, 
+    def run(self,
+            initial_state: np.ndarray, 
             time_points: np.ndarray, 
             burst_frequency_min: np.ndarray, 
             burst_frequency_max: np.ndarray, 
@@ -211,44 +208,6 @@ class BurstyPDMP(Simulation):
         """
         Perform simulation of the network model (bursty PDMP version).
         """
-        state, k0, k1, s1, tau = self._prepare_run(burst_frequency_min,
-                                                   burst_frequency_max,
-                                                   burst_size,
-                                                   degradation_rna,
-                                                   degradation_protein)
-        
-        # Burnin simulation without stimulus
-        if self.burn_in is not None: 
-            res = self._simulation(state=state,
-                                   time_points=np.array([self.burn_in]),
-                                   basal=basal,
-                                   inter=interaction,
-                                   d0=degradation_rna,
-                                   d1=degradation_protein,
-                                   s1=s1, k0=k0, k1=k1, b=burst_size,
-                                   tau=tau)
-            state = res[0][-1] # Update the current state
-            self._display_jump_info(res[1], res[2])
-        
-        # Activate the stimulus
-        state[1, 0] = 1.0
-        # Final simulation with stimulus
-        res = self._simulation(state=state,
-                               time_points=time_points,
-                               basal=basal,
-                               inter=interaction,
-                               d0=degradation_rna,
-                               d1=degradation_protein,
-                               s1=s1, k0=k0, k1=k1, b=burst_size,
-                               tau=tau)
-        states = res[0][:, :, 1:]
-        self._display_jump_info(res[1], res[2])
-        
-        return Simulation.Result(time_points, states[:, 0], states[:, 1])
-    
-    def _prepare_run(self, 
-                     burst_frequency_min, burst_frequency_max, burst_size, 
-                     degradation_rna, degradation_protein):
         k0 = burst_frequency_min * degradation_rna
         k1 = burst_frequency_max * degradation_rna
 
@@ -257,22 +216,19 @@ class BurstyPDMP(Simulation):
 
         # Thinning parameter
         tau = None if self.thin_adapt else np.sum(k1[1:])
-
-        nb_genes = degradation_rna.size
-
-        # Default state: row 0 <-> M, row 1 <-> P
-        state = np.zeros((2, nb_genes))
-
-        if self.M0 is not None:
-            state[0, 1:] = self.M0[1:]
-        if self.P0 is not None: 
-            state[1, 1:] = self.P0[1:]
-
-        return state, k0, k1, s1, tau
-    
-    def _display_jump_info(self, phantom_jump_count, true_jump_count):
-        # Display info about jumps
+        
+        states, phantom_jump_count, true_jump_count = self._simulation(
+            state=initial_state,
+            time_points=time_points,
+            basal=basal,
+            inter=interaction,
+            d0=degradation_rna,
+            d1=degradation_protein,
+            s1=s1, k0=k0, k1=k1, b=burst_size,
+            tau=tau)
+        
         if self.is_verbose:
+            # Display info about jumps
             total_jump = phantom_jump_count + true_jump_count
             if total_jump > 0:
                 print(f'Exact simulation used {total_jump} jumps ' 
@@ -280,3 +236,5 @@ class BurstyPDMP(Simulation):
                       f'({100*phantom_jump_count/total_jump : .2f}%)')
             else: 
                 print('Exact simulation used no jump')
+        
+        return Simulation.Result(time_points, states[:, 0], states[:, 1])
