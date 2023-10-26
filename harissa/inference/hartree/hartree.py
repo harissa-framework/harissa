@@ -4,8 +4,8 @@ Core functions for network inference using likelihood maximization
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
-from ..inference import Inference
-from ..math import estim_gamma_poisson
+from harissa.inference.inference import Inference
+from harissa.inference.math import estim_gamma_poisson
 
 def p1(x, s):
     """

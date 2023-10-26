@@ -2,9 +2,9 @@
 Generate cascade networks
 """
 import numpy as np
-from .network_model import NetworkModel
+from harissa.model.network_model import NetworkModel
 
-def _cascade(n_genes):
+def cascade(n_genes):
     """
     Generate a simple activation cascade (1) -> (2) -> ... -> (n_genes).
     """
@@ -24,7 +24,7 @@ class Cascade(NetworkModel):
         # Get NetworkModel default features
         super().__init__(n_genes)
         # New network parameters
-        basal, inter = _cascade(n_genes)
+        basal, inter = cascade(n_genes)
         if autoactiv:
             for i in range(1, n_genes+1):
                 inter[i,i] = 5
