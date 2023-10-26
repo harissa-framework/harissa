@@ -23,4 +23,6 @@ class Inference(ABC):
 
     @abstractmethod
     def run(self, data: ndarray) -> Result:
-        raise NotImplementedError
+        raise NotImplementedError(
+            f'{self.__class__.__name__} must only ' 
+             'implement this function (run) and not use it.')
