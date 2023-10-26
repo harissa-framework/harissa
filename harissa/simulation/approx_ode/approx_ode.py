@@ -3,7 +3,7 @@ Perform simulations using the ODE model
 """
 import numpy as np
 from ..simulation import Simulation
-from ...utils.math import kon 
+from ..math import kon 
 
 
 def _create_step(kon):

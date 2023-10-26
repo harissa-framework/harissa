@@ -3,7 +3,7 @@ Perform simulations using the PDMP model
 """
 import numpy as np
 from ..simulation import Simulation
-from ...utils.math import kon, kon_bound, flow
+from ..math import kon, kon_bound, flow
 
 # from scipy.special import expit
 

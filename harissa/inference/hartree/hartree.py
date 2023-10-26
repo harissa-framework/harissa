@@ -5,7 +5,7 @@ import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
 from ..inference import Inference
-from ...utils.math import estim_gamma_poisson
+from ..math import estim_gamma_poisson
 
 def p1(x, s):
     """
