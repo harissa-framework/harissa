@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from numpy import ndarray
+import numpy as np
 
 class Simulation(ABC):
     @dataclass
@@ -8,21 +8,21 @@ class Simulation(ABC):
         """
         Result of Simulation
         """
-        time_points: ndarray
-        rna_levels: ndarray
-        protein_levels: ndarray
+        time_points: np.ndarray
+        rna_levels: np.ndarray
+        protein_levels: np.ndarray
 
     @abstractmethod
     def run(self,
-            initial_state: ndarray, 
-            time_points: ndarray, 
-            burst_frequency_min: ndarray, 
-            burst_frequency_max: ndarray, 
-            burst_size: ndarray, 
-            degradation_rna: ndarray, 
-            degradation_protein: ndarray,
-            basal: ndarray, 
-            interaction: ndarray) -> Result:
+            initial_state: np.ndarray, 
+            time_points: np.ndarray, 
+            burst_frequency_min: np.ndarray, 
+            burst_frequency_max: np.ndarray, 
+            burst_size: np.ndarray, 
+            degradation_rna: np.ndarray, 
+            degradation_protein: np.ndarray,
+            basal: np.ndarray, 
+            interaction: np.ndarray) -> Result:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
              'implement this function (run) and not use it.')
