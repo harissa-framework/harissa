@@ -1,1 +1,3 @@
-__all__ = ['hartree']
+from harissa.inference.hartree.hartree import Hartree
+
+__all__ = ['Hartree']
