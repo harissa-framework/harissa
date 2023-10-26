@@ -2,7 +2,7 @@
 Generate random trees
 """
 import numpy as np
-from harissa.model.network_model import NetworkModel
+from harissa.models.network_model import NetworkModel
 
 def random_step(state, a):
     """

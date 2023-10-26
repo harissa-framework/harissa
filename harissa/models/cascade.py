@@ -2,7 +2,7 @@
 Generate cascade networks
 """
 import numpy as np
-from harissa.model.network_model import NetworkModel
+from harissa.models.network_model import NetworkModel
 
 def cascade(n_genes):
     """

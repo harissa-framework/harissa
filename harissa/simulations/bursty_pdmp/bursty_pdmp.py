@@ -2,8 +2,8 @@
 Perform simulations using the PDMP model
 """
 import numpy as np
-from harissa.simulation.simulation import Simulation
-from harissa.simulation.math import kon, kon_bound, flow
+from harissa.simulations.simulation import Simulation
+from harissa.simulations.math import kon, kon_bound, flow
 
 # from scipy.special import expit
 

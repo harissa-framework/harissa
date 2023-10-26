@@ -2,10 +2,10 @@
 Main class for network inference and simulation
 """
 import numpy as np
-from harissa.inference.inference import Inference
-from harissa.inference.hartree.hartree import Hartree
-from harissa.simulation.simulation import Simulation
-from harissa.simulation.bursty_pdmp.bursty_pdmp import BurstyPDMP
+from harissa.inferences.inference import Inference
+from harissa.inferences.hartree.hartree import Hartree
+from harissa.simulations.simulation import Simulation
+from harissa.simulations.bursty_pdmp.bursty_pdmp import BurstyPDMP
 
 class NetworkModel:
     """
