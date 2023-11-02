@@ -22,7 +22,7 @@ class Inference(ABC):
         interaction : np.ndarray | None = None
 
     @abstractmethod
-    def run(self, data: np.ndarray) -> Result:
+    def run(self, data: np.ndarray) -> Result:              
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
              'implement this function (run) and not use it.')

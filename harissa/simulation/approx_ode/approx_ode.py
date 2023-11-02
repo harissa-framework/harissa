@@ -2,8 +2,8 @@
 Perform simulations using the ODE model
 """
 import numpy as np
-from harissa.simulations.simulation import Simulation
-from harissa.simulations.math import kon 
+from harissa.simulation.simulation import Simulation
+from harissa.simulation.utils import kon 
 
 
 def _create_step(kon):
