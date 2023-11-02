@@ -1,14 +1,17 @@
 # Example of network layout using harissa.utils
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import sys; sys.path += ['../']
+
+sys.path += ['../']
 from harissa.utils import build_pos, plot_network
 
 # Interaction matrix
 inter = np.array([
     [ 1, 1, 1],
     [-1,-1,-1],
-    [ 1,-1, 1]])
+    [ 1,-1, 1]
+])
 
 # Node labels and positions
 names = [f'$G_{{{i+1}}}$' for i in range(inter[0].size)]
