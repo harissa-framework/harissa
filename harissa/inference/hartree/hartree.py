@@ -5,7 +5,7 @@ import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
 from harissa.inference.inference import Inference
-from harissa.inference.utils import estim_gamma_poisson
+from harissa.inference.utils import estimate_gamma_poisson
 
 def p1(x, s):
     """
@@ -52,22 +52,22 @@ def _create_grad_penalization(p1, grad_p1):
         Penalization gradient of network parameters.
         """
         nb_genes = theta.shape[0]
-        gradp = np.zeros((nb_genes, nb_genes))
+        grad_p = np.zeros((nb_genes, nb_genes))
         for i in range (1, nb_genes):
             # Penalization of basal parameters
-            gradp[i,0] += 2 * t * grad_p1(theta[i,0]-theta0[i,0], s)
+            grad_p[i,0] += 2 * t * grad_p1(theta[i,0]-theta0[i,0], s)
             # Penalization of stimulus parameters
-            gradp[0,i] += t * grad_p1(theta[0,i]-theta0[0,i], s)
+            grad_p[0,i] += t * grad_p1(theta[0,i]-theta0[0,i], s)
             # Penalization of diagonal parameters
-            gradp[i,i] += 2*(theta[i,i]-theta0[i,i])
+            grad_p[i,i] += 2*(theta[i,i]-theta0[i,i])
             for j in range(1, nb_genes):
                 # Penalization of interaction parameters
-                gradp[i,j] += grad_p1(theta[i,j]-theta0[i,j], s)
+                grad_p[i,j] += grad_p1(theta[i,j]-theta0[i,j], s)
                 if i != j:
                     # Competition between interaction parameters
-                    gradp[i,j] += grad_p1(theta[i,j], s) * p1(theta[j,i], s)
+                    grad_p[i,j] += grad_p1(theta[i,j], s) * p1(theta[j,i], s)
         # Final penalization
-        return gradp
+        return grad_p
     
     return grad_penalization
 
@@ -145,7 +145,7 @@ def infer_kinetics(x: np.ndarray,
     for i in range(m):
         cells = (times == t[i])
         n[i] = np.sum(cells)
-        a[i], b[i] = estim_gamma_poisson(x[cells])
+        a[i], b[i] = estimate_gamma_poisson(x[cells])
     b = np.mean(b)
     # Newton-like method
     k, c = 0, 0
@@ -381,7 +381,8 @@ class Hartree(Inference):
         Return a binarized version of the data using gene-specific thresholds
         derived from the data-calibrated mechanistic model.
         """
-        # Get binarized values (gene-specific thresholds)
-        y = infer_proteins(data, self._get_kinetics(data))[:, 1:].astype(int)
         data_type = data.dtype
-        return np.hstack((data[:, 0], y.astype(data_type)), dtype=data_type)
+        # Get binarized values (gene-specific thresholds)
+        y = infer_proteins(data, self._get_kinetics(data))[:, 1:]
+        y = np.floor(y).astype(data_type)
+        return np.hstack((data[:, 0, np.newaxis], y), dtype=data_type)

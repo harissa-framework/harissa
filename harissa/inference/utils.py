@@ -1,6 +1,6 @@
 import numpy as np
 
-def estim_gamma(x):
+def estimate_gamma(x):
     """
     Estimate the parameters of a gamma distribution using
     the method of moments. The output is (a,b) for the distribution
@@ -13,7 +13,7 @@ def estim_gamma(x):
     else: 
         return m*m/v, m/v
     
-def estim_gamma_poisson(x):
+def estimate_gamma_poisson(x):
     """
     Estimate parameters a and b of the Gamma-Poisson(a,b) distribution,
     a.k.a. negative binomial distribution, using the method of moments.
@@ -39,7 +39,7 @@ def transform(x):
     Gamma distribution, within the Gamma-Poisson model inferred from x.
     NB: this simply corresponds to a linear transformation with offset.
     """
-    a, b = estim_gamma_poisson(x)
+    a, b = estimate_gamma_poisson(x)
     if not (a > 0 and b > 0):
         print(('Warning: you should check whether x is not '
             'almost zero (sum(x) = {}).').format(np.sum(x)))
