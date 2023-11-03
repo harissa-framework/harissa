@@ -381,8 +381,7 @@ class Hartree(Inference):
         Return a binarized version of the data using gene-specific thresholds
         derived from the data-calibrated mechanistic model.
         """
-        data_type = data.dtype
         # Get binarized values (gene-specific thresholds)
         y = infer_proteins(data, self._get_kinetics(data))[:, 1:]
-        y = np.floor(y).astype(data_type)
-        return np.hstack((data[:, 0, np.newaxis], y), dtype=data_type)
+        y = np.floor(y).astype(data.dtype)
+        return np.hstack((data[:, 0, np.newaxis], y))
