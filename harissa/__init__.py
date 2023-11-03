@@ -16,7 +16,6 @@ single-cell data with transcriptional bursting.
 
 Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
-from harissa.model.model import NetworkModel
-from harissa.model.utils import cascade, tree
+from harissa.model import NetworkModel, cascade, tree
 
 __all__ = ['NetworkModel', 'cascade', 'tree']
