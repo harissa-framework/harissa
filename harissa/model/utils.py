@@ -23,7 +23,6 @@ def cascade(n_genes, autoactiv=False):
     
     return model
 
-# Main function
 def tree(n_genes, weight=None, autoactiv=False):
     """
     Generate a random tree-like network model.
