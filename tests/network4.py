@@ -1,11 +1,7 @@
 # Basic 4-gene network with stimulus and feedback loop
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-
-sys.path += ['../harissa/model']
-sys.path += ['../harissa/utils']
-from model import NetworkModel
+from harissa import NetworkModel
 from harissa.utils import build_pos, plot_network
 #### Simulate scRNA-seq data ####
 

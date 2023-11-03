@@ -1,10 +1,7 @@
 # Basic repressilator network (3 genes)
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-sys.path += ['../']
-
 from harissa import NetworkModel
 from harissa.simulation import ApproxODE
 

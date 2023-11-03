@@ -1,9 +1,6 @@
 # Example of network layout using harissa.utils
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-
-sys.path += ['../']
 from harissa.utils import build_pos, plot_network
 
 # Interaction matrix

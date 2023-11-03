@@ -1,9 +1,6 @@
 # Branching 4-gene pathways with stimulus
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-
-sys.path += ['../']
 from harissa import NetworkModel
 from harissa.utils import build_pos, plot_network
 
