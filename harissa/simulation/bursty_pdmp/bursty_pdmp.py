@@ -119,16 +119,16 @@ def _step_jit(state: np.ndarray,
 
 def _create_simulation(step, flow):
     def simulation(state: np.ndarray, 
-                time_points: np.ndarray, 
-                basal: np.ndarray, 
-                inter: np.ndarray, 
-                d0: np.ndarray, 
-                d1: np.ndarray, 
-                s1: np.ndarray,
-                k0: np.ndarray,
-                k1: np.ndarray,
-                b: np.ndarray,
-                tau: float | None) -> tuple[np.ndarray, int, int]:
+                   time_points: np.ndarray, 
+                   basal: np.ndarray, 
+                   inter: np.ndarray, 
+                   d0: np.ndarray, 
+                   d1: np.ndarray, 
+                   s1: np.ndarray,
+                   k0: np.ndarray,
+                   k1: np.ndarray,
+                   b: np.ndarray,
+                   tau: float | None) -> tuple[np.ndarray, int, int]:
         """
         Exact simulation of the network in the bursty PDMP case.
         """
@@ -195,36 +195,28 @@ class BurstyPDMP(Simulation):
             
             self._use_numba = use_numba
     
-    def run(self,
-            initial_state: np.ndarray, 
-            time_points: np.ndarray, 
-            burst_frequency_min: np.ndarray, 
-            burst_frequency_max: np.ndarray, 
-            burst_size: np.ndarray, 
-            degradation_rna: np.ndarray, 
-            degradation_protein: np.ndarray,
-            basal: np.ndarray, 
-            interaction: np.ndarray) -> Simulation.Result:
+    def run(self, parameter: Simulation.Parameter) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
         """
-        k0 = burst_frequency_min * degradation_rna
-        k1 = burst_frequency_max * degradation_rna
+        k0 = parameter.burst_frequency_min * parameter.degradation_rna
+        k1 = parameter.burst_frequency_max * parameter.degradation_rna
 
         # Normalize protein scales
-        s1 = degradation_protein * burst_size / burst_frequency_max
+        s1 = (parameter.degradation_protein * parameter.burst_size 
+              / parameter.burst_frequency_max)
 
         # Thinning parameter
         tau = None if self.thin_adapt else np.sum(k1[1:])
         
         states, phantom_jump_count, true_jump_count = self._simulation(
-            state=initial_state,
-            time_points=time_points,
-            basal=basal,
-            inter=interaction,
-            d0=degradation_rna,
-            d1=degradation_protein,
-            s1=s1, k0=k0, k1=k1, b=burst_size,
+            state=parameter.initial_state,
+            time_points=parameter.time_points,
+            basal=parameter.basal,
+            inter=parameter.interaction,
+            d0=parameter.degradation_rna,
+            d1=parameter.degradation_protein,
+            s1=s1, k0=k0, k1=k1, b=parameter.burst_size,
             tau=tau)
         
         if self.is_verbose:
@@ -237,4 +229,6 @@ class BurstyPDMP(Simulation):
             else: 
                 print('Exact simulation used no jump')
         
-        return Simulation.Result(time_points, states[:, 0], states[:, 1])
+        return Simulation.Result(parameter.time_points, 
+                                 states[:, 0], 
+                                 states[:, 1])

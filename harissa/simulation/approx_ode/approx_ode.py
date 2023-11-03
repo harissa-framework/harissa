@@ -30,16 +30,16 @@ step = _create_step(kon)
 
 def _create_simulation(step):
     def simulation(state: np.ndarray,
-                time_points: np.ndarray,
-                basal: np.ndarray,
-                inter: np.ndarray,
-                d0: np.ndarray,
-                d1: np.ndarray,
-                s1: np.ndarray,
-                k0: np.ndarray,
-                k1: np.ndarray,
-                b: np.ndarray,
-                euler_step:float) -> np.ndarray:
+                   time_points: np.ndarray,
+                   basal: np.ndarray,
+                   inter: np.ndarray,
+                   d0: np.ndarray,
+                   d1: np.ndarray,
+                   s1: np.ndarray,
+                   k0: np.ndarray,
+                   k1: np.ndarray,
+                   b: np.ndarray,
+                   euler_step:float) -> np.ndarray:
         """
         Simulation of the deterministic limit model, which is relevant when
         promoters and mRNA are much faster than proteins.
@@ -97,16 +97,7 @@ class ApproxODE(Simulation):
             self._use_numba = use_numba
     
 
-    def run(self,
-            initial_state: np.ndarray, 
-            time_points: np.ndarray, 
-            burst_frequency_min: np.ndarray, 
-            burst_frequency_max: np.ndarray, 
-            burst_size: np.ndarray, 
-            degradation_rna: np.ndarray, 
-            degradation_protein: np.ndarray,
-            basal: np.ndarray, 
-            interaction: np.ndarray) -> Simulation.Result:
+    def run(self, parameter: Simulation.Parameter) -> Simulation.Result:
         """
         Perform simulation of the network model (ODE version).
         This is the slow-fast limit of the PDMP model, which is only
@@ -115,17 +106,18 @@ class ApproxODE(Simulation):
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
         states, step_count, dt = self._simulation(
-            state=initial_state, 
-            time_points=time_points,
-            basal=basal,
-            inter=interaction,
-            d0=degradation_rna,
-            d1=degradation_protein,
-            s1=degradation_protein * burst_size / burst_frequency_max, 
-            k0=burst_frequency_min * degradation_rna, 
-            k1=burst_frequency_max * degradation_rna,
-            b=burst_size,
-            euler_step=1e-3/np.max(degradation_protein))
+            state=parameter.initial_state, 
+            time_points=parameter.time_points,
+            basal=parameter.basal,
+            inter=parameter.interaction,
+            d0=parameter.degradation_rna,
+            d1=parameter.degradation_protein,
+            s1=parameter.degradation_protein*parameter.burst_size/parameter.burst_frequency_max, 
+            k0=parameter.burst_frequency_min * parameter.degradation_rna, 
+            k1=parameter.burst_frequency_max * parameter.degradation_rna,
+            b=parameter.burst_size,
+            euler_step=1e-3/np.max(parameter.degradation_protein)
+        )
         
         if self.is_verbose:
             # Display info about steps
@@ -135,4 +127,6 @@ class ApproxODE(Simulation):
             else: 
                 print('ODE simulation used no step')
         
-        return Simulation.Result(time_points, states[:, 0], states[:, 1])
+        return Simulation.Result(parameter.time_points, 
+                                 states[:, 0], 
+                                 states[:, 1])

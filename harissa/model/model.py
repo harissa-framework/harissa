@@ -73,6 +73,14 @@ class NetworkModel:
             or self.interaction is None):
             raise ValueError('Model parameters not yet specified')
         
+        param = Simulation.Parameter(self.burst_frequency_min,
+                                     self.burst_frequency_max,
+                                     self.burst_size,
+                                     self.degradation_rna,
+                                     self.degradation_protein,
+                                     self.basal,
+                                     self.interaction)
+        
         t_pts_nb_dim = time_points.ndim 
         if t_pts_nb_dim == 0:
             time_points = np.array([time_points])
@@ -83,40 +91,30 @@ class NetworkModel:
         if np.any(time_points != np.sort(time_points)):
             raise ValueError('Time points must appear in increasing order')
         
-        # Initial state: row 0 <-> M (rna), row 1 <-> P (protein)
-        initial_state = np.zeros((2, self.basal.size))
+        # Initial state: row 0 <-> rna, row 1 <-> protein
+        param.initial_state = np.zeros((2, self.basal.size))
 
         if M0 is not None:
-            initial_state[0, 1:] = M0[1:]
+            param.initial_state[0, 1:] = M0[1:]
         if P0 is not None: 
-            initial_state[1, 1:] = P0[1:]
+            param.initial_state[1, 1:] = P0[1:]
 
         # Burn_in simulation without stimulus
         if burn_in is not None:
-            res = self.simulation.run(initial_state,
-                                      np.array([burn_in]),
-                                      self.burst_frequency_min,
-                                      self.burst_frequency_max,
-                                      self.burst_size,
-                                      self.degradation_rna,
-                                      self.degradation_protein,
-                                      self.basal,
-                                      self.interaction)
-            initial_state[:, 1:] = np.vstack((res.rna_levels[-1], 
-                                              res.protein_levels[-1]))
+            param.time_points = np.array([burn_in])
+            res = self.simulation.run(param)
+            # Update initial state 
+            param.initial_state[0, 1:] = res.rna_levels[-1] 
+            param.initial_state[1, 1:] = res.protein_levels[-1]
             
         # Activate the stimulus
-        initial_state[1, 0] = 1.0
+        param.initial_state[1, 0] = 1.0
+
+        param.time_points = time_points
 
         # Final simulation with stimulus
-        res = self.simulation.run(initial_state,
-                                  time_points,
-                                  self.burst_frequency_min,
-                                  self.burst_frequency_max,
-                                  self.burst_size,
-                                  self.degradation_rna,
-                                  self.degradation_protein,
-                                  self.basal,
-                                  self.interaction)
+        res = self.simulation.run(param)
+
+        #NOTE maybe wrap it to AnnData
                    
         return res
