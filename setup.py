@@ -15,8 +15,8 @@ setup(
     description=('Tools for mechanistic gene network inference '
         'from single-cell data'),
 
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
+    long_description=open('README.rst').read(),
+    long_description_content_type='text/x-rst',
 
     url='https://github.com/ulysseherbach/harissa',
 
