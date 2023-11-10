@@ -83,7 +83,7 @@ A toy example is:
 
 The :code:`time` argument for simulations is either a single time or a list of time points. 
 For example, a single-cell trajectory (not available from scRNA-seq) 
-from :code:`t = 0h` to :code:`t = 10h` can be simulated using:
+from *t* = 0h to *t* = 10h can be simulated using:
 
 .. code-block:: python
 
@@ -100,8 +100,8 @@ The inference algorithm specifically exploits time-course data,
 where single-cell profiling is performed at a number of time points after a stimulus 
 (see `this paper <https://doi.org/10.1371/journal.pcbi.1010962>`_ 
 for an example with real data).
-Each group of cells collected at the same experimental time *t :sub:`k`* 
-forms a *snapshot* of the biological heterogeneity at time *t :sub:`k`*. 
+Each group of cells collected at the same experimental time *t* :sub:`k` 
+forms a *snapshot* of the biological heterogeneity at time *t* :sub:`k`. 
 Due to the destructive nature of the measurement process, 
 successive snapshots are made of different cells. 
 Such data is therefore different from so-called ‘pseudotime’ trajectories, 
