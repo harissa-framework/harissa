@@ -1,6 +1,5 @@
 sphinx
 furo
-pandoc
 nbsphinx
 ipython
 sphinx-gallery

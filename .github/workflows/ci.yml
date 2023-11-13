@@ -29,7 +29,10 @@ jobs:
         with:
           python-version: '3.10'
       - name: Setup documentation dependencies
-        run: python3 -m pip install -r docs/requirements.txt
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install pandoc
+          pip install -r docs/requirements.txt
       - name: Build documentation
         run: sphinx-build docs/source/ build  
       - name: Setup Pages
