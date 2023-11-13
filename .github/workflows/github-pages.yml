@@ -31,10 +31,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Build documentation
-        run: |
-          pip install -r docs/requirements.txt
-          sphinx-build docs/source/ build  
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Setup Sphinx
+        run: pip install -r docs/requirements.txt
+      - name: Setup documentation dependencies
+        run: sphinx-build docs/source/ build  
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact

@@ -6,7 +6,7 @@
 import os
 import sys
 
-root_dir = os.path.realpath(os.path.join(sys.path[0], '..', '..'))
+root_dir= os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, root_dir)
 
 # -- Project information -----------------------------------------------------
