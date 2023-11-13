@@ -2,9 +2,9 @@ name: Continous Integration
 
 on:
   push:
-    branches: ["developpement"]
+    branches: ["development"]
   pull_request:
-    branches: ["main", "developpement"]
+    branches: ["main", "development"]
 
 jobs:
   check_duplicate:
