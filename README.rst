@@ -1,7 +1,7 @@
 Harissa
 =======
 
-.. image:: https://img.shields.io/pypi/v/harissa
+.. image:: https://img.shields.io/pypi/v/harissa?link=https%3A%2F%2Fpypi.org%2Fproject%2Fharissa%2F
    :alt: PyPI - Version
 
 .. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
