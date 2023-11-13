@@ -1,0 +1,41 @@
+name: Continous Integration
+
+on:
+  push:
+    branches: ["development"]
+  pull_request:
+    branches: ["main", "development"]
+
+jobs:
+  check_duplicate:
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v3.4.0
+        with:
+          skip_after_successful_duplicate: 'true'
+
+  doc:
+    needs: check_duplicate
+    if: ${{ needs.check_duplicate.outputs.should_skip != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Setup documentation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install pandoc
+          pip install -r docs/requirements.txt
+      - name: Build documentation
+        run: sphinx-build docs/source/ build  
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'build'

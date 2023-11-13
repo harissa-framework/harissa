@@ -1,6 +1,13 @@
 Harissa
 =======
 
+.. image:: https://img.shields.io/pypi/v/harissa
+   :alt: PyPI - Version
+
+.. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
+   :alt: GitHub Pages status
+
+
 This is a Python package for both simulation and inference of gene 
 regulatory networks from single-cell data. Its name comes from 
 ‘HARtree approximation for Inference along with a Stochastic Simulation Algorithm.’ 
