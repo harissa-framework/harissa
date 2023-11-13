@@ -15,8 +15,8 @@ Welcome to harissa's documentation!
    notebooks/README
 
 
-.. include:: README.rst
-   :end-line: 95
+.. include:: ../../README.rst
+   :end-line: 116
 
 
 Indices and tables
