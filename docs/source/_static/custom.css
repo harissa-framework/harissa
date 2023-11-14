@@ -1,0 +1,12 @@
+@media not print {
+    @media (prefers-color-scheme: dark) {
+        body:not([data-theme="light"]) .nboutput img {
+            filter: invert();
+        }
+    }
+  
+    body[data-theme="dark"] .nboutput img {
+        filter: invert();
+    }
+}
+  
