@@ -26,6 +26,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx_multiversion',
     'nbsphinx',
     # 'sphinx_gallery.gen_gallery',   
     'sphinx_gallery.load_style',
