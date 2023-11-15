@@ -5,6 +5,7 @@
 
 import os
 import sys
+# from importlib.metadata import version as get_version
 
 root_dir= os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, root_dir)
@@ -15,7 +16,9 @@ sys.path.insert(0, root_dir)
 project = 'harissa'
 copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
+# release = get_version(project)
 release = '3.0.7'
+version = release
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -55,9 +58,25 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+# html_title = f'{project.capitalize()} documentation'
 html_theme = 'furo'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
+html_theme_options = {
+    "announcement": "<em>Under construction !</em>",
+}
+html_sidebars = {
+    '**': [
+        'sidebar/brand.html',
+        'sidebar/versioning.html',
+        'sidebar/search.html',
+        'sidebar/scroll-start.html',
+        'sidebar/navigation.html',
+        # 'sidebar/ethical-ads.html',
+        'sidebar/scroll-end.html',
+        # 'sidebar/variant-selector.html',
+    ],
+}
 
 
 # -- Options for nbsphinx ---------------------------------------------------
@@ -77,3 +96,9 @@ napoleon_numpy_docstring = True
 copybutton_exclude = '.linenos, .gp, .go'
 copybutton_prompt_text = '$ '
 
+# -- Options for sphinx-multiversion
+# https://holzhaus.github.io/sphinx-multiversion/master/index.html
+smv_tag_whitelist = r'^(v|V)\d+\.\d+\.\d+$'
+smv_branch_whitelist = None
+smv_remote_whitelist = None
+smv_released_pattern = r'^tags/.*$' 

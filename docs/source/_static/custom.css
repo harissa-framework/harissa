@@ -9,4 +9,11 @@
         filter: invert();
     }
 }
+
+.sidebar-versions {
+    display: flex;
+    column-gap: 10px;
+    align-items: center;
+    padding: var(--sidebar-item-spacing-vertical) var(--sidebar-item-spacing-horizontal);
+}
   
