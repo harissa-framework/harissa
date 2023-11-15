@@ -3,12 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os
-import sys
-# from importlib.metadata import version as get_version
-
-root_dir= os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, root_dir)
+from importlib.metadata import version as get_version
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -16,8 +11,7 @@ sys.path.insert(0, root_dir)
 project = 'harissa'
 copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
-# release = get_version(project)
-release = '3.0.7'
+release = get_version(project)
 version = release
 
 # -- General configuration ---------------------------------------------------

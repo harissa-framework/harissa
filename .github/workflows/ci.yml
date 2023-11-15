@@ -17,17 +17,44 @@ jobs:
         with:
           skip_after_successful_duplicate: 'true'
 
-  doc:
+  build:
     needs: check_duplicate
     if: ${{ needs.check_duplicate.outputs.should_skip != 'true' }}
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Packaging
+      run: |
+        pip install build
+        python -m build
+    - name: Upload distribution
+      uses: actions/upload-artifact@v3
+      with:
+        name: distribution
+        path: dist
+
+  doc:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v3
+        with:
+          name: distribution
+          path: dist
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Install harissa
+        run: pip install --no-index --find-links=dist harissa
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
@@ -36,6 +63,7 @@ jobs:
       - name: Build documentation
         run: sphinx-build docs/source/ build  
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
+          name: 'html'
           path: 'build'
