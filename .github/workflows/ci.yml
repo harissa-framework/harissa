@@ -35,7 +35,7 @@ jobs:
     - name: Check package
       run: |
         pip install twine
-        twine check dist
+        twine check dist/*
     - name: Upload distribution
       uses: actions/upload-artifact@v3
       with:
