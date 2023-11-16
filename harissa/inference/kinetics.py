@@ -53,8 +53,8 @@ def infer_kinetics(x, times, tol=1e-5, max_iter=100, verb=False):
 
     Parameters
     ----------
-    x[k] = gene expression in cell k
-    times[k] = time point of cell k
+    x\[k\] = gene expression in cell k
+    times\[k\] = time point of cell k
     """
     t = np.sort(list(set(times)))
     m = t.size
