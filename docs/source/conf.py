@@ -9,10 +9,10 @@ from importlib.metadata import version as get_version
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'harissa'
+project = 'Harissa'
 copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
-release = get_version(project)
+release = get_version(project.lower())
 version = release
 
 # -- General configuration ---------------------------------------------------

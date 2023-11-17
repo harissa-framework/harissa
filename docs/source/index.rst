@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to harissa's documentation!
+Welcome to Harissa's documentation!
 ###################################
 
 .. toctree::
@@ -14,11 +14,9 @@ Welcome to harissa's documentation!
    modules
    notebooks/README
 
-
 .. include:: ../../README.rst
    :start-line: 9
-   :end-line: 116
-
+   :end-line: 111
 
 Indices and tables
 ##################
