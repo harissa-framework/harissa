@@ -3,6 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import os
 from importlib.metadata import version as get_version
 
 # -- Project information -----------------------------------------------------
@@ -52,12 +53,13 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# html_title = f'{project.capitalize()} documentation'
+if 'HTML_TITLE' in os.environ:
+    html_title = os.environ['HTML_TITLE']
 html_theme = 'furo'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 # html_theme_options = {
-#     "announcement": "<em>Under construction !</em>",
+#     "announcement": "<em>Under Construction !</em>",
 # }
 html_sidebars = {
     '**': [
@@ -92,7 +94,8 @@ copybutton_prompt_text = '$ '
 
 # -- Options for sphinx-multiversion
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
-smv_tag_whitelist = r'^(v|V)\d+\.\d+\.\d+$'
-smv_branch_whitelist = None
-smv_remote_whitelist = None
-smv_released_pattern = r'^tags/.*$' 
+smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'
+smv_branch_whitelist = r'^$'
+smv_remote_whitelist = r'^$'
+smv_released_pattern = r'^tags/.*$'
+smv_latest_version = f'v{version}'
