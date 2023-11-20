@@ -4,6 +4,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
+import re 
 from importlib.metadata import version as get_version
 
 # -- Project information -----------------------------------------------------
@@ -73,6 +74,7 @@ html_sidebars = {
         # 'sidebar/variant-selector.html',
     ],
 }
+html_copy_source = False
 
 
 # -- Options for nbsphinx ---------------------------------------------------
@@ -92,10 +94,32 @@ napoleon_numpy_docstring = True
 copybutton_exclude = '.linenos, .gp, .go'
 copybutton_prompt_text = '$ '
 
+# Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
+# [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
+pattern=re.compile(r'^(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$')
+active_versions = [
+    '3.0.7',
+    '4.0.0'
+]
+active_versions=tuple(filter(lambda v: re.match(pattern, v), active_versions))
+
 # -- Options for sphinx-multiversion
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
-smv_tag_whitelist = r'^v\d+\.\d+\.\d+$'
+
+tag_whitelist = r'^'
+if active_versions:
+    tag_whitelist += r'('
+    for i, active_version in enumerate(active_versions):
+        active_version = active_version.replace(r'.', r'\.')
+        if i > 0:
+            tag_whitelist += rf'|{active_version}'
+        else:
+            tag_whitelist += rf'{active_version}'
+    tag_whitelist += r')'
+tag_whitelist += r'$'
+
+smv_tag_whitelist = tag_whitelist
 smv_branch_whitelist = r'^$'
 smv_remote_whitelist = r'^$'
-smv_released_pattern = r'^tags/.*$'
-smv_latest_version = f'v{version}'
+smv_released_pattern = r'^tags/\d+(\.\d+)*$'
+smv_latest_version = active_versions[0]

@@ -14,10 +14,10 @@ with open(filename, 'w') as file:
 f'''<!DOCTYPE html>
 <html>
   <head>
-    <title>Redirecting to v{version}</title>
+    <title>Redirecting to version {version}</title>
     <meta charset="utf-8">
-    <meta http-equiv="refresh" content="0; url=./v{version}/index.html">
-    <link rel="canonical" href="harissa-framework.github.io/harissa/v{version}/index.html">
+    <meta http-equiv="refresh" content="0; url=./{version}/index.html">
+    <link rel="canonical" href="harissa-framework.github.io/harissa/{version}/index.html">
   </head>
 </html>
 ''')
