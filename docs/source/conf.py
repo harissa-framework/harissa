@@ -5,6 +5,7 @@
 
 import os
 import re 
+import sys
 from importlib.metadata import version as get_version
 
 # -- Project information -----------------------------------------------------
@@ -25,6 +26,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    # 'sphinx.ext.coverage',
     'sphinx_multiversion',
     'nbsphinx',
     # 'sphinx_gallery.gen_gallery',   
@@ -32,6 +34,9 @@ extensions = [
     'sphinx_copybutton',
     # 'myst-nb'
 ]
+
+# coverage_show_missing_items = True
+# coverage_statistics_to_stdout = True
 
 autosummary_generate = True
 autosummary_ignore_module_all = False
@@ -96,12 +101,16 @@ copybutton_prompt_text = '$ '
 
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
-pattern=re.compile(r'^(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$')
+pattern = re.compile(
+    r'^(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$'
+)
 active_versions = [
     '3.0.7',
-    '4.0.0'
+    # '4.0.0',
 ]
-active_versions=tuple(filter(lambda v: re.match(pattern, v), active_versions))
+active_versions = tuple(
+    filter(lambda v: re.match(pattern, v), active_versions)
+)
 
 # -- Options for sphinx-multiversion
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
@@ -116,10 +125,37 @@ if active_versions:
         else:
             tag_whitelist += rf'{active_version}'
     tag_whitelist += r')'
+
+    smv_latest_version = active_versions[0]
+    if os.path.basename(sys.argv[0]) == 'sphinx-multiversion':
+        print('\033[1mBuilding root index.html\033[0m')
+        output_dir = os.path.realpath(
+            os.path.join(os.path.dirname(__file__), '..', '..', sys.argv[2])
+        )
+        os.makedirs(output_dir, exist_ok=True)
+
+        version_index = f'{smv_latest_version}/index.html' 
+        relative_url = f'./{version_index}'
+        absolute_url = f'harissa-framework.github.io/harissa/{version_index}'
+        root_index = os.path.join(output_dir, 'index.html')
+
+        with open(root_index, 'w') as file:
+            file.write(f'''<!DOCTYPE html>
+<html>
+    <head>
+        <title>Redirecting to version {smv_latest_version}</title>
+        <meta charset="utf-8">
+        <meta http-equiv="refresh" content="0; url={relative_url}">
+        <link rel="canonical" href="{absolute_url}">
+    </head>
+</html>
+''')   
+
+        print(f'{root_index} generated.\n' 
+              f'It redirects to version {smv_latest_version}')
 tag_whitelist += r'$'
 
 smv_tag_whitelist = tag_whitelist
 smv_branch_whitelist = r'^$'
 smv_remote_whitelist = r'^$'
 smv_released_pattern = r'^tags/\d+(\.\d+)*$'
-smv_latest_version = active_versions[0]

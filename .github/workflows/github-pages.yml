@@ -43,7 +43,7 @@ jobs:
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: HTML_TITLE="Harissa documentation" sphinx-multiversion docs/source build && python3 docs/source/index.py build || sphinx-build docs/source build 
+        run: HTML_TITLE="Harissa documentation" sphinx-multiversion docs/source build || sphinx-build docs/source build 
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
