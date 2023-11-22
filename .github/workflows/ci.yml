@@ -67,8 +67,9 @@ jobs:
       - name: Build documentation
         run: sphinx-build docs/source/ html
       - name: Clean up .doctrees
-        run: rm -rf build/.doctrees
+        run: rm -rf html/.doctrees
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
+          name: 'doc'
           path: 'html'
