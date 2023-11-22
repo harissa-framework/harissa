@@ -8,21 +8,29 @@ import re
 import sys
 from importlib.metadata import version as get_version
 
+is_multi_version = os.path.basename(os.environ['_']) == 'sphinx-multiversion'
+is_sub_process = is_multi_version and os.getppid() + 1 != os.getpid()
+
+if is_sub_process:
+    sys.path[0] =  os.path.join(sys.path[0], 'src')
+    output_dir = os.path.dirname(sys.argv[-1])
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'Harissa'
 copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
-release = get_version(project.lower())
-version = release
+# harissa needs to be installed (at least in editable mode)
+version = get_version(project.lower())
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
+    # 'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -59,8 +67,11 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
+if is_multi_version:
+    html_title = f'{project} documentation'
 if 'HTML_TITLE' in os.environ:
     html_title = os.environ['HTML_TITLE']
+
 html_theme = 'furo'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
@@ -106,6 +117,7 @@ pattern = re.compile(
 )
 active_versions = [
     '3.0.7',
+    # '3.0.8',
     # '4.0.0',
 ]
 active_versions = tuple(
@@ -126,21 +138,22 @@ if active_versions:
             tag_whitelist += rf'{active_version}'
     tag_whitelist += r')'
 
-    smv_latest_version = active_versions[0]
-    if os.path.basename(sys.argv[0]) == 'sphinx-multiversion':
-        print('\033[1mBuilding root index.html\033[0m')
-        output_dir = os.path.realpath(
-            os.path.join(os.path.dirname(__file__), '..', '..', sys.argv[2])
-        )
+    # Choose here the version latest version
+    smv_latest_version = active_versions[-1]
+    # Choose here the version to redirect when landing on the root index
+    redirect_version = smv_latest_version
+    if is_sub_process:
         os.makedirs(output_dir, exist_ok=True)
-
-        version_index = f'{smv_latest_version}/index.html' 
-        relative_url = f'./{version_index}'
-        absolute_url = f'harissa-framework.github.io/harissa/{version_index}'
         root_index = os.path.join(output_dir, 'index.html')
+        if not os.path.exists(root_index):
+            print('\033[1mBuilding root index.html\033[0m')
 
-        with open(root_index, 'w') as file:
-            file.write(f'''<!DOCTYPE html>
+            version_index=f'{redirect_version}/index.html' 
+            relative_url=f'./{version_index}'
+            absolute_url=f'harissa-framework.github.io/harissa/{version_index}'
+
+            with open(root_index, 'w') as file:
+                file.write(f'''<!DOCTYPE html>
 <html>
     <head>
         <title>Redirecting to version {smv_latest_version}</title>
@@ -151,8 +164,8 @@ if active_versions:
 </html>
 ''')   
 
-        print(f'{root_index} generated.\n' 
-              f'It redirects to version {smv_latest_version}')
+            print(f'{root_index} generated.\n' 
+                f'It redirects to version {smv_latest_version}')
 tag_whitelist += r'$'
 
 smv_tag_whitelist = tag_whitelist
