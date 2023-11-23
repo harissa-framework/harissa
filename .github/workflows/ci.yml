@@ -13,17 +13,18 @@ jobs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@v3.4.0
-        with:
-          skip_after_successful_duplicate: 'true'
+        uses: fkirc/skip-duplicate-actions@v5
 
   build:
     needs: check_duplicate
-    if: ${{ needs.check_duplicate.outputs.should_skip != 'true' }}
+    if: needs.check_duplicate.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -45,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Dowload distribution artifact 
         uses: actions/download-artifact@v3
         with:
@@ -67,8 +68,9 @@ jobs:
       - name: Build documentation
         run: sphinx-build docs/source/ html
       - name: Clean up .doctrees
-        run: rm -rf build/.doctrees
+        run: rm -rf html/.doctrees
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
+          name: 'doc'
           path: 'html'
