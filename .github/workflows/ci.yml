@@ -80,9 +80,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install harissa
-        run: |
-          pip install -r requirements.txt
-          pip install --no-index --find-links=dist harissa
+        run: pip install dist/*.whl
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
