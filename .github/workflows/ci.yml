@@ -8,34 +8,91 @@ on:
 
 jobs:
   check_duplicate:
+    name: Check duplicate
     runs-on: ubuntu-latest
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@v3.4.0
-        with:
-          skip_after_successful_duplicate: 'true'
+        uses: fkirc/skip-duplicate-actions@v5
+
+  build:
+    name: Build python 🐍 package 📦
+    needs: check_duplicate
+    if: needs.check_duplicate.outputs.should_skip != 'true'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install packaging tools
+      run : pip install build twine
+    - name: Build package
+      run: python -m build
+    - name: Check package
+      run: twine check dist/*
+    - name: Upload distribution
+      uses: actions/upload-artifact@v3
+      with:
+        name: distribution
+        path: dist
 
   doc:
-    needs: check_duplicate
-    if: ${{ needs.check_duplicate.outputs.should_skip != 'true' }}
+    name: Generate documentation
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v3
+        with:
+          name: distribution
+          path: dist
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Install harissa
+        run: pip install dist/*.whl
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-build docs/source/ build  
+        run: sphinx-build docs/source/ html
+      - name: Clean up .doctrees
+        run: rm -rf html/.doctrees
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          path: 'build'
+          name: 'doc'
+          path: 'html'
+
+  deploy:
+    name: Publish distribution 📦 to TestPyPI
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: test-pypi
+      url: https://test.pypi.org/p/harissa
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v3
+        with:
+          name: distribution
+          path: dist
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/

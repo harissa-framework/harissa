@@ -1,12 +1,11 @@
 Harissa
 =======
 
-.. image:: https://img.shields.io/pypi/v/harissa
+.. image:: https://img.shields.io/pypi/v/harissa?link=https%3A%2F%2Fpypi.org%2Fproject%2Fharissa%2F
    :alt: PyPI - Version
 
 .. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
    :alt: GitHub Pages status
-
 
 This is a Python package for both simulation and inference of gene 
 regulatory networks from single-cell data. Its name comes from 
@@ -45,7 +44,6 @@ Harissa can be installed using `pip <https://packaging.python.org/en/latest/tuto
 
   pip install harissa
 
-
 This command will also check for all required dependencies (see below) 
 and install them if necessary. 
 If the installation is successful, all scripts in the 
@@ -67,12 +65,10 @@ Basic usage
   # Simulation
   sim = model.simulate(time)
     
-
 Here :code:`data` should be a two-dimensional array of single-cell gene expression counts, 
 where each row represents a cell and each column represents a gene, 
 except for the first column, which contains experimental time points. 
 A toy example is:
-
 
 .. code-block:: python
     
@@ -86,7 +82,6 @@ A toy example is:
       [1, 2, 0, 8], # Cell 4
       [1, 0, 0, 3], # Cell 5
   ])
-
 
 The :code:`time` argument for simulations is either a single time or a list of time points. 
 For example, a single-cell trajectory (not available from scRNA-seq) 

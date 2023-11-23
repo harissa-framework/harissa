@@ -1,49 +1,54 @@
-from setuptools import setup, find_packages
+# from setuptools import setup, find_packages
 
-setup(
+# setup(
 
-    name='harissa',
+#     name='harissa',
 
-    version='3.0.7',
+#     # version='3.0.7',
+#     use_scm_version=True,
 
-    packages=find_packages(),
+#     packages=find_packages(),
 
-    author='Ulysse Herbach',
+#     author='Ulysse Herbach',
 
-    author_email='ulysse.herbach@inria.fr',
+#     author_email='ulysse.herbach@inria.fr',
 
-    description=('Tools for mechanistic gene network inference '
-        'from single-cell data'),
+#     description=('Tools for mechanistic gene network inference '
+#         'from single-cell data'),
 
-    long_description=open('README.rst').read(),
-    long_description_content_type='text/x-rst',
+#     long_description=open('README.rst').read(),
+#     long_description_content_type='text/x-rst',
 
-    url='https://github.com/ulysseherbach/harissa',
+#     url='https://github.com/ulysseherbach/harissa',
 
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 3',
-        'Operating System :: OS Independent',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-    ],
+#     classifiers=[
+#         'Development Status :: 4 - Beta',
+#         'License :: OSI Approved :: BSD License',
+#         'Programming Language :: Python :: 3',
+#         'Operating System :: OS Independent',
+#         'Topic :: Scientific/Engineering :: Bio-Informatics',
+#     ],
 
-    platforms='any',
+#     platforms='any',
 
-    license='BSD-3-Clause',
-    license_file='LICENSE.txt',
+#     license='BSD-3-Clause',
+#     license_file='LICENSE.txt',
 
-    keywords=('stochastic gene expression, gene regulatory networks, '
-        'single-cell transcriptomics'),
+#     keywords=('stochastic gene expression, gene regulatory networks, '
+#         'single-cell transcriptomics'),
 
-    python_requires='>=3.8',
+#     python_requires='>=3.8',
 
-    install_requires=[
-        'numpy>=1.20',
-        'scipy>=1.7',
-        'numba>=0.55',
-        'matplotlib>=3.4',
-        'networkx>=2.6',
-    ],
+#     install_requires=[
+#         'numpy>=1.20',
+#         'scipy>=1.7',
+#         'numba>=0.55',
+#         'matplotlib>=3.4',
+#         'networkx>=2.6',
+#     ],
 
-)
+# )
+
+from setuptools import setup
+
+setup()

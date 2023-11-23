@@ -30,24 +30,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+      - name: Install harissa
+        run: pip install -e .
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-build docs/source/ build  
+        run: sphinx-multiversion docs/source html || sphinx-build docs/source html
+      - name: Clean up .doctrees
+        run: rm -rf `find html -name .doctrees -type d`
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: 'build'
+          path: 'html'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
