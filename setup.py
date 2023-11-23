@@ -1,13 +1,18 @@
-# from setuptools import setup, find_packages
+from setuptools import setup
+
+# from setuptools_scm.version import get_no_local_node
 
 # setup(
 
 #     name='harissa',
 
-#     # version='3.0.7',
-#     use_scm_version=True,
+#     use_scm_version={
+#         'local_scheme': get_no_local_node, 
+#         'fallback_version': '3.0.7',
+#     },
 
-#     packages=find_packages(),
+#     # package_dir={'', 'src'},
+#     # packages=find_packages(where='src'),
 
 #     author='Ulysse Herbach',
 
@@ -32,7 +37,7 @@
 #     platforms='any',
 
 #     license='BSD-3-Clause',
-#     license_file='LICENSE.txt',
+#     license_file='LICENSE',
 
 #     keywords=('stochastic gene expression, gene regulatory networks, '
 #         'single-cell transcriptomics'),
@@ -48,7 +53,5 @@
 #     ],
 
 # )
-
-from setuptools import setup
 
 setup()
