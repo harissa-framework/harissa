@@ -8,6 +8,7 @@ on:
 
 jobs:
   check_duplicate:
+    name: Check duplicate
     runs-on: ubuntu-latest
     outputs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
@@ -16,6 +17,7 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
 
   build:
+    name: Build python 🐍 package 📦
     needs: check_duplicate
     if: needs.check_duplicate.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
@@ -42,6 +44,7 @@ jobs:
         path: dist
 
   doc:
+    name: Generate documentation
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -57,9 +60,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install harissa
-        run: |
-          pip install -r requirements.txt
-          pip install --no-index --find-links=dist harissa
+        run: pip install dist/*.whl
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
@@ -74,3 +75,24 @@ jobs:
         with:
           name: 'doc'
           path: 'html'
+
+  deploy:
+    name: Publish distribution 📦 to TestPyPI
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: test-pypi
+      url: https://test.pypi.org/p/harissa
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v3
+        with:
+          name: distribution
+          path: dist
+      - name: Publish distribution 📦 to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
