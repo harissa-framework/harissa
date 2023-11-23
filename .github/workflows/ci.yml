@@ -23,11 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
+        fetch-depth: 0
         fetch-tags: true
-    - name: Check tags
-      run: git tag -l
+    - name: Display tags
+      run: echo `git tag -l`
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -49,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Dowload distribution artifact 
         uses: actions/download-artifact@v3
         with:
