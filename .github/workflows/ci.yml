@@ -13,13 +13,11 @@ jobs:
       should_skip: ${{ steps.skip_check.outputs.should_skip }}
     steps:
       - id: skip_check
-        uses: fkirc/skip-duplicate-actions@v3.4.0
-        with:
-          skip_after_successful_duplicate: 'true'
+        uses: fkirc/skip-duplicate-actions@v5
 
   build:
     needs: check_duplicate
-    if: ${{ needs.check_duplicate.outputs.should_skip != 'true' }}
+    if: needs.check_duplicate.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
