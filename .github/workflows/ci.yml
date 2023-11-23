@@ -2,9 +2,10 @@ name: Continous Integration
 
 on:
   push:
-    branches: ["development"]
   pull_request:
-    branches: ["main", "development"]
+    branches: 
+      - main
+      - development
 
 jobs:
   check_duplicate:
@@ -15,6 +16,9 @@ jobs:
     steps:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
+        with:
+          skip_after_successful_duplicate: 'true'
+          do_not_skip: '["pull_request"]'
 
   build:
     name: Build python 🐍 package 📦
@@ -46,6 +50,7 @@ jobs:
   doc:
     name: Generate documentation
     needs: build
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,24 +80,3 @@ jobs:
         with:
           name: 'doc'
           path: 'html'
-
-  deploy:
-    name: Publish distribution 📦 to TestPyPI
-    if: github.event_name == 'push'
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: test-pypi
-      url: https://test.pypi.org/p/harissa
-    permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
-    steps:
-      - name: Dowload distribution artifact 
-        uses: actions/download-artifact@v3
-        with:
-          name: distribution
-          path: dist
-      - name: Publish distribution 📦 to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
