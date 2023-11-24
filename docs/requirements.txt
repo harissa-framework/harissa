@@ -1,0 +1,7 @@
+sphinx
+furo
+nbsphinx
+ipython
+sphinx-gallery
+sphinx-copybutton
+sphinx_multiversion

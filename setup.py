@@ -1,49 +1,57 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-setup(
+# from setuptools_scm.version import get_no_local_node
 
-    name='harissa',
+# setup(
 
-    version='3.0.7',
+#     name='harissa',
 
-    packages=find_packages(),
+#     use_scm_version={
+#         'local_scheme': get_no_local_node, 
+#         'fallback_version': '3.0.7',
+#     },
 
-    author='Ulysse Herbach',
+#     # package_dir={'', 'src'},
+#     # packages=find_packages(where='src'),
 
-    author_email='ulysse.herbach@inria.fr',
+#     author='Ulysse Herbach',
 
-    description=('Tools for mechanistic gene network inference '
-        'from single-cell data'),
+#     author_email='ulysse.herbach@inria.fr',
 
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
+#     description=('Tools for mechanistic gene network inference '
+#         'from single-cell data'),
 
-    url='https://github.com/ulysseherbach/harissa',
+#     long_description=open('README.rst').read(),
+#     long_description_content_type='text/x-rst',
 
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: BSD License',
-        'Programming Language :: Python :: 3',
-        'Operating System :: OS Independent',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-    ],
+#     url='https://github.com/ulysseherbach/harissa',
 
-    platforms='any',
+#     classifiers=[
+#         'Development Status :: 4 - Beta',
+#         'License :: OSI Approved :: BSD License',
+#         'Programming Language :: Python :: 3',
+#         'Operating System :: OS Independent',
+#         'Topic :: Scientific/Engineering :: Bio-Informatics',
+#     ],
 
-    license='BSD-3-Clause',
-    license_file='LICENSE.txt',
+#     platforms='any',
 
-    keywords=('stochastic gene expression, gene regulatory networks, '
-        'single-cell transcriptomics'),
+#     license='BSD-3-Clause',
+#     license_file='LICENSE',
 
-    python_requires='>=3.8',
+#     keywords=('stochastic gene expression, gene regulatory networks, '
+#         'single-cell transcriptomics'),
 
-    install_requires=[
-        'numpy>=1.20',
-        'scipy>=1.7',
-        'numba>=0.55',
-        'matplotlib>=3.4',
-        'networkx>=2.6',
-    ],
+#     python_requires='>=3.8',
 
-)
+#     install_requires=[
+#         'numpy>=1.20',
+#         'scipy>=1.7',
+#         'numba>=0.55',
+#         'matplotlib>=3.4',
+#         'networkx>=2.6',
+#     ],
+
+# )
+
+setup()
