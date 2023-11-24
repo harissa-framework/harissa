@@ -133,8 +133,10 @@ def infer_kinetics(x: np.ndarray,
 
     Parameters
     ----------
-    x[k] = gene expression in cell k
-    times[k] = time point of cell k
+    x : ndarray
+        `x[k]` is the gene expression of cell `k`
+    times : ndarray
+        `times[k]` is the time point of cell `k`
     """
     t = np.sort(list(set(times)))
     m = t.size
