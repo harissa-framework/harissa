@@ -205,10 +205,6 @@ class BurstyPDMP(Simulation):
         k0 = parameter.burst_frequency_min * parameter.degradation_rna
         k1 = parameter.burst_frequency_max * parameter.degradation_rna
 
-        # Normalize protein scales
-        s1 = (parameter.degradation_protein * parameter.burst_size 
-              / parameter.burst_frequency_max)
-
         # Thinning parameter
         tau = None if self.thin_adapt else np.sum(k1[1:])
         
@@ -219,8 +215,11 @@ class BurstyPDMP(Simulation):
             inter=parameter.interaction,
             d0=parameter.degradation_rna,
             d1=parameter.degradation_protein,
-            s1=s1, k0=k0, k1=k1, b=parameter.burst_size,
-            tau=tau)
+            s1=parameter.creation_protein, 
+            k0=k0, k1=k1, 
+            b=parameter.burst_size,
+            tau=tau
+        )
         
         if self.is_verbose:
             # Display info about jumps

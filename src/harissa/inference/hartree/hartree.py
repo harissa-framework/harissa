@@ -334,8 +334,12 @@ class Hartree(Inference):
             basal_time[time] = theta[t][:, 0]
             inter_time[time][:, 1:] = theta[t][:, 1:]
 
+        scale =  a[2] / a[1]
+
         p = NetworkParameter(nb_genes - 1)
         p.burst_frequency_min, p.burst_frequency_max, p.burst_size = a
+        p.creation_rna = p.degradation_rna * scale
+        p.creation_protein = p.degradation_protein * scale
         p.basal = basal_time[times[-1]]
         p.interaction = inter_time[times[-1]]
 

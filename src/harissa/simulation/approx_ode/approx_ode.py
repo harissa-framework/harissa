@@ -115,7 +115,7 @@ class ApproxODE(Simulation):
             inter=parameter.interaction,
             d0=parameter.degradation_rna,
             d1=parameter.degradation_protein,
-            s1=parameter.degradation_protein*parameter.burst_size/parameter.burst_frequency_max, 
+            s1=parameter.creation_protein, 
             k0=parameter.burst_frequency_min * parameter.degradation_rna, 
             k1=parameter.burst_frequency_max * parameter.degradation_rna,
             b=parameter.burst_size,
