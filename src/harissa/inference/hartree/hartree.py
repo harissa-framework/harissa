@@ -4,7 +4,7 @@ Core functions for network inference using likelihood maximization
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
-from harissa.inference.inference import Inference
+from harissa.inference.inference import Inference, NetworkParameter
 from harissa.inference.utils import estimate_gamma_poisson
 
 def p1(x, s):
@@ -333,26 +333,18 @@ class Hartree(Inference):
         for t, time in enumerate(times):
             basal_time[time] = theta[t][:, 0]
             inter_time[time][:, 1:] = theta[t][:, 1:]
-        
-        res = Inference.Result(burst_frequency_min=a[0], 
-                               burst_frequency_max=a[1], 
-                               burst_size=a[2],
-                               basal=basal_time[times[-1]],
-                               interaction=inter_time[times[-1]])
-        res.basal_time = basal_time
-        res.interaction_time = inter_time
-        res.y = y
 
-        return res
-    
-        # TODO test this syntax
-        # return Inference.Result(burst_frequency_min=a[0], 
-        #                         burst_frequency_max=a[1], 
-        #                         burst_size=a[2],
-        #                         basal=basal_time.items()[-1], 
-        #                         basal_time=basal_time,
-        #                         interaction=inter_time.items()[-1],
-        #                         interaction_time=inter_time)
+        p = NetworkParameter(nb_genes - 1)
+        p.burst_frequency_min, p.burst_frequency_max, p.burst_size = a
+        p.basal = basal_time[times[-1]]
+        p.interaction = inter_time[times[-1]]
+
+        return Inference.Result(
+            parameter=p,
+            basal_time=basal_time,
+            interaction_time=inter_time,
+            y=y
+        )
 
     def _get_kinetics(self, data: np.ndarray) -> np.ndarray:
         """

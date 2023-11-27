@@ -1,22 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import numpy as np
 
+from harissa.parameter import NetworkParameter
+
 class Simulation(ABC):
-    @dataclass
-    class Parameter:
-        """
-        Parameters of simulation
-        """
-        initial_state: np.ndarray = field(init=False)
-        time_points: np.ndarray = field(init=False)
-        burst_frequency_min: np.ndarray
-        burst_frequency_max: np.ndarray
-        burst_size: np.ndarray
-        degradation_rna: np.ndarray
-        degradation_protein: np.ndarray
-        basal: np.ndarray
-        interaction: np.ndarray
 
     @dataclass
     class Result:
@@ -28,7 +16,10 @@ class Simulation(ABC):
         protein_levels: np.ndarray
 
     @abstractmethod
-    def run(self, parameter: Parameter) -> Result:
+    def run(self, 
+            initial_state: np.ndarray, 
+            time_points: np.ndarray, 
+            parameter: NetworkParameter) -> Result:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
              'implement this function (run) and not use it.')

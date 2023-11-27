@@ -2,7 +2,7 @@
 Perform simulations using the ODE model
 """
 import numpy as np
-from harissa.simulation.simulation import Simulation
+from harissa.simulation.simulation import Simulation, NetworkParameter
 from harissa.simulation.utils import kon 
 
 
@@ -97,7 +97,10 @@ class ApproxODE(Simulation):
             self._use_numba = use_numba
     
 
-    def run(self, parameter: Simulation.Parameter) -> Simulation.Result:
+    def run(self, 
+            initial_state: np.ndarray, 
+            time_points: np.ndarray, 
+            parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (ODE version).
         This is the slow-fast limit of the PDMP model, which is only
@@ -106,8 +109,8 @@ class ApproxODE(Simulation):
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
         states, step_count, dt = self._simulation(
-            state=parameter.initial_state, 
-            time_points=parameter.time_points,
+            state=initial_state, 
+            time_points=time_points,
             basal=parameter.basal,
             inter=parameter.interaction,
             d0=parameter.degradation_rna,
@@ -127,6 +130,4 @@ class ApproxODE(Simulation):
             else: 
                 print('ODE simulation used no step')
         
-        return Simulation.Result(parameter.time_points, 
-                                 states[:, 0], 
-                                 states[:, 1])
+        return Simulation.Result(time_points, states[:, 0], states[:, 1])

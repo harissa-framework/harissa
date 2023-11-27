@@ -2,7 +2,7 @@
 Perform simulations using the PDMP model
 """
 import numpy as np
-from harissa.simulation.simulation import Simulation
+from harissa.simulation.simulation import Simulation, NetworkParameter
 from harissa.simulation.utils import kon, kon_bound, flow
 
 # from scipy.special import expit
@@ -195,7 +195,10 @@ class BurstyPDMP(Simulation):
             
             self._use_numba = use_numba
     
-    def run(self, parameter: Simulation.Parameter) -> Simulation.Result:
+    def run(self, 
+            initial_state: np.ndarray, 
+            time_points: np.ndarray, 
+            parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
         """
@@ -210,8 +213,8 @@ class BurstyPDMP(Simulation):
         tau = None if self.thin_adapt else np.sum(k1[1:])
         
         states, phantom_jump_count, true_jump_count = self._simulation(
-            state=parameter.initial_state,
-            time_points=parameter.time_points,
+            state=initial_state,
+            time_points=time_points,
             basal=parameter.basal,
             inter=parameter.interaction,
             d0=parameter.degradation_rna,
@@ -229,6 +232,4 @@ class BurstyPDMP(Simulation):
             else: 
                 print('Exact simulation used no jump')
         
-        return Simulation.Result(parameter.time_points, 
-                                 states[:, 0], 
-                                 states[:, 1])
+        return Simulation.Result(time_points, states[:, 0], states[:, 1])
