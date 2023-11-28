@@ -11,7 +11,6 @@ authors = [
 ]
 description = "Tools for mechanistic gene network inference from single-cell data"
 readme = "README.rst"
-urls = { Repository = "https://github.com/ulysseherbach/harissa" }
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: BSD License",
@@ -37,10 +36,17 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.urls]
+Repository = "https://github.com/harissa-framework/harissa"
+Documentation = "https://harissa-framework.github.io/harissa"
+"Legacy Repository" = "https://github.com/ulysseherbach/harissa"
+
 [tool.setuptools]
 platforms = ["any"]
 
 [tool.setuptools_scm]
+local_scheme= "no-local-version"
+fallback_version = "3.0.7"
 
 [tool.ruff]
 select = ["E", "F"]
