@@ -61,7 +61,6 @@
    :undoc-members:
    :member-order: bysource
    :show-inheritance:
-   :special-members: __init__
 
       {% endfor %}
    {% endif %}
