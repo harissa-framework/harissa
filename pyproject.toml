@@ -46,7 +46,6 @@ platforms = ["any"]
 
 [tool.setuptools_scm]
 local_scheme= "no-local-version"
-fallback_version = "3.0.7"
 
 [tool.ruff]
 select = ["E", "F"]
