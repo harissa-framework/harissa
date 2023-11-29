@@ -374,7 +374,7 @@ class Hartree(Inference):
             a[2, g] = b_g
         return a
     
-    def binarize(self, data: np.ndarray):
+    def binarize(self, data: np.ndarray) -> np.ndarray:
         """
         Return a binarized version of the data using gene-specific thresholds
         derived from the data-calibrated mechanistic model.
