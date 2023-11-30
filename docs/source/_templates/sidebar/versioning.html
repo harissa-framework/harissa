@@ -1,14 +1,28 @@
 {% if versions %}
 <div class="sidebar-versions">
-  <label for="__versions">
-    <strong>{{ _('Versions') }}:</strong>
-  </label>
-  <select name="__versions" id="__versions" onchange="window.location.href=this.value;">
-    {% for item in versions | sort(reverse=True) -%}
-    <option value="{{ item.url }}" {% if item.url.split('/') | length is eq 1 -%} selected {%- endif %}>
-      {{ item.name }} {% if item == latest_version -%} (latest) {%- endif %}
-    </option>
-    {%- endfor %}
-  </select>
+  {% if versions.tags | length is gt 0 -%}
+  <div class="versions-wrapper">
+    <label for="__versions">
+      <strong>{{ _('Versions') }}:</strong>
+    </label>
+    <select name="__versions" id="__versions" onchange="window.location.href=this.value;">
+      {% for item in versions.tags | sort(reverse=True) -%}
+      <option value="{{ item.url }}" {% if item.url.split('/') | length is eq 1 -%} selected {%- endif %}>
+        {{ item.name }} {% if item == latest_version -%} (latest) {%- endif %}
+      </option>
+      {%- endfor %}
+    </select>
+  </div>
+  {%- endif %}
+  {%- if versions.branches | length is gt 0 -%}
+  <div class="branches-wrapper">
+    <strong>{{ _('Branches') }}:</strong>
+    <ul>
+      {%- for item in versions.branches %}
+      <li><a href="{{ item.url }}">{{ item.name }}</a></li>
+      {%- endfor %}
+    </ul>
+  </div>
+  {%- endif %}
 </div>
 {% endif %}

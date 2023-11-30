@@ -197,6 +197,6 @@ if active_versions:
 tag_whitelist += r'$'
 
 smv_tag_whitelist = tag_whitelist
-smv_branch_whitelist = r'^$'
+smv_branch_whitelist = r'^main$'
 smv_remote_whitelist = r'^$'
 smv_released_pattern = r'^tags/\d+(\.\d+)*$'
