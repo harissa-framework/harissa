@@ -71,9 +71,9 @@ jobs:
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-build docs/source/ html
+        run: sphinx-multiversion docs/source html
       - name: Clean up .doctrees
-        run: rm -rf html/.doctrees
+        run: rm -rf `find html -name .doctrees -type d`
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
