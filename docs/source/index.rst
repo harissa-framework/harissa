@@ -14,8 +14,14 @@ Welcome to Harissa's 🌶 documentation!
    modules
    notebooks/README
 
+-------------------------------
+
 .. include:: ../../README.rst
-   :start-line: 9
+    :start-line: 3
+    :end-line: 7
+
+.. include:: ../../README.rst
+   :start-line: 11
    :end-line: 111
 
 Indices and tables
