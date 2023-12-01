@@ -57,6 +57,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - run: echo `git branch`
+      - run: echo `git tag`
       - name: Dowload distribution artifact 
         uses: actions/download-artifact@v3
         with:
