@@ -19,24 +19,14 @@
 }
 
 .sidebar-versions {
+    display: flex;
+    column-gap: 10px;
+    align-items: center;
     padding: var(--sidebar-item-spacing-vertical) var(--sidebar-item-spacing-horizontal);
     /* select {
         background: var(--color-sidebar-background);
         color: var(--color-foreground-primary);
     } */
-}
-
-.versions-wrapper {
-    display: flex;
-    column-gap: 10px;
-    align-items: center;
-}
-
-.branches-wrapper {
-    margin-top: 1rem;
-    ul {
-        list-style-type: none;
-    }
 }
 
 .announcement {
