@@ -5,6 +5,7 @@ on:
     branches-ignore:
       - main
   pull_request:
+    types: [opened, reopened]
     branches: 
       - main
 
@@ -19,7 +20,6 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           skip_after_successful_duplicate: 'true'
-          cancel_others: 'true'
 
   build:
     name: Build python 🐍 package 📦
@@ -32,9 +32,6 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
-    - run: echo `git for-each-ref --format "%(refname)" | sed 's/^refs\///g'`
-    - run: echo `git branch`
-    - run: echo `git tag`
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -58,12 +55,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-      - run: echo `git for-each-ref --format "%(refname)" | sed 's/^refs\///g'`
-      - run: echo `git branch`
-      - run: echo `git tag`
       - name: Dowload distribution artifact 
         uses: actions/download-artifact@v3
         with:
@@ -81,9 +72,9 @@ jobs:
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-multiversion docs/source html
+        run: sphinx-build docs/source html
       - name: Clean up .doctrees
-        run: rm -rf `find html -name .doctrees -type d`
+        run: rm -rf html/.doctrees
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
