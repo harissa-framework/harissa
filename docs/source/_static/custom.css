@@ -32,6 +32,13 @@
     align-items: center;
 }
 
+.branches-wrapper {
+    margin-top: 1rem;
+    ul {
+        list-style-type: none;
+    }
+}
+
 .announcement {
   height: unset;
   /* height: calc(var(--sidebar-item-line-height) + 6 * var(--sidebar-item-spacing-vertical));   */
