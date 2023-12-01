@@ -19,7 +19,6 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           skip_after_successful_duplicate: 'true'
-          do_not_skip: '["pull_request"]'
           cancel_others: 'true'
 
   build:
@@ -33,6 +32,9 @@ jobs:
       with:
         fetch-depth: 0
         fetch-tags: true
+    - run: echo `git for-each-ref --format "%(refname)" | sed 's/^refs\///g'`
+    - run: echo `git branch`
+    - run: echo `git tag`
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
@@ -52,7 +54,6 @@ jobs:
   doc:
     name: Generate documentation
     needs: build
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
