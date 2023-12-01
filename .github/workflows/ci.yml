@@ -54,9 +54,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
       - name: Dowload distribution artifact 
         uses: actions/download-artifact@v3
         with:
@@ -74,7 +71,7 @@ jobs:
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-multiversion docs/source html
+        run: sphinx-build docs/source html
       - name: Clean up .doctrees
         run: rm -rf `find html -name .doctrees -type d`
       - name: Upload artifact
