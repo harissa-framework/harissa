@@ -7,7 +7,7 @@ Harissa 🌶
 
 .. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
    :alt: GitHub Pages status
-   :target: harissa-framework.github.io/harissa/
+   :target: https://harissa-framework.github.io/harissa/
 
 This is a Python package for both simulation and inference of gene 
 regulatory networks from single-cell data. Its name comes from 
