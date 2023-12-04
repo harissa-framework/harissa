@@ -1,7 +1,7 @@
 {% if versions %}
 
 {%- macro option(item) -%}
-<option value="{{ item.url }}" {% if item.url.split('/') | length is eq 1 -%} selected {%- endif %}>
+<option value="{{ item.url }}" {% if item == current_version -%} selected {%- endif %}>
   {{ caller() }} {% if item == latest_version -%} (latest) {%- endif %}
 </option>
 {%- endmacro -%}
