@@ -1,19 +1,15 @@
-name: Publish harissa 🌶 to TestPyPI
+name: Publish harissa 🌶 to PyPI
 
 on:
-  push:
-    branches: 
-      - main
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: test-pypi
-      url: https://test.pypi.org/p/harissa
+      name: pypi
+      url: https://pypi.org/p/harissa
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
@@ -30,7 +26,7 @@ jobs:
         run : pip install build
       - name: Build python 🐍 package
         run: python -m build
-      - name: Publish distribution 📦 to TestPyPI
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
