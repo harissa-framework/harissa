@@ -18,6 +18,6 @@ Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
 from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
-from harissa.parameters import cascade, tree
+from harissa.patterns import cascade, tree
 
 __all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'tree']
