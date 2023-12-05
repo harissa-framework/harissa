@@ -6,11 +6,12 @@ on:
 
 jobs:
   deploy:
-    if: ${{ false }}  # disable for now
     runs-on: ubuntu-latest
     environment:
-      name: pypi
-      url: https://pypi.org/p/harissa
+      # name: pypi
+      # url: https://pypi.org/p/harissa
+      name: test-pypi
+      url: https://test.pypi.org/p/harissa
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
@@ -30,4 +31,5 @@ jobs:
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          # password: ${{ secrets.PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/

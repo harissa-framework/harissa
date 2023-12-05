@@ -45,6 +45,7 @@ Documentation = "https://harissa-framework.github.io/harissa"
 platforms = ["any"]
 
 [tool.setuptools_scm]
+tag_regex = "^v(.*)$"
 local_scheme= "no-local-version"
 
 [tool.ruff]

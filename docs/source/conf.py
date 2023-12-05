@@ -148,7 +148,7 @@ active_versions = tuple(
 # -- Options for sphinx-multiversion
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
 
-tag_whitelist = r'^'
+tag_whitelist = r'^v'
 if active_versions:
     tag_whitelist += r'('
     for i, active_version in enumerate(active_versions):
@@ -199,4 +199,4 @@ tag_whitelist += r'$'
 smv_tag_whitelist = tag_whitelist
 smv_branch_whitelist = r'^main$'
 smv_remote_whitelist = r'^$'
-smv_released_pattern = r'^tags/\d+(\.\d+)*$'
+smv_released_pattern = r'^tags/v\d+(\.\d+)*$'
