@@ -134,12 +134,12 @@ copybutton_prompt_text = '$ '
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
 pattern = re.compile(
-    r'^(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$'
+    r'^v(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$'
 )
 active_versions = [
-    '3.0.7',
-    # '3.0.8',
-    # '4.0.0',
+    # 'v3.0.7',
+    'v3.0.8',
+    # 'v4.0.0',
 ]
 active_versions = tuple(
     filter(lambda v: re.match(pattern, v), active_versions)
@@ -148,7 +148,7 @@ active_versions = tuple(
 # -- Options for sphinx-multiversion
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
 
-tag_whitelist = r'^v'
+tag_whitelist = r'^'
 if active_versions:
     tag_whitelist += r'('
     for i, active_version in enumerate(active_versions):
