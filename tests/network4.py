@@ -1,7 +1,7 @@
 # Basic 4-gene network with stimulus and feedback loop
 import numpy as np
 import matplotlib.pyplot as plt
-from harissa import NetworkModel
+from harissa import NetworkModel, NetworkParameter
 from harissa.utils import build_pos, plot_network
 #### Simulate scRNA-seq data ####
 
@@ -24,17 +24,21 @@ data = np.zeros((C,G+1), dtype='int')
 data[:,0] = time # Time points
     
 # Initialize the model
-model = NetworkModel(G)
-model.degradation_rna[:] = 1
-model.degradation_protein[:] = 0.2
-model.basal[1:] = -5
-model.interaction[0,1] = 10
-model.interaction[1,2] = 10
-model.interaction[1,3] = 10
-model.interaction[3,4] = 10
-model.interaction[4,1] = -10
-model.interaction[2,2] = 10
-model.interaction[3,3] = 10
+param = NetworkParameter(G)
+param.degradation_rna[:] = 1
+param.degradation_protein[:] = 0.2
+param.basal[1:] = -5
+param.interaction[0,1] = 10
+param.interaction[1,2] = 10
+param.interaction[1,3] = 10
+param.interaction[3,4] = 10
+param.interaction[4,1] = -10
+param.interaction[2,2] = 10
+param.interaction[3,3] = 10
+scale = param.burst_size / param.burst_frequency_max
+param.creation_rna = param.degradation_rna * scale 
+param.creation_protein = param.degradation_protein * scale
+model = NetworkModel(param)
 
 # Generate data
 for k in range(C):
@@ -73,11 +77,11 @@ fig.savefig('network4_mean.pdf', bbox_inches='tight')
 
 # Node labels and positions
 names = [''] + [f'{i+1}' for i in range(G)]
-pos = build_pos(model.interaction)
+pos = build_pos(param.interaction)
 
 # Draw network and export figure
 fig = plt.figure(figsize=(5,5))
-plot_network(model.interaction, pos, axes=fig.gca(), names=names, scale=2)
+plot_network(param.interaction, pos, axes=fig.gca(), names=names, scale=2)
 fig.savefig('network4_graph.pdf', bbox_inches='tight')
 
 
@@ -91,4 +95,4 @@ model = NetworkModel()
 model.fit(x)
 
 # Export interaction matrix
-np.savetxt('network4_inter.txt', model.interaction, delimiter='\t')
+np.savetxt('network4_inter.txt', model.parameter.interaction, delimiter='\t')

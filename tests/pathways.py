@@ -1,7 +1,7 @@
 # Branching 4-gene pathways with stimulus
 import numpy as np
 import matplotlib.pyplot as plt
-from harissa import NetworkModel
+from harissa import NetworkModel, NetworkParameter
 from harissa.utils import build_pos, plot_network
 
 #### Simulate scRNA-seq data ####
@@ -25,25 +25,34 @@ data1 = np.zeros((C,G+1), dtype='int')
 data1[:,0] = time # Time points
 data2 = data1.copy()
 
+
 # Model 1
-model1 = NetworkModel(G)
-model1.degradation_rna[:] = 1
-model1.degradation_protein[:] = 0.2
-model1.basal[1:] = -5
-model1.interaction[0,1] = 10
-model1.interaction[1,2] = 10
-model1.interaction[1,3] = 10
-model1.interaction[2,4] = 10
+param1 = NetworkParameter(G)
+param1.degradation_rna[:] = 1
+param1.degradation_protein[:] = 0.2
+param1.basal[1:] = -5
+param1.interaction[0,1] = 10
+param1.interaction[1,2] = 10
+param1.interaction[1,3] = 10
+param1.interaction[2,4] = 10
+scale = param1.burst_size / param1.burst_frequency_max
+param1.creation_rna = param1.degradation_rna * scale 
+param1.creation_protein = param1.degradation_protein * scale
+model1 = NetworkModel(param1)
 
 # Model 2
-model2 = NetworkModel(G)
-model2.degradation_rna[:] = 1
-model2.degradation_protein[:] = 0.2
-model2.basal[1:] = -5
-model2.interaction[0,1] = 10
-model2.interaction[1,2] = 10
-model2.interaction[1,3] = 10
-model2.interaction[3,4] = 10
+param2 = NetworkParameter(G)
+param2.degradation_rna[:] = 1
+param2.degradation_protein[:] = 0.2
+param2.basal[1:] = -5
+param2.interaction[0,1] = 10
+param2.interaction[1,2] = 10
+param2.interaction[1,3] = 10
+param2.interaction[3,4] = 10
+scale = param2.burst_size / param2.burst_frequency_max
+param2.creation_rna = param2.degradation_rna * scale 
+param2.creation_protein = param2.degradation_protein * scale
+model2 = NetworkModel(param2)
 
 # Generate data
 for k in range(C):
@@ -89,9 +98,15 @@ names = [''] + [f'{i+1}' for i in range(G)]
 
 # Draw networks and export figures
 for i, model in [(1,model1),(2,model2)]:
-    pos = build_pos(model.interaction)
+    pos = build_pos(model.parameter.interaction)
     fig = plt.figure(figsize=(5,5))
-    plot_network(model.interaction, pos, axes=fig.gca(), names=names, scale=2)
+    plot_network(
+        model.parameter.interaction, 
+        pos, 
+        axes=fig.gca(), 
+        names=names, 
+        scale=2
+    )
     fig.savefig(f'pathways_graph{i}.pdf', bbox_inches='tight')
 
 
@@ -104,4 +119,8 @@ for i in [1,2]:
     model = NetworkModel()
     model.fit(x)
     # Export interaction matrix
-    np.savetxt(f'pathways_inter{i}.txt', model.interaction, delimiter='\t')
+    np.savetxt(
+        f'pathways_inter{i}.txt', 
+        model.parameter.interaction, 
+        delimiter='\t'
+    )
