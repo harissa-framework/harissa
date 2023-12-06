@@ -20,11 +20,4 @@ from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
 from harissa.utils.networks import cascade, random_tree
 
-# Import utils as harissa modules
-import harissa.utils.graphics as graphics
-import harissa.utils.networks as networks
-import harissa.utils.processing as processing
-import harissa.utils.stat as stat
-
-__all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'random_tree',
-    'graphics', 'networks', 'processing', 'stat']
+__all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'random_tree']
