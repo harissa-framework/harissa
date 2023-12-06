@@ -5,7 +5,7 @@ import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
 from harissa.inference.inference import Inference, NetworkParameter
-from harissa.inference.utils import estimate_gamma_poisson
+from harissa.utils.stat.gamma import estimate_gamma_poisson
 
 def p1(x, s):
     """
