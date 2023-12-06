@@ -1,13 +1,19 @@
 {% if versions %}
+
+{%- macro option(item) -%}
+<option value="{{ item.url }}" {% if item == current_version -%} selected {%- endif %}>
+  {{ caller() }} {% if item == latest_version -%} (latest) {%- endif %}
+</option>
+{%- endmacro -%}
+
 <div class="sidebar-versions">
   <label for="__versions">
     <strong>{{ _('Versions') }}:</strong>
   </label>
   <select name="__versions" id="__versions" onchange="window.location.href=this.value;">
-    {% for item in versions | sort(reverse=True) -%}
-    <option value="{{ item.url }}" {% if item.url.split('/') | length is eq 1 -%} selected {%- endif %}>
-      {{ item.name }} {% if item == latest_version -%} (latest) {%- endif %}
-    </option>
+    {% call option(versions.branches | first) -%} development {%- endcall %}
+    {% for item in versions.tags | sort(reverse=True) -%}
+    {% call option(item) -%} {{ item.name }} {%- endcall %}
     {%- endfor %}
   </select>
 </div>

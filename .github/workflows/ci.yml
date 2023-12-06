@@ -2,10 +2,12 @@ name: Continous Integration
 
 on:
   push:
+    branches-ignore:
+      - main
   pull_request:
+    types: [opened, reopened]
     branches: 
       - main
-      - development
 
 jobs:
   check_duplicate:
@@ -18,7 +20,6 @@ jobs:
         uses: fkirc/skip-duplicate-actions@v5
         with:
           skip_after_successful_duplicate: 'true'
-          do_not_skip: '["pull_request"]'
 
   build:
     name: Build python 🐍 package 📦
@@ -50,7 +51,6 @@ jobs:
   doc:
     name: Generate documentation
     needs: build
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,7 +72,7 @@ jobs:
           sudo apt-get -y install pandoc
           pip install -r docs/requirements.txt
       - name: Build documentation
-        run: sphinx-build docs/source/ html
+        run: sphinx-build docs/source html
       - name: Clean up .doctrees
         run: rm -rf html/.doctrees
       - name: Upload artifact
