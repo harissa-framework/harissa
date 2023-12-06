@@ -217,7 +217,7 @@ class BurstyPDMP(Simulation):
             d1=parameter.degradation_protein,
             s1=parameter.creation_protein, 
             k0=k0, k1=k1, 
-            b=parameter.burst_size,
+            b=parameter.burst_size_inv,
             tau=tau
         )
         

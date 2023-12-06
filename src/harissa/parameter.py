@@ -19,11 +19,11 @@ class NetworkParameter:
         """Minimal Kon rate (normalized)"""        
         self.burst_frequency_max : np.ndarray | None = None # a[1]
         """Maximal Kon rate (normalized)""" 
-        self.burst_size          : np.ndarray | None = None # a[2]
+        self.burst_size_inv      : np.ndarray | None = None # a[2]
         """Inverse burst size of mRNA"""
-        self.creation_rna        : np.ndarray | None = None # s0
+        self.creation_rna        : np.ndarray | None = None # s[0]
         """Normalize rna scales"""
-        self.creation_protein    : np.ndarray | None = None # s1
+        self.creation_protein    : np.ndarray | None = None # s[1]
         """Normalize protein scales"""
         self.degradation_rna     : np.ndarray | None = None # d[0]
         """mRNA degradation rates (per hour)"""
@@ -42,14 +42,14 @@ class NetworkParameter:
             # Default bursting parameters
             self.burst_frequency_min = np.full(G, 0.0)
             self.burst_frequency_max = np.full(G, 2.0)  
-            self.burst_size          = np.full(G, 0.02)  
+            self.burst_size_inv      = np.full(G, 0.02)  
 
             # Default degradation rates
             self.degradation_rna     = np.log(np.full(G, 2.0)) / 9.0
             self.degradation_protein = np.log(np.full(G, 2.0)) / 46.0
 
             # Default creation rates
-            scale =  self.burst_size / self.burst_frequency_max
+            scale =  self.burst_size_inv / self.burst_frequency_max
             self.creation_rna = self.degradation_rna * scale
             self.creation_protein = self.degradation_protein * scale 
             

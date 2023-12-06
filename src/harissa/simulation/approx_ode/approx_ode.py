@@ -118,7 +118,7 @@ class ApproxODE(Simulation):
             s1=parameter.creation_protein, 
             k0=parameter.burst_frequency_min * parameter.degradation_rna, 
             k1=parameter.burst_frequency_max * parameter.degradation_rna,
-            b=parameter.burst_size,
+            b=parameter.burst_size_inv,
             euler_step=1e-3/np.max(parameter.degradation_protein)
         )
         
