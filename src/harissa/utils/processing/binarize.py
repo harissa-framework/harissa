@@ -1,5 +1,5 @@
 """
-Data processing
+Data binarization from the dynamical model
 """
 import numpy as np
 from harissa.inference.hartree.hartree import Hartree

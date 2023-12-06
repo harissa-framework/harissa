@@ -18,6 +18,13 @@ Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
 from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
-from harissa.patterns import cascade, tree
+from harissa.utils.networks import cascade, random_tree
 
-__all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'tree']
+# Import utils as harissa modules
+import harissa.utils.graphics as graphics
+import harissa.utils.networks as networks
+import harissa.utils.processing as processing
+import harissa.utils.stat as stat
+
+__all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'random_tree',
+    'graphics', 'networks', 'processing', 'stat']
