@@ -26,7 +26,7 @@ keywords = [
     "gene regulatory networks",
     "single-cell transcriptomics",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.20",
     "scipy>=1.7",
