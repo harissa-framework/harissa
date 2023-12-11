@@ -67,7 +67,7 @@ jobs:
       - name: Install harissa
         run: pip install dist/*.whl
       - name: Install pytest
-        run: pip install pytest
+        run: pip install pytest pytest-cov
       - name: Run tests
         run: pytest --junit-xml=report.xml tests
       - name: Coverage
