@@ -68,10 +68,8 @@ jobs:
         run: pip install dist/*.whl
       - name: Install pytest
         run: pip install pytest pytest-cov
-      - name: Run tests
-        run: pytest --junit-xml=report.xml tests
-      - name: Coverage
-        run: pytest --cov-report term --cov=src tests
+      - name: Run tests and coverage
+        run: pytest --cov-report term --cov=src --junit-xml=report.xml tests
 
   doc:
     name: Generate documentation
