@@ -47,8 +47,9 @@ def _create_simulation(step):
         2. Mean level of mRNA given protein levels
         """
         states = np.empty((time_points.size, *state.shape))
+        dt = euler_step
         if time_points.size > 1:
-            dt = min(euler_step, np.min(time_points[1:] - time_points[:-1]))
+            dt = min(dt, np.min(time_points[1:] - time_points[:-1]))
         t, step_count = 0.0, 0
         # Core loop for simulation and recording
         for i, time_point in enumerate(time_points):
