@@ -69,7 +69,7 @@ jobs:
       - name: Install pytest
         run: pip install pytest pytest-cov
       - name: Run tests and coverage
-        run: pytest --cov-report term --cov=src --junit-xml=report.xml tests
+        run: pytest -v --cov-report term --cov=harissa --junit-xml=report.xml tests
 
   doc:
     name: Generate documentation
