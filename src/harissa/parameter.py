@@ -13,7 +13,7 @@ class NetworkParameter:
         ----------
         n_genes
             number of genes
-        """        
+        """
         # Kinetic parameters
         self.burst_frequency_min : np.ndarray | None = None # a[0]
         """Minimal Kon rate (normalized)"""        
@@ -29,7 +29,7 @@ class NetworkParameter:
         """mRNA degradation rates (per hour)"""
         self.degradation_protein : np.ndarray | None = None # d[1]
         """protein degradation rates (per hour)"""
-        
+
         # Network parameters
         self.basal       : np.ndarray | None = None # basal
         """basal"""
