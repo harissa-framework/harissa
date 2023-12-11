@@ -27,26 +27,51 @@ jobs:
     if: needs.check_duplicate.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        fetch-tags: true
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    - name: Install packaging tools
-      run : pip install build twine
-    - name: Build package
-      run: python -m build
-    - name: Check package
-      run: twine check dist/*
-    - name: Upload distribution
-      uses: actions/upload-artifact@v3
-      with:
-        name: distribution
-        path: dist
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install packaging tools
+        run : pip install build twine
+      - name: Build package
+        run: python -m build
+      - name: Check package
+        run: twine check dist/*
+      - name: Upload distribution
+        uses: actions/upload-artifact@v3
+        with:
+          name: distribution
+          path: dist
+
+  test:
+    name: Run tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v3
+        with:
+          name: distribution
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install harissa
+        run: pip install dist/*.whl
+      - name: Install pytest
+        run: pip install pytest
+      - name: Run tests
+        run: pytest --junit-xml=report.xml tests
+      - name: Coverage
+        run: pytest --cov-report term --cov=src tests
 
   doc:
     name: Generate documentation
