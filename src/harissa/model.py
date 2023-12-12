@@ -10,7 +10,7 @@ class NetworkModel:
     """
     Handle networks within Harissa.
     """
-    def __init__(self, parameter: NetworkParameter = NetworkParameter(), *, 
+    def __init__(self, parameter: NetworkParameter = None, *, 
                  inference: Inference = Hartree(), 
                  simulation: Simulation = BurstyPDMP()):
         self.parameter : NetworkParameter = parameter
