@@ -3,7 +3,7 @@ Perform simulations using the ODE model
 """
 import numpy as np
 from harissa.simulation.simulation import Simulation, NetworkParameter
-from harissa.simulation.utils import kon 
+from harissa.simulation.utils import kon
 
 
 def _create_step(kon):
