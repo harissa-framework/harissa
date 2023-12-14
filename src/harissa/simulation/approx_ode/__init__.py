@@ -1,3 +1,3 @@
-from harissa.simulation.approx_ode.approx_ode import ApproxODE
+from harissa.simulation.approx_ode.base import ApproxODE
 
 __all__ = ['ApproxODE']

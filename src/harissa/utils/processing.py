@@ -2,7 +2,7 @@
 Data binarization from the dynamical model
 """
 import numpy as np
-from harissa.inference.hartree.hartree import Hartree
+from harissa.inference import Hartree
 
 def binarize(data: np.ndarray) -> np.ndarray:
     """

@@ -1,3 +1,3 @@
-from harissa.simulation.bursty_pdmp.bursty_pdmp import BurstyPDMP
+from harissa.simulation.bursty_pdmp.base import BurstyPDMP
 
 __all__ = ['BurstyPDMP']

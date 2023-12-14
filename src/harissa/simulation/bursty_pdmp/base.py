@@ -2,45 +2,9 @@
 Perform simulations using the PDMP model
 """
 import numpy as np
-from harissa.simulation.simulation import Simulation, NetworkParameter
-from harissa.simulation.utils import kon, kon_bound, flow
-
-# from scipy.special import expit
-
-# def kon(p: np.ndarray, 
-#         basal: np.ndarray, 
-#         inter: np.ndarray, 
-#         k0: np.ndarray, 
-#         k1: np.ndarray) -> float:
-#     """
-#     Interaction function kon (off->on rate), given protein levels p.
-#     """
-#     sigma = expit(basal + p @ inter)
-#     k_on = (1 - sigma) * k0 + sigma * k1
-#     k_on[0] = 0 # Ignore stimulus
-#     return k_on
-
-# def kon_bound(state: np.ndarray, 
-#               basal: np.ndarray, 
-#               inter: np.ndarray, 
-#               d0: np.ndarray, 
-#               d1: np.ndarray, 
-#               s1: np.ndarray, 
-#               k0: np.ndarray, 
-#               k1: np.ndarray) -> float:
-#     """
-#     Compute the current kon upper bound.
-#     """
-#     m, p = state
-#     # Explicit upper bound for p
-#     time = np.log(d0/d1)/(d0-d1) # vector of critical times
-#     p_max = p + (s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
-#     p_max[0] = p[0] # Discard stimulus
-#     # Explicit upper bound for Kon
-#     sigma = expit(basal + p_max @ ((inter > 0) * inter))
-#     k_on = (1-sigma)*k0 + sigma*k1 + 1e-10 # Fix precision errors
-#     k_on[0] = 0 # Ignore stimulus
-#     return k_on
+from harissa.parameter import NetworkParameter
+from harissa.simulation import Simulation
+from harissa.simulation.bursty_pdmp.utils import kon, kon_bound, flow
 
 _kon_jit = None
 _kon_bound_jit = None
@@ -118,12 +82,12 @@ def _step_jit(state: np.ndarray,
     return U, jump, state
 
 def _create_simulation(step, flow):
-    def simulation(state: np.ndarray, 
-                   time_points: np.ndarray, 
-                   basal: np.ndarray, 
-                   inter: np.ndarray, 
-                   d0: np.ndarray, 
-                   d1: np.ndarray, 
+    def simulation(state: np.ndarray,
+                   time_points: np.ndarray,
+                   basal: np.ndarray,
+                   inter: np.ndarray,
+                   d0: np.ndarray,
+                   d1: np.ndarray,
                    s1: np.ndarray,
                    k0: np.ndarray,
                    k1: np.ndarray,
@@ -139,7 +103,7 @@ def _create_simulation(step, flow):
         for i, time_point in enumerate(time_points):
             while t < time_point:
                 t_old, state_old = t, state
-                U, jump, state = step(state, basal, inter, d0, d1, 
+                U, jump, state = step(state, basal, inter, d0, d1,
                                     s1, k0, k1, b, tau)
                 t += U
                 if jump:
@@ -187,7 +151,7 @@ class BurstyPDMP(Simulation):
                     _kon_bound_jit = njit()(kon_bound)
                     _flow_jit = njit()(flow)
                     _step_jit = njit()(_step_jit)
-                    _simulation_jit = njit()(_create_simulation(_step_jit, 
+                    _simulation_jit = njit()(_create_simulation(_step_jit,
                                                                 _flow_jit))
                 self._simulation = _simulation_jit
             else:
@@ -195,9 +159,9 @@ class BurstyPDMP(Simulation):
             
             self._use_numba = use_numba
     
-    def run(self, 
-            initial_state: np.ndarray, 
-            time_points: np.ndarray, 
+    def run(self,
+            initial_state: np.ndarray,
+            time_points: np.ndarray,
             parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
@@ -225,8 +189,8 @@ class BurstyPDMP(Simulation):
             # Display info about jumps
             total_jump = phantom_jump_count + true_jump_count
             if total_jump > 0:
-                print(f'Exact simulation used {total_jump} jumps ' 
-                      f'including {phantom_jump_count} phantom jumps ' 
+                print(f'Exact simulation used {total_jump} jumps '
+                      f'including {phantom_jump_count} phantom jumps '
                       f'({100*phantom_jump_count/total_jump : .2f}%)')
             else: 
                 print('Exact simulation used no jump')

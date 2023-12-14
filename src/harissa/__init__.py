@@ -18,6 +18,5 @@ Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
 from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
-from harissa.utils.networks import cascade, random_tree
 
-__all__ = ['NetworkModel', 'NetworkParameter', 'cascade', 'random_tree']
+__all__ = ['NetworkModel', 'NetworkParameter']

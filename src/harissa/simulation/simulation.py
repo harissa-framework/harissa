@@ -5,7 +5,9 @@ import numpy as np
 from harissa.parameter import NetworkParameter
 
 class Simulation(ABC):
-
+    """
+    Abstract class for simulations.
+    """
     @dataclass
     class Result:
         """
@@ -17,9 +19,9 @@ class Simulation(ABC):
 
     @abstractmethod
     def run(self, 
-            initial_state: np.ndarray, 
-            time_points: np.ndarray, 
+            initial_state: np.ndarray,
+            time_points: np.ndarray,
             parameter: NetworkParameter) -> Result:
         raise NotImplementedError(
-            f'{self.__class__.__name__} must only ' 
+            f'{self.__class__.__name__} must only '
              'implement this function (run) and not use it.')

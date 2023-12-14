@@ -2,9 +2,9 @@
 Perform simulations using the ODE model
 """
 import numpy as np
-from harissa.simulation.simulation import Simulation, NetworkParameter
-from harissa.simulation.utils import kon
-
+from harissa.parameter import NetworkParameter
+from harissa.simulation import Simulation
+from harissa.simulation.approx_ode.utils import kon
 
 def _create_step(kon):
     def step(state: np.ndarray,
@@ -115,8 +115,8 @@ class ApproxODE(Simulation):
             inter=parameter.interaction,
             d0=parameter.degradation_rna,
             d1=parameter.degradation_protein,
-            s1=parameter.creation_protein, 
-            k0=parameter.burst_frequency_min * parameter.degradation_rna, 
+            s1=parameter.creation_protein,
+            k0=parameter.burst_frequency_min * parameter.degradation_rna,
             k1=parameter.burst_frequency_max * parameter.degradation_rna,
             b=parameter.burst_size_inv,
             euler_step=1e-3/np.max(parameter.degradation_protein)
@@ -125,7 +125,7 @@ class ApproxODE(Simulation):
         if self.is_verbose:
             # Display info about steps
             if step_count > 0:
-                print(f'ODE simulation used {step_count} steps ' 
+                print(f'ODE simulation used {step_count} steps '
                       f'(step size = {dt:.5f})')
             else: 
                 print('ODE simulation used no step')
