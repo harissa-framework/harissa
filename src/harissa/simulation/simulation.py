@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import numpy as np
-
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from harissa.parameter import NetworkParameter
 
 class Simulation(ABC):
@@ -11,7 +10,7 @@ class Simulation(ABC):
     @dataclass
     class Result:
         """
-        Result of simulation
+        Simulation result
         """
         time_points: np.ndarray
         rna_levels: np.ndarray

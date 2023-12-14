@@ -1,6 +1,5 @@
-from abc import ABC, abstractmethod
 import numpy as np
-
+from abc import ABC, abstractmethod
 from harissa.parameter import NetworkParameter
 
 class Inference(ABC):
@@ -9,10 +8,10 @@ class Inference(ABC):
     """
     class Result:
         """
-        Result of inference
+        Inference result
         """
-        def __init__(self, parameter : NetworkParameter, **kwargs) -> None:
-            self.parameter : NetworkParameter = parameter
+        def __init__(self, parameter: NetworkParameter, **kwargs) -> None:
+            self.parameter: NetworkParameter = parameter
             for key, value in kwargs.items():
                 setattr(self, key, value)
 

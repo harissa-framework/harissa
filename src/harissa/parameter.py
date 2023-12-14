@@ -25,13 +25,12 @@ class NetworkParameter:
         interaction         # theta
     """
     def __init__(self, n_genes):
-        # Genes plus stimulus
-        G = n_genes + 1
+        # Number of genes
+        self._n_genes = _check_n_genes(n_genes)
         # Mask for ignoring stimulus
+        G = n_genes + 1
         m = np.zeros((G,G), dtype=bool)
         m[:,0] = True
-        # Number of genes
-        self._n_genes = n_genes
         # Initialize parameters
         self._burst_frequency = _masked_zeros((2,G), m[:2])
         self._burst_size_inv = _masked_zeros(G, m[0])
@@ -58,9 +57,8 @@ class NetworkParameter:
             return all(test)
         return NotImplemented
 
-    #########################
     # Network size properties
-    #########################
+    # =======================
 
     @property
     def n_genes(self):
@@ -72,9 +70,8 @@ class NetworkParameter:
         """Number of genes in the network model, including stimulus."""
         return self._n_genes + 1
 
-    ######################
     # Parameter properties
-    ######################
+    # ====================
 
     @property
     def burst_frequency_min(self):
@@ -121,9 +118,8 @@ class NetworkParameter:
         """Interactions between genes."""
         return self._interaction
 
-    #################################
     # Aliases (mathematical notation)
-    #################################
+    # ===============================
 
     @property
     def k(self):
@@ -155,9 +151,8 @@ class NetworkParameter:
         """Interactions between genes."""
         return self._interaction
 
-    #####################
     # Shortcut properties
-    #####################
+    # ===================
 
     @property
     def c(self):
@@ -167,9 +162,8 @@ class NetworkParameter:
     def scale(self):
         return self.b / self.k[1]
 
-    #########
     # Methods
-    #########
+    # =======
 
     def _array_names(self):
         """Attribute names of the underlying array parameters."""
@@ -187,7 +181,15 @@ class NetworkParameter:
         return new_param
 
 
-# Masking function
+# Utility functions
+# =================
+
+def _check_n_genes(arg):
+    if isinstance(arg, int):
+        if arg > 0:
+            return arg
+    raise TypeError('n_genes should be a positive integer')
+
 def _masked_zeros(shape, mask):
     """Define a hard-masked array of zeros with given shape and mask.
     Note that np.zeros is used instead of np.empty in order to avoid
