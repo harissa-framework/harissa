@@ -29,7 +29,7 @@ class NetworkParameter:
         self._n_genes = _check_n_genes(n_genes)
         # Mask for ignoring stimulus
         G = self.n_genes_stim
-        mask = np.zeros((G,G), dtype=bool)
+        mask = np.ma.make_mask_none((G,G))
         mask[:, 0] = True
         # Initialize parameters
         self._burst_frequency = _masked_zeros((2,G), mask[:2])
@@ -83,7 +83,7 @@ class NetworkParameter:
     def burst_frequency_min(self, arr):
         self._burst_frequency[0] = _check_array(
             arr, 
-            (self._burst_frequency.shape[0],)
+            (self._burst_frequency.shape[1],)
         )
             
 
@@ -119,7 +119,7 @@ class NetworkParameter:
     
     @creation_rna.setter
     def creation_rna(self, arr):
-        self._creation[0] = _check_array(arr, (self._creation.shape[0],))
+        self._creation[0] = _check_array(arr, (self._creation.shape[1],))
 
     @property
     def creation_protein(self):
@@ -137,7 +137,7 @@ class NetworkParameter:
     
     @degradation_rna.setter
     def degradation_rna(self, arr):
-        self._degradation[0] = _check_array(arr, (self._degradation.shape[0],))
+        self._degradation[0] = _check_array(arr, (self._degradation.shape[1],))
 
     @property
     def degradation_protein(self):
@@ -279,7 +279,7 @@ def _check_array(arr, shape, masked = False):
             raise ValueError(f'The argument of shape {arr.shape} ' 
                             f'must have a {shape} shape')
         if masked:
-            mask = np.zeros(arr.shape, dtype=bool)
+            mask = np.ma.make_mask_none(arr.shape)
             if arr.ndim == 1:
                 mask[0] = True
             else:
