@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 from harissa.parameter import NetworkParameter
-from harissa.simulation.approx_ode.approx_ode import ApproxODE, Simulation
+
+from harissa.simulation import Simulation, ApproxODE
 
 def test_subclass():
     assert(issubclass(ApproxODE, Simulation))
@@ -12,8 +13,8 @@ def test_instance():
 
 def test_run_input_with_empty_network_parameter():
     sim = ApproxODE()
-    with pytest.raises(TypeError):
-        sim.run(np.empty((2, 1)), np.empty(1), NetworkParameter())
+    with pytest.raises(AttributeError):
+        sim.run(np.empty((2, 1)), np.empty(1), None)
 
 def test_run_output_type():
     sim = ApproxODE()

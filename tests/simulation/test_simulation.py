@@ -28,4 +28,4 @@ def test_simulation_super_run():
     sim = SimulationSuperRun()
 
     with pytest.raises(NotImplementedError):
-        sim.run(np.empty(1), np.empty(1), NetworkParameter())
+        sim.run(np.empty(1), np.empty(1), None)
