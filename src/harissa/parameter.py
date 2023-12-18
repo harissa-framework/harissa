@@ -3,6 +3,14 @@ Main class for network parameters
 """
 import numpy as np
 
+# Default parameter values
+default_burst_frequency_min = 0.0
+default_burst_frequency_max = 2.0
+default_burst_size_inv = 0.02
+default_degradation_rna = np.log(2.0) / 9.0
+default_degradation_protein = np.log(2.0) / 46.0
+
+# Main class
 class NetworkParameter:
     """
     Parameters of a network model.
@@ -27,27 +35,24 @@ class NetworkParameter:
     def __init__(self, n_genes):
         # Number of genes
         self._n_genes = _check_n_genes(n_genes)
-        # Mask for ignoring stimulus
+        # Genes plus stimulus
         G = n_genes + 1
-        m = np.zeros((G,G), dtype=bool)
-        m[:,0] = True
         # Initialize parameters
-        self._burst_frequency = _masked_zeros((2,G), m[:2])
-        self._burst_size_inv = _masked_zeros(G, m[0])
-        self._creation = _masked_zeros((2,G), m[:2])
-        self._degradation = _masked_zeros((2,G), m[:2])
-        self._basal = _masked_zeros(G, m[0])
-        self._interaction = _masked_zeros((G,G), m)
+        self._burst = _masked_zeros((3,G))
+        self._creation = _masked_zeros((2,G))
+        self._degradation = _masked_zeros((2,G))
+        self._basal = _masked_zeros(G)
+        self._interaction = _masked_zeros((G,G))
         # Default bursting parameters
-        self._burst_frequency[0] = 0.0
-        self._burst_frequency[1] = 2.0
-        self._burst_size_inv[:] = 0.02
+        self._burst[0] = default_burst_frequency_min
+        self._burst[1] = default_burst_frequency_max
+        self._burst[2] = default_burst_size_inv
         # Default degradation rates
-        self._degradation[0] = np.log(2.0) / 9.0
-        self._degradation[1] = np.log(2.0) / 46.0
+        self._degradation[0] = default_degradation_rna
+        self._degradation[1] = default_degradation_protein
         # Default creation rates
-        self._creation[0] = self._degradation[0] * self.scale
-        self._creation[1] = self._degradation[1] * self.scale
+        self._creation[0] = self._degradation[0] * self.scale()
+        self._creation[1] = self._degradation[1] * self.scale()
 
     def __eq__(self, other):
         if isinstance(other, NetworkParameter):
@@ -76,21 +81,23 @@ class NetworkParameter:
     @property
     def burst_frequency_min(self):
         """Minimal bursting frequency for each gene (low expression)."""
-        return self._burst_frequency[0]
+        return self._burst[0]
 
     @property
     def burst_frequency_max(self):
         """Maximal bursting frequency for each gene (high expression)."""
-        return self._burst_frequency[1]
+        return self._burst[1]
 
     @property
     def burst_size_inv(self):
         """Inverse of average burst size for each gene."""
-        return self._burst_size_inv
+        return self._burst[2]
 
     @property
     def creation_rna(self):
-        """mRNA creation rates."""
+        """mRNA creation rates. Note that in the transcriptional
+        bursting regime, s[0] is not identifiable since it aggregates with
+        koff (inverse of average ON time) into parameter b = s[0]/koff."""
         return self._creation[0]
 
     @property
@@ -124,16 +131,18 @@ class NetworkParameter:
     @property
     def k(self):
         """Bursting frequency bounds for each gene."""
-        return self._burst_frequency
+        return self._burst[:2]
 
     @property
     def b(self):
         """Inverse of average burst size for each gene."""
-        return self._burst_size_inv
+        return self._burst[2]
 
     @property
     def s(self):
-        """mRNA and protein creation rates."""
+        """mRNA and protein creation rates. Note that in the transcriptional
+        bursting regime, s[0] is not identifiable since it aggregates with
+        koff (inverse of average ON time) into parameter b = s[0]/koff."""
         return self._creation
 
     @property
@@ -151,14 +160,12 @@ class NetworkParameter:
         """Interactions between genes."""
         return self._interaction
 
-    # Shortcut properties
-    # ===================
+    # Shortcut methods
+    # ================
 
-    @property
     def c(self):
         return self.b * self.d[0] / self.s[1]
 
-    @property
     def scale(self):
         return self.b / self.k[1]
 
@@ -190,8 +197,10 @@ def _check_n_genes(arg):
             return arg
     raise TypeError('n_genes should be a positive integer')
 
-def _masked_zeros(shape, mask):
-    """Define a hard-masked array of zeros with given shape and mask.
+def _masked_zeros(shape):
+    """Array of zeros with given shape and hard-masked first column.
     Note that np.zeros is used instead of np.empty in order to avoid
     a runtime warning problem with numpy.ma operations."""
+    mask = np.zeros(shape, dtype=bool)
+    mask[...,0] = True # Handle both 1D and 2D arrays
     return np.ma.array(np.zeros(shape), mask=mask, hard_mask=True)
