@@ -20,3 +20,13 @@ from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
 
 __all__ = ['NetworkModel', 'NetworkParameter']
+
+
+# Handle exceptions with user-friendly traceback:
+# this may be moved later to specific end-user scripts
+# ====================================================
+# import sys, traceback
+# def _excepthook(exc_type, exc_value, exc_traceback):
+#     """Show minimal traceback for exceptions."""
+#     traceback.print_exception(exc_value, limit=1)
+# sys.excepthook = _excepthook
