@@ -122,17 +122,19 @@ class ApproxODE(Simulation):
         p: solution of a nonlinear ODE system involving proteins only
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
+        k0 = parameter.burst_frequency_min * parameter.degradation_rna
+        k1 = parameter.burst_frequency_max * parameter.degradation_rna
+
         states, step_count, dt = self._simulation(
             state=initial_state, 
             time_points=time_points,
-            basal=parameter.basal.data,
-            inter=parameter.interaction.data,
-            d0=parameter.degradation_rna.data,
-            d1=parameter.degradation_protein.data,
-            s1=parameter.creation_protein.data,
-            k0=parameter.burst_frequency_min.data*parameter.degradation_rna.data,
-            k1=parameter.burst_frequency_max.data*parameter.degradation_rna.data,
-            b=parameter.burst_size_inv.data,
+            basal=parameter.basal.filled(),
+            inter=parameter.interaction.filled(),
+            d0=parameter.degradation_rna.filled(fill_value=1.0),
+            d1=parameter.degradation_protein.filled(),
+            s1=parameter.creation_protein.filled(),
+            k0=k0.filled(), k1=k1.filled(),
+            b=parameter.burst_size_inv.filled(fill_value=1.0),
             euler_step=1e-3/np.max(parameter.degradation_protein)
         )
         

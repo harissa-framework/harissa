@@ -208,13 +208,13 @@ class BurstyPDMP(Simulation):
         states, phantom_jump_count, true_jump_count = self._simulation(
             state=initial_state,
             time_points=time_points,
-            basal=parameter.basal.data,
-            inter=parameter.interaction.data,
-            d0=parameter.degradation_rna.data,
-            d1=parameter.degradation_protein.data,
-            s1=parameter.creation_protein.data, 
-            k0=k0.data, k1=k1.data, 
-            b=parameter.burst_size_inv.data,
+            basal=parameter.basal.filled(),
+            inter=parameter.interaction.filled(),
+            d0=parameter.degradation_rna.filled(fill_value=1.0),
+            d1=parameter.degradation_protein.filled(fill_value=2.0),
+            s1=parameter.creation_protein.filled(), 
+            k0=k0.filled(), k1=k1.filled(), 
+            b=parameter.burst_size_inv.filled(),
             tau=tau
         )
         
