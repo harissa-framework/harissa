@@ -6,6 +6,19 @@ from harissa.parameter import NetworkParameter
 from harissa.simulation import Simulation
 from harissa.simulation.approx_ode.utils import kon
 
+def _kon_jit(p: np.ndarray, 
+             basal: np.ndarray, 
+             inter: np.ndarray, 
+             k0: np.ndarray, 
+             k1: np.ndarray) -> np.ndarray:
+    """
+    Interaction function kon (off->on rate), given protein levels p.
+    """
+    phi = np.exp(basal + p @ inter)
+    k_on = (k0 + k1*phi)/(1 + phi)
+    k_on[0] = 0 # Ignore stimulus
+    return k_on
+
 def _create_step(kon):
     def step(state: np.ndarray,
              basal: np.ndarray,
@@ -82,14 +95,14 @@ class ApproxODE(Simulation):
     
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
-        global _simulation_jit
+        global _kon_jit, _simulation_jit
 
         if self._use_numba != use_numba:
             if use_numba:
                 if _simulation_jit is None:
                     from numba import njit
-                    kon_jit = njit()(kon)
-                    step_jit = njit()(_create_step(kon_jit))
+                    _kon_jit = njit()(_kon_jit)
+                    step_jit = njit()(_create_step(_kon_jit))
                     _simulation_jit = njit()(_create_simulation(step_jit))
                 self._simulation = _simulation_jit
             else:
@@ -112,14 +125,14 @@ class ApproxODE(Simulation):
         states, step_count, dt = self._simulation(
             state=initial_state, 
             time_points=time_points,
-            basal=parameter.basal,
-            inter=parameter.interaction,
-            d0=parameter.degradation_rna,
-            d1=parameter.degradation_protein,
-            s1=parameter.creation_protein,
-            k0=parameter.burst_frequency_min * parameter.degradation_rna,
-            k1=parameter.burst_frequency_max * parameter.degradation_rna,
-            b=parameter.burst_size_inv,
+            basal=parameter.basal.data,
+            inter=parameter.interaction.data,
+            d0=parameter.degradation_rna.data,
+            d1=parameter.degradation_protein.data,
+            s1=parameter.creation_protein.data,
+            k0=parameter.burst_frequency_min.data*parameter.degradation_rna.data,
+            k1=parameter.burst_frequency_max.data*parameter.degradation_rna.data,
+            b=parameter.burst_size_inv.data,
             euler_step=1e-3/np.max(parameter.degradation_protein)
         )
         
