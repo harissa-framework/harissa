@@ -284,8 +284,10 @@ def _check_array(arr, shape, masked = False):
                 mask[0] = True
             else:
                 mask[:, 0] = True
-
-            arr = np.ma.array(arr, mask=mask, hard_mask=True)
+            
+            val = 0.0
+            arr[mask] = val
+            arr = np.ma.array(arr, mask=mask, hard_mask=True, fill_value=val)
 
         return arr
     raise TypeError('The argument must be a ndarray')
@@ -293,4 +295,9 @@ def _check_array(arr, shape, masked = False):
 
 def _masked_zeros(shape, mask):
     """Define a hard-masked array of zeros with given shape and mask."""
-    return np.ma.array(np.zeros(shape), mask=mask, hard_mask=True)
+    return np.ma.array(
+        np.zeros(shape), 
+        mask=mask, 
+        hard_mask=True, 
+        fill_value=0.0
+    )
