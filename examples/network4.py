@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from harissa import NetworkModel, NetworkParameter
 from harissa.utils import build_pos, plot_network
+
 #### Simulate scRNA-seq data ####
 
 # Number of cells
