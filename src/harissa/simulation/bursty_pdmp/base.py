@@ -6,8 +6,41 @@ from harissa.parameter import NetworkParameter
 from harissa.simulation import Simulation
 from harissa.simulation.bursty_pdmp.utils import kon, kon_bound, flow
 
-_kon_jit = None
-_kon_bound_jit = None
+def _kon_jit(p: np.ndarray, 
+             basal: np.ndarray, 
+             inter: np.ndarray, 
+             k0: np.ndarray, 
+             k1: np.ndarray) -> np.ndarray:
+    """
+    Interaction function kon (off->on rate), given protein levels p.
+    """
+    phi = np.exp(basal + p @ inter)
+    k_on = (k0 + k1*phi)/(1 + phi)
+    k_on[0] = 0 # Ignore stimulus
+    return k_on
+
+def _kon_bound_jit(state: np.ndarray, 
+                   basal: np.ndarray, 
+                   inter: np.ndarray, 
+                   d0: np.ndarray, 
+                   d1: np.ndarray, 
+                   s1: np.ndarray, 
+                   k0: np.ndarray, 
+                   k1: np.ndarray) -> np.ndarray:
+    """
+    Compute the current kon upper bound.
+    """
+    m, p = state
+    # Explicit upper bound for p
+    time = np.log(d0/d1)/(d0-d1) # vector of critical times
+    p_max = p + (s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
+    p_max[0] = p[0] # Discard stimulus
+    # Explicit upper bound for Kon
+    phi = np.exp(basal + p_max @ ((inter > 0) * inter))
+    k_on = (k0 + k1*phi)/(1 + phi) + 1e-10 # Fix precision errors
+    k_on[0] = 0 # Ignore stimulus
+    return k_on
+
 _flow_jit = None
 
 def step(state: np.ndarray,
@@ -147,8 +180,8 @@ class BurstyPDMP(Simulation):
             if use_numba:
                 if _simulation_jit is None:
                     from numba import njit
-                    _kon_jit = njit()(kon)
-                    _kon_bound_jit = njit()(kon_bound)
+                    _kon_jit = njit()(_kon_jit)
+                    _kon_bound_jit = njit()(_kon_bound_jit)
                     _flow_jit = njit()(flow)
                     _step_jit = njit()(_step_jit)
                     _simulation_jit = njit()(_create_simulation(_step_jit,
@@ -170,18 +203,18 @@ class BurstyPDMP(Simulation):
         k1 = parameter.burst_frequency_max * parameter.degradation_rna
 
         # Thinning parameter
-        tau = None if self.thin_adapt else np.sum(k1[1:])
+        tau = None if self.thin_adapt else np.sum(k1)
         
         states, phantom_jump_count, true_jump_count = self._simulation(
             state=initial_state,
             time_points=time_points,
-            basal=parameter.basal,
-            inter=parameter.interaction,
-            d0=parameter.degradation_rna,
-            d1=parameter.degradation_protein,
-            s1=parameter.creation_protein, 
-            k0=k0, k1=k1, 
-            b=parameter.burst_size_inv,
+            basal=parameter.basal.filled(),
+            inter=parameter.interaction.filled(),
+            d0=parameter.degradation_rna.filled(fill_value=1.0),
+            d1=parameter.degradation_protein.filled(fill_value=2.0),
+            s1=parameter.creation_protein.filled(), 
+            k0=k0.filled(), k1=k1.filled(), 
+            b=parameter.burst_size_inv.filled(),
             tau=tau
         )
         
