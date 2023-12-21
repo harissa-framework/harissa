@@ -36,7 +36,7 @@ class NetworkParameter:
         # Number of genes
         self._n_genes = _check_n_genes(n_genes)
         # Genes plus stimulus
-        G = n_genes + 1
+        G = self.n_genes_stim
         # Initialize parameters
         self._burst = _masked_zeros((3,G))
         self._creation = _masked_zeros((2,G))
@@ -51,8 +51,9 @@ class NetworkParameter:
         self._degradation[0] = default_degradation_rna
         self._degradation[1] = default_degradation_protein
         # Default creation rates
-        self._creation[0] = self._degradation[0] * self.scale()
-        self._creation[1] = self._degradation[1] * self.scale()
+        scale = self.scale()
+        self._creation[0] = self._degradation[0] * scale
+        self._creation[1] = self._degradation[1] * scale
 
     def __eq__(self, other):
         if isinstance(other, NetworkParameter):
