@@ -23,12 +23,8 @@ def test_init():
     for array_name in param._array_names():
         array = getattr(param, array_name)
 
-        if array.ndim == 2:
-            assert array.shape[1] == param.n_genes_stim
-            assert np.all(array.mask[:, 0])
-        else:
-            assert array.size == param.n_genes_stim
-            assert array.mask[0]
+        assert array.T.shape[0] == param.n_genes_stim
+        assert np.all(array.mask[..., 0])
 
     assert param.interaction.shape[0] == param.n_genes_stim
     
@@ -36,19 +32,13 @@ def test_init():
 def test_setters():
     param = NetworkParameter(1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError):
         param.basal = 2
     
-    with pytest.raises(ValueError):
-        param.basal = np.empty((param.n_genes))
+    with pytest.raises(AttributeError):
+        param.basal = np.empty(param.basal.shape)
 
-    with pytest.raises(ValueError):
-        param.basal = np.empty((param.n_genes_stim + 1))
+    param.basal[:] = 1.0
 
-    with pytest.raises(ValueError):
-        param.basal = np.empty((param.n_genes_stim), dtype='bool')
-
-    param.basal = np.ones((param.n_genes_stim))
-
-    assert param.basal.data[0] == 0.0
+    assert param.basal[0] is np.ma.masked
     assert param.basal[1] == 1.0
