@@ -11,11 +11,22 @@ class NetworkModel:
     """
     Handle gene regulatory networks within Harissa.
     """
-    def __init__(self, parameter=None, inference=None, simulation=None):
-        # Set the attributes
-        self._parameter = _initialize_parameter(parameter)
-        self._inference = _initialize_inference(inference)
-        self._simulation = _initialize_simulation(simulation)
+    def __init__(self, 
+                 parameter=None, 
+                 inference=default_inference(), 
+                 simulation=default_simulation()):
+        # Option 1: NetworkParameter object or None
+        if isinstance(parameter, NetworkParameter) or (parameter is None):
+            self._parameter = parameter
+        # Option 2: number of genes
+        elif isinstance(parameter, int):
+            self._parameter = NetworkParameter(parameter)
+        else:
+            raise TypeError('parameter argument must be '
+                            'an int or a NetworkParameter (or None).')
+        
+        self._inference = _check_type(inference, Inference)
+        self._simulation = _check_type(simulation, Simulation)
 
     # Properties
     # ==========
@@ -27,7 +38,7 @@ class NetworkModel:
 
     @parameter.setter
     def parameter(self, value):
-        self._parameter = _check_parameter_setter(value)
+        self._parameter = _check_type(value, NetworkParameter)
 
     @property
     def inference(self):
@@ -36,7 +47,7 @@ class NetworkModel:
 
     @inference.setter
     def inference(self, value):
-        self._inference = _check_inference_setter(value)
+        self._inference = _check_type(value, Inference)
 
     @property
     def simulation(self):
@@ -45,7 +56,7 @@ class NetworkModel:
 
     @simulation.setter
     def simulation(self, value):
-        self._simulation = _check_simulation_setter(value)
+        self._simulation = _check_type(value, Simulation)
 
     # Parameter shortcuts
     # ===================
@@ -63,49 +74,49 @@ class NetworkModel:
     @property
     def burst_frequency_min(self):
         """Minimal bursting frequency for each gene (low expression)."""
-        return _check_parameter_specified(self._parameter)._burst[0]
+        return _check_parameter_specified(self._parameter).burst_frequency_min
 
     @property
     def burst_frequency_max(self):
         """Maximal bursting frequency for each gene (high expression)."""
-        return _check_parameter_specified(self._parameter)._burst[1]
+        return _check_parameter_specified(self._parameter).burst_frequency_max
 
     @property
     def burst_size_inv(self):
         """Inverse of average burst size for each gene."""
-        return _check_parameter_specified(self._parameter)._burst[2]
+        return _check_parameter_specified(self._parameter).burst_size_inv
 
     @property
     def creation_rna(self):
         """mRNA creation rates. Note that in the transcriptional
         bursting regime, s[0] is not identifiable since it aggregates with
         koff (inverse of average ON time) into parameter b = s[0]/koff."""
-        return _check_parameter_specified(self._parameter)._creation[0]
+        return _check_parameter_specified(self._parameter).creation_rna
 
     @property
     def creation_protein(self):
         """Protein creation rates."""
-        return _check_parameter_specified(self._parameter)._creation[1]
+        return _check_parameter_specified(self._parameter).creation_protein
 
     @property
     def degradation_rna(self):
         """mRNA degradation rates."""
-        return _check_parameter_specified(self._parameter)._degradation[0]
+        return _check_parameter_specified(self._parameter).degradation_rna
 
     @property
     def degradation_protein(self):
         """Protein degradation rates."""
-        return _check_parameter_specified(self._parameter)._degradation[1]
+        return _check_parameter_specified(self._parameter).degradation_protein
 
     @property
     def basal(self):
         """Basal expression level for each gene."""
-        return _check_parameter_specified(self._parameter)._basal
+        return _check_parameter_specified(self._parameter).basal
 
     @property
     def interaction(self):
         """Interactions between genes."""
-        return _check_parameter_specified(self._parameter)._interaction
+        return _check_parameter_specified(self._parameter).interaction
 
     # Legacy shortcuts
     # ================
@@ -113,17 +124,17 @@ class NetworkModel:
     @property
     def d(self):
         """Degradation kinetics."""
-        return _check_parameter_specified(self._parameter)._degradation
+        return _check_parameter_specified(self._parameter).d
 
     @property
     def a(self):
         """Bursting kinetics (not normalized)."""
-        return _check_parameter_specified(self._parameter)._burst
+        return _check_parameter_specified(self._parameter).a
 
     @property
     def inter(self):
         """Interactions between genes."""
-        return _check_parameter_specified(self._parameter)._interaction
+        return _check_parameter_specified(self._parameter).interaction
 
     # Methods
     # =======
@@ -186,48 +197,11 @@ class NetworkModel:
 
 # Utility functions
 # =================
-
-def _initialize_parameter(arg):
-    # Option 1: NetworkParameter object or None
-    if isinstance(arg, NetworkParameter) or (arg is None):
+def _check_type(arg, cls):
+    if isinstance(arg, cls):
         return arg
-    # Option 2: number of genes
-    elif isinstance(arg, int):
-        return NetworkParameter(arg)
-    raise TypeError('parameter argument is not valid')
-
-def _initialize_inference(arg):
-    # Option 1: Inference object
-    if isinstance(arg, Inference):
-        return arg
-    # Option 2: default method
-    elif arg is None:
-        return default_inference()
-    raise TypeError('inference argument is not valid')
-
-def _initialize_simulation(arg):
-    # Option 1: Simulation object
-    if isinstance(arg, Simulation):
-        return arg
-    # Option 2: default method
-    elif arg is None:
-        return default_simulation()
-    raise TypeError('simulation argument is not valid')
-
-def _check_parameter_setter(arg):
-    if isinstance(arg, NetworkParameter):
-        return arg
-    raise TypeError('parameter should be a NetworkParameter object')
-
-def _check_inference_setter(arg):
-    if isinstance(arg, Inference):
-        return arg
-    raise TypeError('inference should be an Inference object')
-
-def _check_simulation_setter(arg):
-    if isinstance(arg, Simulation):
-        return arg
-    raise TypeError('simulation should be a Simulation object')
+    raise TypeError(f'argument of type {type(arg).__name__} '
+                    f'should be a {cls.__name__} object.')
 
 def _check_parameter_specified(arg):
     if arg is not None:

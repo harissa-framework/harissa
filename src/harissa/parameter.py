@@ -150,6 +150,11 @@ class NetworkParameter:
     def d(self):
         """mRNA and protein degradation rates."""
         return self._degradation
+    
+    @property
+    def a(self):
+        """Bursting kinetics (not normalized)."""
+        return self._burst
 
     @property
     def beta(self):
@@ -184,8 +189,10 @@ class NetworkParameter:
         If shallow is True, underlying arrays are only referenced."""
         new_param = NetworkParameter(self._n_genes)
         for k in self._array_names():
-            if shallow: setattr(new_param, k, getattr(self, k))
-            else: getattr(new_param, k)[:] = getattr(self, k)
+            if shallow: 
+                setattr(new_param, k, getattr(self, k))
+            else: 
+                getattr(new_param, k)[:] = getattr(self, k)
         return new_param
 
 
@@ -196,12 +203,15 @@ def _check_n_genes(arg):
     if isinstance(arg, int):
         if arg > 0:
             return arg
-    raise TypeError('n_genes should be a positive integer')
+        else:
+            raise ValueError('n_genes must be strictly positive.')
+    raise TypeError(f'n_genes of type {type(arg).__name__} '
+                     'must be an integer.')
 
 def _masked_zeros(shape):
     """Array of zeros with given shape and hard-masked first column.
     Note that np.zeros is used instead of np.empty in order to avoid
     a runtime warning problem with numpy.ma operations."""
     mask = np.zeros(shape, dtype=bool)
-    mask[...,0] = True # Handle both 1D and 2D arrays
+    mask[..., 0] = True # Handle both 1D and 2D arrays
     return np.ma.array(np.zeros(shape), mask=mask, hard_mask=True)
