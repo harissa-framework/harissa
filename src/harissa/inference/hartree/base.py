@@ -313,12 +313,12 @@ class Hartree(Inference):
         x = data
         # Time points
         times = np.sort(list(set(x[:,0])))
-        nb_genes = x.shape[1]
+        nb_genes_stim = x.shape[1]
 
         # Kinetic parameters
         a = self._get_kinetics(data)
         # Concentration parameter
-        c = 100 * np.ones(nb_genes)
+        c = 100 * np.ones(nb_genes_stim)
         # Get protein levels
         y = infer_proteins(x, a)
         # Inference procedure
@@ -329,19 +329,23 @@ class Hartree(Inference):
         if self.is_verbose: 
             print(f'Fitted theta in {nb_iterations} iterations')
         # Build the results
-        basal_time = {time: np.zeros(nb_genes) for time in times}
-        inter_time = {time: np.zeros((nb_genes, nb_genes)) for time in times}
+        basal_time = {time: np.zeros(nb_genes_stim) for time in times}
+        inter_time = {
+            time: np.zeros((nb_genes_stim, nb_genes_stim)) for time in times
+        }
         for t, time in enumerate(times):
             basal_time[time] = theta[t][:, 0]
             inter_time[time][:, 1:] = theta[t][:, 1:]
 
-        p = NetworkParameter(nb_genes - 1)
-        p.burst_frequency_min, p.burst_frequency_max, p.burst_size_inv = a
+        p = NetworkParameter(nb_genes_stim - 1)
+        p.burst_frequency_min[:] = a[0] 
+        p.burst_frequency_max[:] = a[1]
+        p.burst_size_inv[:] = a[2]
         scale = p.scale()
-        p.creation_rna = p.degradation_rna * scale
-        p.creation_protein = p.degradation_protein * scale
-        p.basal = basal_time[times[-1]]
-        p.interaction = inter_time[times[-1]]
+        p.creation_rna[:] = p.degradation_rna * scale
+        p.creation_protein[:] = p.degradation_protein * scale
+        p.basal[:] = basal_time[times[-1]]
+        p.interaction[:] = inter_time[times[-1]]
 
         return Inference.Result(
             parameter=p,
