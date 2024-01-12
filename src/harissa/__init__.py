@@ -16,11 +16,17 @@ single-cell data with transcriptional bursting.
 
 Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
+from importlib.metadata import version, PackageNotFoundError
+
 from harissa.model import NetworkModel
 from harissa.parameter import NetworkParameter
 
 __all__ = ['NetworkModel', 'NetworkParameter']
 
+try:
+    __version__ = version('harissa')
+except PackageNotFoundError:
+    __version__ = 'unknown version'
 
 # Handle exceptions with user-friendly traceback:
 # this may be moved later to specific end-user scripts
