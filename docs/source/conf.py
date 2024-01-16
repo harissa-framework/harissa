@@ -55,6 +55,7 @@ extensions = [
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
     'nbsphinx',
+    'nbsphinx_link',
     # 'sphinx_gallery.gen_gallery',   
     'sphinx_gallery.load_style',
     'sphinx_copybutton',
