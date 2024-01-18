@@ -92,14 +92,14 @@ def infer(args):
     }
 
     if args.output is not None:
-        if args.format == 'txt' or args.format == 'txt_c':
-            output = args.output
-            args.output.mkdir(parents=True, exist_ok=True)
-        else:
-            output = args.output.with_suffix('')
-            args.output.parent.mkdir(parents=True, exist_ok=True)
+        output = args.output.with_suffix('')
     else: 
-        output = args.data_path.stem + '_inference_result'
+        output = Path(args.data_path.stem + '_inference_result')
+
+    if args.format == 'txt' or args.format == 'txt_c':
+        output.mkdir(parents=True, exist_ok=True)
+    else:
+        output.parent.mkdir(parents=True, exist_ok=True)
 
     if args.format == 'npz':
         np.savez(output, **param_dict)
@@ -122,10 +122,44 @@ def infer(args):
 
 # simulate command
 def simulate(args):
-    print('simulate')
-    return
-    model = harissa.NetworkModel(None, simulation=args.create_simulation(args))
-    model.simulate()
+    param_names = (
+        'burst_frequency_min',
+        'burst_frequency_max',
+        'burst_size_inv',
+        'creation_rna',
+        'creation_protein',
+        'degradation_rna',
+        'degradation_protein',
+        'basal',
+        'interaction'
+    )
+
+    if args.network_parameter_path.is_dir():
+        network_data = {}
+        for name in param_names:
+            network_data[name] = np.loadtxt(
+                (args.network_parameter_path / name).with_suffix('.txt')
+            )
+    elif args.network_parameter_path.suffix == '.npz':
+        network_data = np.load(args.network_parameter_path)
+    else:
+        print(
+            f'{args.network_parameter_path} must be a .npz file or a directory.'
+        )
+    
+    network_param = harissa.NetworkParameter(network_data['basal'].size - 1)
+    
+    for name in param_names:
+        getattr(network_param, name)[:] = network_data[name][:]
+
+    model = harissa.NetworkModel(
+        network_param, 
+        simulation=args.create_simulation(args)
+    )
+    
+    print('simulating...')
+    # model.simulate()
+    print('done')
 
 
 def main():
@@ -193,11 +227,11 @@ def main():
     hartree_parser.set_defaults(save_extra_info=save_extra_hartree)
 
     # Simulate parser
-    # simulate_parser.add_argument(
-    #     'filename', 
-    #     type=argparse.FileType(),
-    #     help="path to data file"
-    # )
+    simulate_parser.add_argument(
+        'network_parameter_path', 
+        type=Path,
+        help="path to network parameter. It is a .npz file or a directory."
+    )
     simulate_parser.set_defaults(
         create_simulation=lambda args: harissa.simulation.default_simulation()
     )
