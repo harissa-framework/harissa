@@ -1,6 +1,7 @@
 import argparse as ap
 from pathlib import Path
 import numpy as np
+# import matplotlib.pyplot as plt
 
 import harissa
 import harissa.simulation
@@ -74,43 +75,48 @@ def create_ode(args):
         use_numba=args.use_numba
     )
 
+def save(output_path, output_dict, output_format):
+    if output_format == 'txt' or output_format == 'txt_c':
+        output_path.mkdir(parents=True, exist_ok=True)
+    else:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if output_format == 'npz':
+        np.savez(output_path, **output_dict)
+    elif output_format == 'npz_compressed':
+        np.savez_compressed(output_path, **output_dict)
+    else:
+        for key, value in output_dict.items():
+            np.savetxt(
+                (output_path / key).with_suffix('.txt'), 
+                value if output_format == 'txt' else np.atleast_2d(value)
+            )
 # infer command
 def infer(args):
     model = harissa.NetworkModel(inference=args.create_inference(args))
     print('inferring ...')
     res = model.fit(np.loadtxt(args.data_path))
-    param_dict = {
-        'burst_frequency_min': res.parameter.burst_frequency_min,
-        'burst_frequency_max': res.parameter.burst_frequency_max,
-        'burst_size_inv': res.parameter.burst_size_inv,
-        'creation_rna': res.parameter.creation_rna,
-        'creation_protein': res.parameter.creation_protein,
-        'degradation_rna': res.parameter.degradation_rna,
-        'degradation_protein': res.parameter.degradation_protein,
-        'basal': res.parameter.basal,
-        'interaction': res.parameter.interaction 
-    }
 
     if args.output is not None:
         output = args.output.with_suffix('')
     else: 
         output = Path(args.data_path.stem + '_inference_result')
 
-    if args.format == 'txt' or args.format == 'txt_c':
-        output.mkdir(parents=True, exist_ok=True)
-    else:
-        output.parent.mkdir(parents=True, exist_ok=True)
-
-    if args.format == 'npz':
-        np.savez(output, **param_dict)
-    elif args.format == 'npz_compressed':
-        np.savez_compressed(output, **param_dict)
-    else:
-        for key, value in param_dict.items():
-            np.savetxt(
-                (output / key).with_suffix('.txt'), 
-                value if args.format == 'txt' else np.atleast_2d(value)
-            )
+    save(
+        output, 
+        {
+            'burst_frequency_min': res.parameter.burst_frequency_min,
+            'burst_frequency_max': res.parameter.burst_frequency_max,
+            'burst_size_inv': res.parameter.burst_size_inv,
+            'creation_rna': res.parameter.creation_rna,
+            'creation_protein': res.parameter.creation_protein,
+            'degradation_rna': res.parameter.degradation_rna,
+            'degradation_protein': res.parameter.degradation_protein,
+            'basal': res.parameter.basal,
+            'interaction': res.parameter.interaction 
+        }, 
+        args.format
+    )
 
     args.save_extra_info(res, output, args)
 
@@ -120,45 +126,76 @@ def infer(args):
     # harissa.graphics.plot_network(inter, pos, scale=2)
     print('done')
 
+def load(path, param_names):
+    data = None
+    if path.is_dir():
+        data = {}
+        for name, required in param_names.items():
+            file_name = (path / name).with_suffix('.txt')
+            if required or file_name.exists():
+                data[name] = np.loadtxt(file_name)
+    elif path.suffix == '.npz':
+        with np.load(path) as npz_file:
+            data = dict(npz_file)
+    else:
+        raise RuntimeError(f'{path} must be a .npz file or a directory.')
+
+    return data
+
 # simulate command
 def simulate(args):
-    param_names = (
-        'burst_frequency_min',
-        'burst_frequency_max',
-        'burst_size_inv',
-        'creation_rna',
-        'creation_protein',
-        'degradation_rna',
-        'degradation_protein',
-        'basal',
-        'interaction'
-    )
+    network_param_names = {
+        'burst_frequency_min': True,
+        'burst_frequency_max': True,
+        'burst_size_inv': True,
+        'creation_rna': True,
+        'creation_protein': True,
+        'degradation_rna': True,
+        'degradation_protein': True,
+        'basal': True,
+        'interaction': True
+    }
 
-    if args.network_parameter_path.is_dir():
-        network_data = {}
-        for name in param_names:
-            network_data[name] = np.loadtxt(
-                (args.network_parameter_path / name).with_suffix('.txt')
-            )
-    elif args.network_parameter_path.suffix == '.npz':
-        network_data = np.load(args.network_parameter_path)
-    else:
-        print(
-            f'{args.network_parameter_path} must be a .npz file or a directory.'
+    sim_param_names = {
+        'time_points': True,
+        'M0': False,
+        'P0': False
+    }
+
+    if args.output is not None:
+        output = args.output.with_suffix('')
+    else: 
+        output = Path(
+            args.simulation_parameter_path.stem + '_simulation_result'
         )
-    
-    network_param = harissa.NetworkParameter(network_data['basal'].size - 1)
-    
-    for name in param_names:
-        getattr(network_param, name)[:] = network_data[name][:]
+
+    # Preparing model
+    data = load(args.network_parameter_path, network_param_names)
+    network_param = harissa.NetworkParameter(data['basal'].size - 1)
+
+    for key, value in data.items():
+        getattr(network_param, key)[:] = value[:]
 
     model = harissa.NetworkModel(
         network_param, 
         simulation=args.create_simulation(args)
     )
     
+    data = load(args.simulation_parameter_path, sim_param_names)
+    if args.burn_in is not None:
+        data['burn_in'] = args.burn_in
+    
     print('simulating...')
-    # model.simulate()
+    res = model.simulate(**data)
+    save(
+        output, 
+        {
+            'time_points': res.time_points,
+            'rna_levels': res.rna_levels,
+            'protein_levels': res.protein_levels
+        },
+        args.format
+    )
     print('done')
 
 
@@ -195,7 +232,7 @@ def main():
         '-o', '--output',
         type=Path,
         help='output directory or file. It is a directory if the format is txt'
-             ' else it is a file.'
+             ' else it is a .npz file.'
     )
     infer_parser.add_argument(
         '-f', '--format',
@@ -230,7 +267,29 @@ def main():
     simulate_parser.add_argument(
         'network_parameter_path', 
         type=Path,
-        help="path to network parameter. It is a .npz file or a directory."
+        help='path to network parameter. It is a .npz file or a directory.'
+    )
+    simulate_parser.add_argument(
+        'simulation_parameter_path', 
+        type=Path,
+        help='path to simulation parameter. It is a .npz file or a directory.'
+    )
+    simulate_parser.add_argument(
+        '-b', '--burn-in',
+        type=float,
+        help='burn in parameter.'
+    )
+    simulate_parser.add_argument(
+        '-o', '--output',
+        type=Path,
+        help='output directory or file. It is a directory if the format is txt'
+             ' else it is a .npz file.'
+    )
+    simulate_parser.add_argument(
+        '-f', '--format',
+        choices=['npz', 'npz_compressed', 'txt', 'txt_c'],
+        default='npz',
+        help="output's format. Default format is npz."
     )
     simulate_parser.set_defaults(
         create_simulation=lambda args: harissa.simulation.default_simulation()
