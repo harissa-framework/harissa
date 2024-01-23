@@ -133,7 +133,7 @@ def add_subcommand(subparsers):
     infer_parser.add_argument(
         '-o', '--output',
         type=Path,
-        default=ap.SUPPRESS,
+        # default=ap.SUPPRESS,
         help='output path. It is a directory if the format is txt'
              ' else it is a .npz file.'
     )
