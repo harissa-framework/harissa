@@ -1,10 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse as ap
 
 from harissa import NetworkParameter, NetworkModel
 from harissa.simulation import default_simulation, BurstyPDMP, ApproxODE
 from harissa.infer_cli import save
+from harissa.graphics import plot_simulation
 
 def create_bursty(args):
     options = {'verbose' : args.verbose, 'use_numba': args.use_numba}
@@ -81,6 +83,11 @@ def simulate(args):
         },
         args.format
     )
+
+    if args.save_plot:
+        plot_simulation(res)
+        plt.gcf().savefig(output.with_suffix('.pdf'), bbox_inches='tight')
+
     print('done')
 
 def add_subcommand(subparsers):
@@ -120,6 +127,7 @@ def add_subcommand(subparsers):
         help='output path. It is a directory if the format is txt'
              ' else it is a .npz file.'
     )
+    simulate_parser.add_argument('--save-plot', action='store_true')
     simulate_parser.set_defaults(
         create_simulation=lambda args: default_simulation()
     )

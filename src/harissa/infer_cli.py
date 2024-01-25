@@ -4,6 +4,7 @@ import argparse as ap
 
 from harissa import NetworkModel
 from harissa.inference import default_inference, Hartree
+from harissa.graphics import build_pos, plot_network
 
 def create_hartree(args):
     options = {'verbose' : args.verbose}
@@ -103,10 +104,10 @@ def infer(args):
 
     args.save_extra_info(res, output, args)
 
-    # inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
-    
-    # pos = harissa.graphics.build_pos(inter)
-    # harissa.graphics.plot_network(inter, pos, scale=2)
+    if args.save_plot:
+        inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
+        plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
+
     print('done')
 
 def add_subcommand(subparsers):
@@ -118,12 +119,6 @@ def add_subcommand(subparsers):
     )
 
     infer_parser.add_argument('data_path', type=Path, help="path to data file")
-    # infer_parser.add_argument(
-    #     '--cut-off',
-    #     type=float,
-    #     default=0.0,
-    #     help='method help'
-    # )
     infer_parser.add_argument(
         '-f', '--format',
         choices=['npz', 'npz_compressed', 'txt', 'txt_col'],
@@ -136,6 +131,13 @@ def add_subcommand(subparsers):
         # default=ap.SUPPRESS,
         help='output path. It is a directory if the format is txt'
              ' else it is a .npz file.'
+    )
+    infer_parser.add_argument('--save-plot', action='store_true')
+    infer_parser.add_argument(
+        '--cut-off',
+        type=float,
+        default=1.0,
+        help='method help'
     )
     infer_parser.set_defaults(
         create_inference=lambda args: default_inference()
