@@ -7,8 +7,10 @@ import harissa.simulate_cli as simulate_cli
 def main():
     parser = ap.ArgumentParser(
         description='Tools for mechanistic gene network inference '
-                    'from single-cell data'
+                    'from single-cell data',
+        fromfile_prefix_chars='@'
     )
+    parser.convert_arg_line_to_args = lambda arg_line: arg_line.split()
 
     parser.add_argument(
         '-V', '--version', 
