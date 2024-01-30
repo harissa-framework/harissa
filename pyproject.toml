@@ -42,7 +42,7 @@ Documentation = "https://harissa-framework.github.io/harissa"
 "Legacy Repository" = "https://github.com/ulysseherbach/harissa"
 
 [project.scripts]
-harissa = "harissa.cli:main"
+harissa = "harissa.utils.cli:main"
 
 [tool.setuptools]
 platforms = ["any"]

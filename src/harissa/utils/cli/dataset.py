@@ -19,7 +19,7 @@ def simulate_dataset(args):
     )
 
     data_real = np.loadtxt(args.data_path)
-    data_bool = binarize(data_real.astype(np.uint))
+    data_prot = binarize(data_real)
     data_sim = np.empty(data_real.shape, dtype=np.uint)
 
     # copy 1rst column because time points will be replaced by stimuli 
@@ -28,7 +28,7 @@ def simulate_dataset(args):
 
     # set stimuli in 1rst column with non zero time points
     data_real[:, 0] = non_zero_time_points
-    data_bool[:, 0] = non_zero_time_points
+    data_prot[:, 0] = non_zero_time_points
     data_sim[:, 0] = non_zero_time_points
 
     # extract cell indices at time_points == 0
@@ -44,7 +44,7 @@ def simulate_dataset(args):
                 model.simulate(
                     cell_time, 
                     M0=data_real[cell_index_at_t0], 
-                    P0=data_bool[cell_index_at_t0]
+                    P0=data_prot[cell_index_at_t0]
                 ).rna_levels[0]
             )
 
