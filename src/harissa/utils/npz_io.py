@@ -3,10 +3,14 @@ from pathlib import Path
 
 from harissa import NetworkParameter
 from harissa.simulation import Simulation
+# from harissa.dataset import Dataset
 
 export_format = ('npz', 'txt')
 
 def load(path: Path, param_names: dict | None = None) -> dict:
+    if not path.exists():
+        raise RuntimeError(f"{path} doesn't exist.")
+    
     data = None
     suffixes = tuple(map(lambda f: f'.{f}', export_format))
     if path.suffix == suffixes[0]:
@@ -17,9 +21,7 @@ def load(path: Path, param_names: dict | None = None) -> dict:
         if param_names is None:
             file_list = path.glob(f'*{suffixes[1]}')
             for file_name in file_list:
-                data[str(file_name.with_suffix(''))] = np.loadtxt(
-                    path / file_name
-                )
+                data[file_name.stem] = np.loadtxt(file_name)
         else:
             for name, required in param_names.items():
                 file_name = (path / name).with_suffix(suffixes[1])
@@ -29,6 +31,18 @@ def load(path: Path, param_names: dict | None = None) -> dict:
         raise RuntimeError(f'{path} must be a .npz file or a directory.')
 
     return data
+
+# def load_dataset(path: Path)-> Dataset:
+#     if path.suffix == f'.{export_format[1]}':
+#         data = np.loadtxt(path)
+#         time_points = data[:, 0].copy()
+#         count_matrix = data.astype(np.uint)
+#         count_matrix[:, 0] = time_points != 0.0
+#         return Dataset(time_points, count_matrix)
+#     else:
+#         return Dataset(
+#             **load(path, {'time_points': True, 'count_matrix': True})
+#         )
 
 def load_network_parameter(path: Path) -> NetworkParameter:
     network_param_names = {
@@ -116,4 +130,4 @@ def save_simulation_result(output_path: Path,
     
 
 def convert(path: Path) -> None: 
-    save(path, load(path), export_format[int(path.is_dir())])
+    save(path.with_suffix(''), load(path), export_format[1 - path.is_dir()])

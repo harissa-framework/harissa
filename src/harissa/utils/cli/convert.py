@@ -1,6 +1,7 @@
 from pathlib import Path
 from harissa.utils.npz_io import convert 
 
+
 def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser(
         'convert',
@@ -13,4 +14,4 @@ def add_subcommand(main_subparsers):
         help='path to convert. It is a .npz file or a directory.'
     )
 
-    parser.set_defaults(run=convert)
+    parser.set_defaults(run=lambda args: convert(args.path))
