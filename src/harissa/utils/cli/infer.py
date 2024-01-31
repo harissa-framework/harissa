@@ -5,7 +5,9 @@ import argparse as ap
 from harissa import NetworkModel
 from harissa.inference import default_inference, Hartree
 from harissa.graphics import build_pos, plot_network
-from harissa.utils.npz_io import save_network_parameter, export_format
+from harissa.utils.npz_io import (load_dataset, 
+                                  save_network_parameter, 
+                                  export_format)
 
 def create_hartree(args):
     options = {'verbose' : args.verbose}
@@ -57,22 +59,19 @@ def save_extra_hartree(output, res, args):
     
 def infer(args):
     model = NetworkModel(inference=args.create_inference(args))
-    print('inferring ...')
-    res = model.fit(np.loadtxt(args.data_path))
+    res = model.fit(load_dataset(args.data_path))
 
     if args.output is not None:
         output = args.output.with_suffix('')
     else: 
         output = Path(args.data_path.stem + '_inference_result')
 
-    save_network_parameter(output, res.parameter, args.format)
+    print(save_network_parameter(output, res.parameter, args.format))
     args.save_extra_info(output, res, args)
 
     if args.save_plot:
         inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
         plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
-
-    print('done')
 
 def add_subcommand(main_subparsers):
     # Infer parser

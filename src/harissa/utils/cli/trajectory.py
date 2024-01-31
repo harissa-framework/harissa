@@ -32,20 +32,42 @@ def simulate(args):
         simulation=args.create_simulation(args)
     )
     
-    print('simulating...')
     res = model.simulate(
         **load_simulation_parameter(
             args.simulation_parameter_path, 
             args.burn_in
         )
     )
-    save_simulation_result(output, res, args.format)
+    print(save_simulation_result(output, res, args.format))
 
     if args.save_plot:
         plot_simulation(res)
         plt.gcf().savefig(output.with_suffix('.pdf'), bbox_inches='tight')
 
-    print('done')
+def add_methods(parser):
+    parser.set_defaults(create_simulation=lambda args: default_simulation())
+
+    # Simulation methods bursty and ode
+    subparsers = parser.add_subparsers(
+        title='simulation methods (optional)', 
+        required=False,
+        help='specify it to choose the simulation method '
+             'and to parametrize it. ' 
+             'If not specified the bursty method is used by default.'
+    )
+    bursty_parser = subparsers.add_parser('bursty')
+    ode_parser = subparsers.add_parser('ode')
+
+    # Bursty parser
+    bursty_parser.add_argument('--thin-adapt', action=ap.BooleanOptionalAction)
+    bursty_parser.add_argument('-v', '--verbose', action='store_true')
+    bursty_parser.add_argument('--use-numba', action='store_true')
+    bursty_parser.set_defaults(create_simulation=create_bursty)
+    
+    # Ode parser
+    ode_parser.add_argument('-v', '--verbose', action='store_true')
+    ode_parser.add_argument('--use-numba', action='store_true')
+    ode_parser.set_defaults(create_simulation=create_ode)
 
 def add_subcommand(main_subparsers):
     # Simulate parser
@@ -85,30 +107,7 @@ def add_subcommand(main_subparsers):
              ' else it is a .npz file.'
     )
     parser.add_argument('--save-plot', action='store_true')
-    parser.set_defaults(
-        create_simulation=lambda args: default_simulation()
-    )
     # set command function (called in the main of cli.py) 
     parser.set_defaults(run=simulate)
     
-    # Simulation methods bursty and ode
-    subparsers = parser.add_subparsers(
-        title='simulation methods (optional)', 
-        required=False,
-        help='specify it to choose the simulation method '
-             'and to parametrize it. ' 
-             'If not specified the bursty method is used by default.'
-    )
-    bursty_parser = subparsers.add_parser('bursty')
-    ode_parser = subparsers.add_parser('ode')
-
-    # Bursty parser
-    bursty_parser.add_argument('--thin-adapt', action=ap.BooleanOptionalAction)
-    bursty_parser.add_argument('-v', '--verbose', action='store_true')
-    bursty_parser.add_argument('--use-numba', action='store_true')
-    bursty_parser.set_defaults(create_simulation=create_bursty)
-    
-    # Ode parser
-    ode_parser.add_argument('-v', '--verbose', action='store_true')
-    ode_parser.add_argument('--use-numba', action='store_true')
-    ode_parser.set_defaults(create_simulation=create_ode) 
+    add_methods(parser) 

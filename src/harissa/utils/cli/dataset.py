@@ -1,11 +1,13 @@
 import numpy as np
 import argparse as ap
 from pathlib import Path
+from alive_progress import alive_it
 
 from harissa import NetworkModel
-from harissa.simulation import BurstyPDMP
-from harissa.utils.npz_io import load_network_parameter, save, export_format
+from harissa.utils.npz_io import (load_network_parameter, load_dataset, 
+                                  save, export_format)
 from harissa.utils.processing import binarize
+from harissa.utils.cli.trajectory import add_methods
 
 def simulate_dataset(args):
     if args.output is not None:
@@ -15,43 +17,44 @@ def simulate_dataset(args):
 
     model = NetworkModel(
         load_network_parameter(args.network_parameter_path),
-        simulation=BurstyPDMP(use_numba=True)
+        simulation=args.create_simulation(args)
     )
 
-    data_real = np.loadtxt(args.data_path)
-    data_prot = binarize(data_real)
-    data_sim = np.empty(data_real.shape, dtype=np.uint)
+    dataset = load_dataset(args.data_path)
+    data_prot = binarize(dataset).count_matrix
+    data_sim = np.empty(dataset.count_matrix.shape, dtype=np.uint)
 
     # copy 1rst column because time points will be replaced by stimuli 
-    time_points = data_real[:, 0].copy()
-    non_zero_time_points = time_points != 0.0
+    non_zero_time_points = dataset.time_points != 0.0
 
     # set stimuli in 1rst column with non zero time points
-    data_real[:, 0] = non_zero_time_points
+    dataset.count_matrix[:, 0] = non_zero_time_points
     data_prot[:, 0] = non_zero_time_points
     data_sim[:, 0] = non_zero_time_points
 
     # extract cell indices at time_points == 0
     cell_indices_at_t0 = np.flatnonzero(~non_zero_time_points)
 
-    for cell_index in range(time_points.size):
-        cell_time = time_points[cell_index]
+    for cell_index in alive_it(range(dataset.time_points.size)):
+        cell_time = dataset.time_points[cell_index]
         if cell_time == 0.0:
-            data_sim[cell_index, 1:] = data_real[cell_index, 1:]
+            data_sim[cell_index, 1:] = dataset.count_matrix[cell_index, 1:]
         else:
             cell_index_at_t0 = np.random.choice(cell_indices_at_t0)
             data_sim[cell_index, 1:] = np.random.poisson(
                 model.simulate(
                     cell_time, 
-                    M0=data_real[cell_index_at_t0], 
+                    M0=dataset.count_matrix[cell_index_at_t0], 
                     P0=data_prot[cell_index_at_t0]
                 ).rna_levels[0]
             )
 
-    save(
-        output, 
-        {'time_points': time_points, 'count_matrix': data_sim},
-        args.format
+    print(
+        save(
+            output, 
+            {'time_points': dataset.time_points, 'count_matrix': data_sim},
+            args.format
+        )
     )
     
 
@@ -85,3 +88,5 @@ def add_subcommand(main_subparsers):
     )
 
     parser.set_defaults(run=simulate_dataset)
+
+    add_methods(parser)

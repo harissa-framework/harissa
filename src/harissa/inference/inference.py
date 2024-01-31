@@ -1,6 +1,6 @@
-import numpy as np
 from abc import ABC, abstractmethod
 from harissa.parameter import NetworkParameter
+from harissa.dataset import Dataset
 
 class Inference(ABC):
     """
@@ -16,7 +16,7 @@ class Inference(ABC):
                 setattr(self, key, value)
 
     @abstractmethod
-    def run(self, data: np.ndarray) -> Result:
+    def run(self, data: Dataset) -> Result:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
              'implement this function (run) and not use it.')
