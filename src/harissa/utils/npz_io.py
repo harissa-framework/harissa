@@ -74,6 +74,7 @@ def load_simulation_parameter(path: str | Path, burn_in: float| None) -> dict:
     }
     sim_param = load(path, sim_param_names)
     sim_param['burn_in'] = burn_in
+    sim_param['time_points'] = np.unique(sim_param['time_points'])
 
     return sim_param
 
