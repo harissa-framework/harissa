@@ -1,7 +1,7 @@
 # Example of network layout using harissa.utils
 import numpy as np
 import matplotlib.pyplot as plt
-from harissa.utils import build_pos, plot_network
+from harissa.graphics import build_pos, plot_network
 
 # Interaction matrix
 inter = np.array([

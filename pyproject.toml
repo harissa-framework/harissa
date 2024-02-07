@@ -32,7 +32,8 @@ dependencies = [
     "scipy>=1.7",
     "numba>=0.55",
     "matplotlib>=3.4",
-    "networkx>=2.6"
+    "networkx>=2.6",
+    "alive-progress>=3.0"
 ]
 dynamic = ["version"]
 
@@ -42,7 +43,7 @@ Documentation = "https://harissa-framework.github.io/harissa"
 "Legacy Repository" = "https://github.com/ulysseherbach/harissa"
 
 [project.scripts]
-harissa = 'harissa.cli:main'
+harissa = "harissa.utils.cli:main"
 
 [tool.setuptools]
 platforms = ["any"]

@@ -7,6 +7,7 @@ from scipy.optimize import minimize
 from harissa.parameter import NetworkParameter
 from harissa.inference import Inference
 from harissa.inference.hartree.utils import estimate_gamma_poisson
+from harissa.dataset import Dataset
 
 def p1(x, s):
     """
@@ -124,7 +125,8 @@ def _create_grad_theta(grad_penalization):
 grad_theta = _create_grad_theta(grad_penalization)
 
 def infer_kinetics(x: np.ndarray, 
-                   times: np.ndarray, 
+                   time_points: np.ndarray,
+                   times_unique: np.ndarray, 
                    tolerance: float, 
                    max_iteration: int) -> tuple[np.ndarray, np.ndarray, int]:
     """
@@ -136,17 +138,20 @@ def infer_kinetics(x: np.ndarray,
     ----------
     x : ndarray
         `x[k]` is the gene expression of cell `k`
-    times : ndarray
-        `times[k]` is the time point of cell `k`
+    times_points : ndarray
+        `times_points[k]` is the time point of cell `k`
+    times_unique : ndarray
+        The sorted unique elements of times points. (`np.unique(time_points)`)
     """
-    t = np.sort(list(set(times)))
-    m = t.size
+    # t = np.sort(list(set(times_points)))
+    # t = np.unique(time_points) 
+    m = times_unique.size
     n = np.zeros(m) # Number of cells for each time point
     a = np.zeros(m)
     b = np.zeros(m)
     # Initialization of a and b
     for i in range(m):
-        cells = (times == t[i])
+        cells = (time_points == times_unique[i])
         n[i] = np.sum(cells)
         a[i], b[i] = estimate_gamma_poisson(x[cells])
     b = np.mean(b)
@@ -157,7 +162,7 @@ def infer_kinetics(x: np.ndarray,
         da = np.zeros(m)
         for i in range(m):
             if a[i] > 0:
-                cells = (times == t[i])
+                cells = (time_points == times_unique[i])
                 z = a[i] + x[cells]
                 p0 = np.sum(psi(z))
                 p1 = np.sum(polygamma(1, z))
@@ -193,55 +198,55 @@ def infer_kinetics(x: np.ndarray,
     # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
     return a, b, k
 
-def infer_proteins(x: np.ndarray, a: np.ndarray) -> np.ndarray:
+def infer_proteins(data: Dataset, a: np.ndarray) -> np.ndarray:
     """
     Estimate y directly from data.
     """
-    nb_cells, nb_genes = x.shape
-    y = np.ones((nb_cells, nb_genes))
-    z = np.ones((2, nb_genes))
+    x = data.count_matrix
+    nb_cells, nb_genes_stim = x.shape
+    y = np.ones((nb_cells, nb_genes_stim))
+    z = np.ones((2, nb_genes_stim))
     z[0] = a[0]/a[1]
     z[z<1e-5] = 1e-5
     az = a[1]*z
     for k in range(nb_cells):
         v = az*np.log(a[2]/(a[2]+1)) + gammaln(az+x[k]) - gammaln(az)
-        for i in range(1, nb_genes):
-            y[k,i] = z[np.argmax(v[:,i]),i]
+        for i in range(1, nb_genes_stim):
+            y[k, i] = z[np.argmax(v[:, i]), i]
     # Stimulus off at t <= 0
-    y[x[:, 0]<=0, 0] = 0
+    y[data.time_points<=0, 0] = 0
     return y
 
 def _create_infer_network(objective, grad_theta):
-    def infer_network(x: np.ndarray,
-                    y: np.ndarray,
-                    a: np.ndarray,
-                    c: np.ndarray, 
-                    penalization_strength: float, 
-                    tolerance: float,
-                    smoothing_threshold: float) -> tuple[np.ndarray, int]:
+    def infer_network(time_points: np.ndarray,
+                      times_unique: np.ndarray,
+                      x: np.ndarray,
+                      y: np.ndarray,
+                      a: np.ndarray,
+                      c: np.ndarray, 
+                      penalization_strength: float, 
+                      tolerance: float,
+                      smoothing_threshold: float) -> tuple[np.ndarray, int]:
         """
         Network inference procedure.
         """
-        nb_genes = x.shape[1]
-        times = np.sort(list(set(x[:,0])))
-        T = times.size
+        nb_genes_stim = x.shape[1]
         # Useful quantities
-        k = x[:,0]
         d = np.log(a[2]/(a[2]+1))
         # Initialization
-        theta = np.zeros((T, nb_genes, nb_genes))
-        theta0 = np.zeros((nb_genes, nb_genes))
+        theta = np.zeros((times_unique.size, nb_genes_stim, nb_genes_stim))
+        theta0 = np.zeros((nb_genes_stim, nb_genes_stim))
         # Optimization parameters
         params = {'method': 'L-BFGS-B'}
         if tolerance is not None: 
             params['tol'] = tolerance
         # Inference routine
-        for t, time in enumerate(times):
+        for t, time in enumerate(times_unique):
             res = minimize(objective, 
-                        theta0.reshape(nb_genes**2),
+                        theta0.reshape(nb_genes_stim**2),
                         args=(theta0, 
-                                x[k==time], 
-                                y[k==time], 
+                                x[time_points==time], 
+                                y[time_points==time], 
                                 a, c, d, 
                                 penalization_strength, 
                                 t, 
@@ -251,7 +256,7 @@ def _create_infer_network(objective, grad_theta):
             if not res.success:
                 print(f'Warning: maximization failed (time {t})')
             # Update theta0
-            theta0 = res.x.reshape((nb_genes, nb_genes))
+            theta0 = res.x.reshape((nb_genes_stim, nb_genes_stim))
             # Store theta at time t
             theta[t] = theta0
         return theta, res.nit
@@ -306,23 +311,26 @@ class Hartree(Inference):
             
 
 
-    def run(self, data: np.ndarray) -> Inference.Result:
+    def run(self, data: Dataset) -> Inference.Result:
         """
         Infers the network model from the data.
         """
-        x = data
+        x = data.count_matrix
         # Time points
-        times = np.sort(list(set(x[:,0])))
+        # times = np.sort(list(set(data.time_points)))
+        times = np.unique(data.time_points)
         nb_genes_stim = x.shape[1]
 
         # Kinetic parameters
-        a = self._get_kinetics(data)
+        a = self._get_kinetics(data, times)
         # Concentration parameter
         c = 100 * np.ones(nb_genes_stim)
         # Get protein levels
-        y = infer_proteins(x, a)
+        y = infer_proteins(data, a)
         # Inference procedure
-        theta, nb_iterations =  self._infer_network(x, y, a, c,
+        theta, nb_iterations =  self._infer_network(data.time_points,
+                                                    times,
+                                                    x, y, a, c,
                                                     self.penalization_strength,
                                                     self.tolerance,
                                                     self.smoothing_threshold)
@@ -333,9 +341,9 @@ class Hartree(Inference):
         inter_time = {
             time: np.zeros((nb_genes_stim, nb_genes_stim)) for time in times
         }
-        for t, time in enumerate(times):
-            basal_time[time] = theta[t][:, 0]
-            inter_time[time][:, 1:] = theta[t][:, 1:]
+        for i, time in enumerate(times):
+            basal_time[time] = theta[i, :, 0]
+            inter_time[time][:, 1:] = theta[i, :, 1:]
 
         p = NetworkParameter(nb_genes_stim - 1)
         p.burst_frequency_min[:] = a[0] 
@@ -354,21 +362,22 @@ class Hartree(Inference):
             y=y
         )
 
-    def _get_kinetics(self, data: np.ndarray) -> np.ndarray:
+    def _get_kinetics(self, 
+                      data: Dataset, 
+                      times_unique: np.ndarray) -> np.ndarray:
         """
         Compute the basal parameters of all genes.
         """
-        times = data[:, 0]
-        # nb_genes = data[0].size
-        nb_genes = data.shape[1]
+        nb_genes_stim = data.count_matrix.shape[1]
         # Kinetic values for each gene
-        a = np.empty((3, nb_genes))
+        a = np.empty((3, nb_genes_stim))
         a[:, 0] = 1.0
-        for g in range(1, nb_genes):
+        for g in range(1, nb_genes_stim):
             if self.is_verbose:
                 print(f'Calibrating gene {g}...')
-            a_g, b_g, k = infer_kinetics(x=data[:, g], 
-                                         times=times, 
+            a_g, b_g, k = infer_kinetics(x=data.count_matrix[:, g], 
+                                         time_points=data.time_points,
+                                         times_unique=times_unique, 
                                          tolerance=self.tolerance, 
                                          max_iteration=self.max_iteration)
             if self.is_verbose:
@@ -378,12 +387,16 @@ class Hartree(Inference):
             a[2, g] = b_g
         return a
     
-    def binarize(self, data: np.ndarray) -> np.ndarray:
+    def binarize(self, data: Dataset) -> Dataset:
         """
         Return a binarized version of the data using gene-specific thresholds
         derived from the data-calibrated mechanistic model.
         """
         # Get binarized values (gene-specific thresholds)
-        y = infer_proteins(data, self._get_kinetics(data))[:, 1:]
-        y = np.floor(y).astype(data.dtype)
-        return np.hstack((data[:, 0, np.newaxis], y))
+        y = np.floor(
+            infer_proteins(
+                data,
+                self._get_kinetics(data, np.unique(data.time_points))
+            )
+        )
+        return Dataset(data.time_points.copy(), y.astype(np.uint)) 

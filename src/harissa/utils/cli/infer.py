@@ -1,0 +1,127 @@
+import numpy as np
+from pathlib import Path
+import argparse as ap
+
+from harissa import NetworkModel
+from harissa.inference import default_inference, Hartree
+from harissa.graphics import build_pos, plot_network
+from harissa.utils.npz_io import (load_dataset, 
+                                  save_network_parameter, 
+                                  export_format)
+
+def create_hartree(args):
+    options = {'verbose' : args.verbose}
+    if args.penalization is not None:
+        options['penalization_strength'] = args.penalization
+    if args.tolerance is not None:
+        options['tolerance'] = args.tolerance
+    if args.max_iteration is not None:
+        options['max_iteration'] = args.max_iteration
+    if args.use_numba is not None:
+        options['use_numba'] = args.use_numba
+    return Hartree(**options)
+
+# TODO
+def create_cardamom(args):
+    ...
+
+
+def save_extra_hartree(output, res, args):
+    if not args.save_extra:
+        return
+    
+    basal_time = {str(t):val for t, val in res.basal_time.items()}
+    inter_time = {str(t):val for t, val in res.interaction_time.items()}
+ 
+    if args.format == export_format[0]:
+        output = str(output) + '_extra'
+        np.savez_compressed(output + '_basal_time', **basal_time)
+        np.savez_compressed(output + '_interaction_time', **inter_time)
+        np.savez_compressed(output + '_y', y=res.y)
+    else:
+        output = output / 'extra'
+        (output / 'basal_time').mkdir(parents=True, exist_ok=True)
+        (output / 'interaction_time').mkdir(exist_ok=True)
+
+        suffix = f'.{export_format[1]}'
+        for time, value in basal_time.items():
+            np.savetxt(
+                (output / 'basal_time' / f't_{time}').with_suffix(suffix), 
+                value
+            )
+        for time, value in inter_time.items():
+            np.savetxt(
+                (output/'interaction_time'/f't_{time}').with_suffix(suffix), 
+                value
+            )
+        np.savetxt(output / 'y', res.y)
+        
+    
+def infer(args):
+    model = NetworkModel(inference=args.create_inference(args))
+    res = model.fit(load_dataset(args.data_path))
+
+    if args.output is not None:
+        output = args.output.with_suffix('')
+    else: 
+        output = Path(args.data_path.stem + '_inference_result')
+
+    print(save_network_parameter(output, res.parameter, args.format))
+    args.save_extra_info(output, res, args)
+
+    if args.save_plot:
+        inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
+        plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
+
+def add_subcommand(main_subparsers):
+    # Infer parser
+    parser = main_subparsers.add_parser(
+        'infer', 
+        help='infer help',
+        formatter_class=ap.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument('data_path', type=Path, help="path to data file")
+    parser.add_argument(
+        '-f', '--format',
+        choices=export_format,
+        default='npz',
+        help="output's format."
+    )
+    parser.add_argument(
+        '-o', '--output',
+        type=Path,
+        # default=ap.SUPPRESS,
+        help='output path. It is a directory if the format is txt'
+             ' else it is a .npz file.'
+    )
+    parser.add_argument('--save-plot', action='store_true')
+    parser.add_argument(
+        '--cut-off',
+        type=float,
+        default=1.0,
+        help='method help'
+    )
+    parser.set_defaults(
+        create_inference=lambda args: default_inference()
+    )
+    parser.set_defaults(save_extra_info=lambda res, output, format: None)
+    # set command function (called in the main of cli.py) 
+    parser.set_defaults(run=infer)
+
+    # Inference methods hartree (cardamom TODO)
+    subparsers = parser.add_subparsers(
+        title='inference methods', 
+        required= False
+    )
+    hartree_parser = subparsers.add_parser('hartree')
+
+    # Hartree parser
+    hartree_parser.add_argument('-p', '--penalization', type=float)
+    hartree_parser.add_argument('-t', '--tolerance', type=float)
+    hartree_parser.add_argument('-n', '--max-iteration', type=int)
+    hartree_parser.add_argument('-v', '--verbose', action='store_true')
+    hartree_parser.add_argument('--use-numba', action=ap.BooleanOptionalAction)
+    hartree_parser.add_argument('--save-extra', action='store_true')
+    hartree_parser.set_defaults(create_inference=create_hartree)
+    hartree_parser.set_defaults(save_extra_info=save_extra_hartree)
