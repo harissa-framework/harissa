@@ -30,3 +30,10 @@ class Dataset:
         object.__setattr__(self, 'time_points', time_points)
         object.__setattr__(self, 'count_matrix', count_matrix)
         object.__setattr__(self, 'gene_names', gene_names)
+
+        # # Add a "save" methods
+        # def save_txt(self):
+        #     pass
+
+        # def save(self):
+        #     pass

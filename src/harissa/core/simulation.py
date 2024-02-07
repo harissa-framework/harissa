@@ -27,7 +27,13 @@ class Simulation(ABC):
             state[0] = self.rna_levels[-1]
             state[1] = self.protein_levels[-1]
             return state
-        
+
+        # # Add a "save" methods
+        # def save_txt(self):
+        #     pass
+
+        # def save(self):
+        #     pass
 
     @abstractmethod
     def run(self, 

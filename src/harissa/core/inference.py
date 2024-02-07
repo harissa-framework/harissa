@@ -15,6 +15,17 @@ class Inference(ABC):
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
+        # Add a "save" methods
+
+        # def save_txt(self, path):
+        #     pass
+
+        # def save(self, path):
+        #     pass
+
+        # def save_extra(self, path):
+        #     pass
+
     @abstractmethod
     def run(self, data: Dataset) -> Result:
         raise NotImplementedError(
