@@ -6,8 +6,8 @@ from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
+from harissa.core.dataset import Dataset
 from harissa.inference.hartree.utils import estimate_gamma_poisson
-from harissa.dataset import Dataset
 
 def p1(x, s):
     """
