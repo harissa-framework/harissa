@@ -10,12 +10,9 @@
 # Other
 *.pdf
 
-# Testing
-src/main.py
-
 # Distribution
-dist
 *.egg-info
+dist
 
 # VSCode
 .vscode
