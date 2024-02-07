@@ -18,9 +18,7 @@ Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
 from importlib.metadata import version as _version
 from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
-
-from harissa.model import NetworkModel
-from harissa.parameter import NetworkParameter
+from harissa.core import NetworkModel, NetworkParameter
 
 __all__ = ['NetworkModel', 'NetworkParameter']
 

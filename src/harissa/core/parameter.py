@@ -4,11 +4,12 @@ Main class for network parameters
 import numpy as np
 
 # Default parameter values
-default_burst_frequency_min = 0.0
-default_burst_frequency_max = 2.0
-default_burst_size_inv = 0.02
 default_degradation_rna = np.log(2.0) / 9.0
 default_degradation_protein = np.log(2.0) / 46.0
+default_burst_frequency_min = 0.0 * default_degradation_rna
+default_burst_frequency_max = 2.0 * default_degradation_rna
+default_burst_size_inv = 0.02
+
 
 # Main class
 class NetworkParameter:
@@ -38,11 +39,11 @@ class NetworkParameter:
         # Genes plus stimulus
         G = self.n_genes_stim
         # Initialize parameters
-        self._burst = _masked_zeros((3,G))
-        self._creation = _masked_zeros((2,G))
-        self._degradation = _masked_zeros((2,G))
+        self._burst = _masked_zeros((3, G))
+        self._creation = _masked_zeros((2, G))
+        self._degradation = _masked_zeros((2, G))
         self._basal = _masked_zeros(G)
-        self._interaction = _masked_zeros((G,G))
+        self._interaction = _masked_zeros((G, G))
         # Default bursting parameters
         self._burst[0] = default_burst_frequency_min
         self._burst[1] = default_burst_frequency_max
@@ -165,6 +166,11 @@ class NetworkParameter:
     def theta(self):
         """Interactions between genes."""
         return self._interaction
+
+    # @property
+    # def k_normalized(self):
+    #     """Bursting kinetics (not normalized)."""
+    #     return self._burst
 
     # Shortcut methods
     # ================

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from harissa.parameter import NetworkParameter
-from harissa.simulation import Simulation, BurstyPDMP 
+from harissa import NetworkParameter, Simulation
+from harissa.simulation import BurstyPDMP
 
 def test_subclass():
     assert(issubclass(BurstyPDMP, Simulation))

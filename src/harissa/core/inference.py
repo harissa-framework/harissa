@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from harissa.parameter import NetworkParameter
-from harissa.dataset import Dataset
+from harissa.core.parameter import NetworkParameter
+from harissa.core.dataset import Dataset
 
 class Inference(ABC):
     """

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from harissa.inference.inference import Inference
+from harissa import Inference
 
 def test_inference_instance():
     with pytest.raises(TypeError):
