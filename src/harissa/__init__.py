@@ -19,3 +19,5 @@ Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 from .model import NetworkModel, Cascade, Tree
 
 __all__ = ['NetworkModel', 'Cascade', 'Tree']
+
+__version__ = '3.0.9'
