@@ -1,5 +1,3 @@
-# import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 import argparse as ap
 
@@ -41,8 +39,8 @@ def simulate(args):
     print(save_simulation_result(output, res, args.format))
 
     if args.save_plot:
-        plot_simulation(res)
-        plt.gcf().savefig(output.with_suffix('.pdf'), bbox_inches='tight')
+        fig = plot_simulation(res)
+        fig.savefig(output.with_suffix('.pdf'), bbox_inches='tight')
 
 def add_methods(parser):
     parser.set_defaults(create_simulation=lambda args: default_simulation())

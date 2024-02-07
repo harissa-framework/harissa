@@ -27,3 +27,5 @@ def plot_simulation(sim):
         ax2.set_xlim(sim.time_points[0], sim.time_points[-1])
         ax2.set_ylim(0, 1.2*np.max(sim.rna_levels))
         ax2.legend(loc='upper left', ncol=4, borderaxespad=0, frameon=False)
+    # Return the current figure
+    return plt.gcf()
