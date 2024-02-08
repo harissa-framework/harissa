@@ -10,7 +10,6 @@ default_burst_frequency_min = 0.0 * default_degradation_rna
 default_burst_frequency_max = 2.0 * default_degradation_rna
 default_burst_size_inv = 0.02
 
-
 # Main class
 class NetworkParameter:
     """
@@ -60,7 +59,8 @@ class NetworkParameter:
         if isinstance(other, NetworkParameter):
             test = [other._n_genes == self._n_genes]
             for k in self._array_names():
-                test.append(np.all(getattr(other, k) == getattr(self, k)))
+                test.append(bool(
+                    np.all(getattr(other, k) == getattr(self, k))))
             return all(test)
         return NotImplemented
 
@@ -211,8 +211,8 @@ def _check_n_genes(arg):
             return arg
         else:
             raise ValueError('n_genes must be strictly positive.')
-    raise TypeError(f'n_genes of type {type(arg).__name__} '
-                     'must be an integer.')
+    raise TypeError((f'n_genes of type {type(arg).__name__} '
+                     'must be an integer.'))
 
 def _masked_zeros(shape):
     """Array of zeros with given shape and hard-masked first column.
