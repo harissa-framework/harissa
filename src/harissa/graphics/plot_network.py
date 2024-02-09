@@ -4,8 +4,8 @@ Plotting networks
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, FancyArrowPatch, Arc, Polygon
-from matplotlib.patches import ArrowStyle
+from matplotlib.patches import (Circle, Rectangle, FancyArrowPatch,
+    Arc, Polygon, ArrowStyle)
 
 # Edge colors
 activ = plt.get_cmap('tab10')(2)
@@ -35,12 +35,12 @@ def build_pos(inter, method=None):
     for k in range(0,G):
         pos[k,:] = p[k]
     scale = 1 if method is None else 2/(pos.max()-pos.min())
-    center = pos.mean(axis=0)
+    center = pos.mean(axis=0) if G > 0 else 0
     return scale * (pos - center)
 
 #### Plotting functions ####
 
-def node(k, ax, pos, name, scale=1, color=None, fontsize=None, nodesize=1):
+def node(k, ax, pos, name, scale=1., color=None, fontsize=None, nodesize=1.):
     if color is None:
         color = 'gray'
     if fontsize is None:
@@ -48,14 +48,14 @@ def node(k, ax, pos, name, scale=1, color=None, fontsize=None, nodesize=1):
     x, y = pos[k,0] * scale, pos[k,1] * scale
     r = nodesize * 0.1 * scale
     # Node shape
-    circle1 = plt.Circle((x, y), radius=r, fill=True, facecolor='white',
+    circle1 = Circle((x, y), radius=r, fill=True, facecolor='white',
         edgecolor='lightgray', lw=1*scale, zorder=3, clip_on=False)
     ax.add_artist(circle1)
     # Node label
     ax.text(x, y - 0.007*scale, name, color=color, fontsize=fontsize,
         zorder=4, horizontalalignment='center', verticalalignment='center')
 
-def link(k1, k2, ax, pos, weight, bend=0, scale=1, nodesize=1, alpha=None):
+def link(k1, k2, ax, pos, weight, bend=0., scale=1., nodesize=1., alpha=None):
     # Node coordinates
     x1, y1 = pos[k1,0]*scale, pos[k1,1]*scale
     x2, y2 = pos[k2,0]*scale, pos[k2,1]*scale
@@ -187,27 +187,52 @@ def link_auto(k, ax, pos, weight, v=None, scale=1, nodesize=1, alpha=None):
             zorder=0, clip_on=False)
         ax.add_artist(head)
 
+def show_empty_plot_warning():
+    print('Warning: nothing to show in this plot')
+
+def is_isolated(gene, inter):
+    """Test whether a gene is isolated."""
+    G = inter.shape[0]
+    others = (np.arange(G) != gene)
+    targets = np.nonzero(inter[gene,others])[0]
+    factors = np.nonzero(inter[others,gene])[0]
+    return (targets.size == 0) and (factors.size == 0)
+
+def is_stimulus_leaf(gene, inter):
+    """Test whether a gene is a leaf of the stimulus."""
+    G = inter.shape[0]
+    others = (np.arange(G) != gene)
+    targets = np.nonzero(inter[gene,others])[0]
+    factors = np.nonzero(inter[others,gene])[0]
+    if factors.size != 1:
+        return False
+    else:
+        return (targets.size == 0) and (factors[0] == 0)
+
 #### Main function ####
 
-def plot_network(inter, pos, width=1, height=1, scale=1, names=None,
+def plot_network(inter, pos, width=1., height=1., scale=1., names=None,
     vdict=None, tol=None, root=False, axes=None, nodes=None, n0=True,
-    file=None, verb=False, fontsize=None, vcolor=None, nodesize=1,
-    bend=0.14, bend_all=False, alpha=None):
-    """
-    Plot a network.
+    file=None, verb=False, fontsize=None, vcolor=None, nodesize=1.,
+    bend=0.14, bend_all=False, alpha=None,
+    hide_isolated_genes=False, hide_stimulus_leaves=False):
+    """Plot a gene regulatory network.
+
+    Parameters
+    ----------
+    hide_isolated_genes : bool
+        Hide genes that have no neighbors.
+    hide_stimulus_leaves : bool
+        Hide genes whose only neighbor is the stimulus.
     """
     G, G = inter.shape
     w, h = width/2.54, height/2.54 # Centimeters
     if names is None: names = [''] + ['{}'.format(k) for k in range(1,G)]
     if vcolor is None: vcolor = G * ['#5C5C5C']
     if vdict is None: vdict = {}
-    # Compute layout
-    v = list(range(G))
-    e = list(zip(*inter.nonzero()))
-    # Draw layout
     if axes is None:
         fig = plt.figure(figsize=(w,h), dpi=100, frameon=False)
-        plt.axes([0,0,1,1])
+        plt.axes((0,0,1,1))
         ax = fig.gca()
         I, J = inter.nonzero()
         ax.axis('off')
@@ -224,8 +249,23 @@ def plot_network(inter, pos, width=1, height=1, scale=1, names=None,
     plt.xlim([-w*ax_pos.width/2, w*ax_pos.width/2])
     plt.ylim([-h*ax_pos.height/2, h*ax_pos.height/2])
     scale = scale * np.min([ax_pos.width,ax_pos.height])
+    # Decide which genes to show
+    v = set(range(G))
+    e = set(zip(*inter.nonzero()))
+    if G == 0:
+        show_empty_plot_warning()
+    if hide_isolated_genes:
+        for k in range(1,G):
+            if is_isolated(k, inter):
+                v.discard(k)
+                e.discard((k,k))
+    if hide_stimulus_leaves:
+        for k in range(1,G):
+            if is_stimulus_leaf(k, inter):
+                v.discard(k)
+                e.discard((0,k))
     # Draw nodes
-    for k in range(G):
+    for k in v:
         node(k, ax, pos, names[k], scale, fontsize=fontsize, color=vcolor[k],
             nodesize=nodesize)
     # Draw links
