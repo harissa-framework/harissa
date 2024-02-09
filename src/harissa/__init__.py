@@ -16,8 +16,12 @@ single-cell data with transcriptional bursting.
 
 Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
+from importlib.metadata import version as _version
 from .model import NetworkModel, Cascade, Tree
 
 __all__ = ['NetworkModel', 'Cascade', 'Tree']
 
-__version__ = '3.0.11'
+try:
+    __version__ = _version('harissa')
+except:
+    __version__ = 'unknown version'
