@@ -5,9 +5,13 @@ import argparse as ap
 from harissa import NetworkModel
 from harissa.inference import default_inference, Hartree
 from harissa.graphics import build_pos, plot_network
-from harissa.utils.npz_io import (load_dataset, 
-                                  save_network_parameter, 
-                                  export_format)
+from harissa.utils.npz_io import (load_dataset_txt,
+                                  load_dataset,
+                                  save_network_parameter_txt, 
+                                  save_network_parameter,
+                                  suffixes)
+
+export_formats = tuple(map(lambda suffix: suffix[1:], suffixes))
 
 def create_hartree(args):
     options = {'verbose' : args.verbose}
@@ -32,8 +36,8 @@ def save_extra_hartree(output, res, args):
     
     basal_time = {str(t):val for t, val in res.basal_time.items()}
     inter_time = {str(t):val for t, val in res.interaction_time.items()}
- 
-    if args.format == export_format[0]:
+
+    if args.format == export_formats[0]:
         output = str(output) + '_extra'
         np.savez_compressed(output + '_basal_time', **basal_time)
         np.savez_compressed(output + '_interaction_time', **inter_time)
@@ -43,7 +47,7 @@ def save_extra_hartree(output, res, args):
         (output / 'basal_time').mkdir(parents=True, exist_ok=True)
         (output / 'interaction_time').mkdir(exist_ok=True)
 
-        suffix = f'.{export_format[1]}'
+        suffix = suffixes[1]
         for time, value in basal_time.items():
             np.savetxt(
                 (output / 'basal_time' / f't_{time}').with_suffix(suffix), 
@@ -56,35 +60,36 @@ def save_extra_hartree(output, res, args):
             )
         np.savetxt(output / 'y', res.y)
         
-    
 def infer(args):
     model = NetworkModel(inference=args.create_inference(args))
-    res = model.fit(load_dataset(args.data_path))
+    if args.dataset_path.suffix == suffixes[0]:
+        load_fn = load_dataset 
+    else:
+        load_fn = load_dataset_txt 
+    
+    res = model.fit(load_fn(args.dataset_path))
 
     if args.output is not None:
         output = args.output.with_suffix('')
     else: 
-        output = Path(args.data_path.stem + '_inference_result')
+        output = Path(args.dataset_path.stem + '_inference_result')
 
-    print(save_network_parameter(output, res.parameter, args.format))
+    if args.format == export_formats[0]:
+        save_fn = save_network_parameter
+    else:
+        save_fn = save_network_parameter_txt
+
+    print(save_fn(output, res.parameter))
     args.save_extra_info(output, res, args)
 
     if args.save_plot:
         inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
         plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
 
-def add_subcommand(main_subparsers):
-    # Infer parser
-    parser = main_subparsers.add_parser(
-        'infer', 
-        help='infer help',
-        formatter_class=ap.ArgumentDefaultsHelpFormatter
-    )
-
-    parser.add_argument('data_path', type=Path, help="path to data file")
+def add_export_options(parser, plot_option = False):
     parser.add_argument(
         '-f', '--format',
-        choices=export_format,
+        choices=export_formats,
         default='npz',
         help="output's format."
     )
@@ -95,7 +100,19 @@ def add_subcommand(main_subparsers):
         help='output path. It is a directory if the format is txt'
              ' else it is a .npz file.'
     )
-    parser.add_argument('--save-plot', action='store_true')
+    if plot_option:
+        parser.add_argument('--save-plot', action='store_true')    
+
+def add_subcommand(main_subparsers):
+    # Infer parser
+    parser = main_subparsers.add_parser(
+        'infer', 
+        help='infer help',
+        formatter_class=ap.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument('dataset_path', type=Path, help="path to data file")
+    add_export_options(parser, True)
     parser.add_argument(
         '--cut-off',
         type=float,

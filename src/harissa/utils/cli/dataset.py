@@ -2,25 +2,44 @@ import numpy as np
 import argparse as ap
 from pathlib import Path
 from alive_progress import alive_it
+from alive_progress.animations.spinners import bouncing_spinner_factory as bsp
 
 from harissa import NetworkModel
-from harissa.utils.npz_io import (load_network_parameter, load_dataset, 
-                                  save, export_format)
+from harissa.dataset import Dataset
+from harissa.utils.npz_io import (load_network_parameter_txt,
+                                  load_network_parameter,
+                                  load_dataset_txt, 
+                                  load_dataset,
+                                  save_dataset_txt, 
+                                  save_dataset,
+                                  suffixes)
 from harissa.utils.processing import binarize
+from harissa.utils.cli.infer import add_export_options, export_formats
 from harissa.utils.cli.trajectory import add_methods
 
 def simulate_dataset(args):
     if args.output is not None:
         output = args.output.with_suffix('')
     else: 
-        output = Path(args.data_path.stem + '_dataset_result')
+        output = Path(args.dataset_path.stem + '_dataset_result')
+
+    if args.network_parameter_path.is_dir():
+        load_network_fn = load_network_parameter_txt
+    else:
+        load_network_fn = load_network_parameter
+
+    if args.dataset_path.suffix == suffixes[0]:
+        load_dataset_fn = load_dataset        
+    else:
+        load_dataset_fn = load_dataset_txt
+
 
     model = NetworkModel(
-        load_network_parameter(args.network_parameter_path),
+        load_network_fn(args.network_parameter_path),
         simulation=args.create_simulation(args)
     )
 
-    dataset = load_dataset(args.data_path)
+    dataset = load_dataset_fn(args.dataset_path)
     data_prot = binarize(dataset).count_matrix
     data_sim = np.empty(dataset.count_matrix.shape, dtype=np.uint)
 
@@ -34,8 +53,11 @@ def simulate_dataset(args):
 
     # extract cell indices at time_points == 0
     cell_indices_at_t0 = np.flatnonzero(~non_zero_time_points)
-
-    for cell_index in alive_it(range(dataset.time_points.size)):
+    
+    for cell_index in alive_it(range(dataset.time_points.size), 
+                               title='Processing cells',
+                               spinner=bsp('🌶', 6, hide=False),
+                               receipt=False):
         cell_time = dataset.time_points[cell_index]
         if cell_time == 0.0:
             data_sim[cell_index, 1:] = dataset.count_matrix[cell_index, 1:]
@@ -49,16 +71,17 @@ def simulate_dataset(args):
                 ).rna_levels[0]
             )
 
+    if args.format == export_formats[1]:
+        save_dataset_fn = save_dataset_txt
+    else:
+        save_dataset_fn = save_dataset 
+
     print(
-        save(
+        save_dataset_fn(
             output, 
-            {'time_points': dataset.time_points, 'count_matrix': data_sim},
-            args.format
+            Dataset(dataset.time_points, data_sim)
         )
     )
-    
-
-
 
 def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser(
@@ -67,25 +90,13 @@ def add_subcommand(main_subparsers):
         formatter_class=ap.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('data_path', type=Path, help="path to data file")
+    parser.add_argument('dataset_path', type=Path, help="path to dataset file")
     parser.add_argument(
         'network_parameter_path', 
         type=Path,
         help='path to network parameter. It is a .npz file or a directory.'
     )
-    parser.add_argument(
-        '-f', '--format',
-        choices=export_format,
-        default='npz',
-        help="output's format."
-    )
-    parser.add_argument(
-        '-o', '--output',
-        type=Path,
-        # default=ap.SUPPRESS,
-        help='output path. It is a directory if the format is txt'
-             ' else it is a .npz file.'
-    )
+    add_export_options(parser)
 
     parser.set_defaults(run=simulate_dataset)
 
