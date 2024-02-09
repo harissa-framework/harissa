@@ -1,5 +1,5 @@
-Harissa 🌶
-==========
+Harissa (legacy version)
+========================
 
 .. image:: https://img.shields.io/pypi/v/harissa
    :alt: PyPI - Version
