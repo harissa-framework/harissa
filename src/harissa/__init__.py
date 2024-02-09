@@ -20,4 +20,4 @@ from .model import NetworkModel, Cascade, Tree
 
 __all__ = ['NetworkModel', 'Cascade', 'Tree']
 
-__version__ = '3.0.9'
+__version__ = '3.0.11'
