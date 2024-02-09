@@ -114,7 +114,7 @@ def link(k1, k2, ax, pos, weight, bend=0., scale=1., nodesize=1., alpha=None):
             angle=angle, fc=inhib, zorder=0, alpha=alpha)
         ax.add_artist(head)
 
-def link_auto(k, ax, pos, weight, v=None, scale=1, nodesize=1, alpha=None):
+def link_auto(k, ax, pos, weight, v=None, scale=1., nodesize=1., alpha=None):
     # Node coordinates
     x0, y0 = pos[k,0]*scale, pos[k,1]*scale
 
