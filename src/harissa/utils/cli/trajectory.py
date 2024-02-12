@@ -1,16 +1,31 @@
+import numpy as np
 from pathlib import Path
 import argparse as ap
 
-from harissa import NetworkModel
+from harissa import NetworkModel, NetworkParameter
 from harissa.simulation import default_simulation, BurstyPDMP, ApproxODE
 from harissa.graphics import plot_simulation
-from harissa.utils.npz_io import (load_simulation_parameter_txt,
-                                  load_simulation_parameter,
-                                  load_network_parameter_txt, 
-                                  load_network_parameter,
-                                  save_simulation_result_txt,
-                                  save_simulation_result)
-from harissa.utils.cli.infer import add_export_options, export_formats
+from harissa.utils.npz_io import load_dir, load_npz
+from harissa.utils.cli.infer import add_export_options, export_choices
+
+simulation_param_names = {
+    'time_points': (True, np.float_),
+    'initial_state': (False, np.float_)
+}
+
+def _create_load_simulation_parameter(load_fn):
+    def load_simulation_parameter(path: str | Path, 
+                                  burn_in: float| None) -> dict:
+        sim_param = load_fn(path, simulation_param_names)
+        sim_param['burn_in'] = burn_in
+        sim_param['time_points'] = np.unique(sim_param['time_points'])
+
+        return sim_param
+    
+    return load_simulation_parameter
+
+load_simulation_parameter_txt = _create_load_simulation_parameter(load_dir)
+load_simulation_parameter = _create_load_simulation_parameter(load_npz)
 
 def create_bursty(args):
     options = {'verbose' : args.verbose, 'use_numba': args.use_numba}
@@ -30,24 +45,16 @@ def simulate(args):
         )
 
     if args.network_parameter_path.is_dir():
-        load_network_fn = load_network_parameter_txt
+        network_param = NetworkParameter.load_txt(args.network_parameter_path)
     else:
-        load_network_fn = load_network_parameter
+        network_param = NetworkParameter.load(args.network_parameter_path)
 
     if args.simulation_parameter_path.is_dir():
         load_simu_fn = load_simulation_parameter_txt
     else:
         load_simu_fn = load_simulation_parameter
 
-    if args.format == export_formats[1]:
-        save_simu_fn = save_simulation_result_txt
-    else:
-        save_simu_fn = save_simulation_result 
-
-    model= NetworkModel(
-        load_network_fn(args.network_parameter_path),
-        simulation=args.create_simulation(args)
-    )
+    model= NetworkModel(network_param, simulation=args.create_simulation(args))
     
     res = model.simulate(
         **load_simu_fn(
@@ -55,7 +62,11 @@ def simulate(args):
             args.burn_in
         )
     )
-    print(save_simu_fn(output, res))
+
+    print(
+        res.save_txt(output) if args.format == export_choices[1] else
+        res.save(output)
+    )
 
     if args.save_plot:
         fig = plot_simulation(res)

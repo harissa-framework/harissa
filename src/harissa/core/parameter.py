@@ -1,7 +1,11 @@
 """
 Main class for network parameters
 """
+from __future__ import annotations
 import numpy as np
+from pathlib import Path
+
+from harissa.utils.npz_io import load_dir, load_npz, save_dir, save_npz
 
 # Default parameter values
 default_degradation_rna = np.log(2.0) / 9.0
@@ -32,6 +36,19 @@ class NetworkParameter:
         basal               # beta
         interaction         # theta
     """
+
+    param_names : dict = {
+        'burst_frequency_min': (True, np.float_),
+        'burst_frequency_max': (True, np.float_),
+        'burst_size_inv': (True, np.float_),
+        'creation_rna': (True, np.float_),
+        'creation_protein': (True, np.float_),
+        'degradation_rna': (True, np.float_),
+        'degradation_protein': (True, np.float_),
+        'basal': (True, np.float_),
+        'interaction': (True, np.float_)
+    }
+
     def __init__(self, n_genes):
         # Number of genes
         self._n_genes = _check_n_genes(n_genes)
@@ -63,6 +80,60 @@ class NetworkParameter:
                     np.all(getattr(other, k) == getattr(self, k))))
             return all(test)
         return NotImplemented
+    
+
+    @classmethod
+    def load_txt(cls, path: str | Path) -> NetworkParameter:
+        data = load_dir(path, cls.param_names)
+        network_param = cls(data['basal'].size - 1)
+
+        for key, value in data.items():
+            getattr(network_param, key)[:] = value[:]
+
+        return network_param
+
+    @classmethod
+    def load(cls, path: str | Path) -> NetworkParameter:
+        data = load_npz(path, cls.param_names)
+        network_param = cls(data['basal'].size - 1)
+
+        for key, value in data.items():
+            getattr(network_param, key)[:] = value[:]
+
+        return network_param
+    
+    def save_txt(self, path: str | Path) -> Path:
+        return save_dir(
+            path, 
+            {
+                'burst_frequency_min': self.burst_frequency_min,
+                'burst_frequency_max': self.burst_frequency_max,
+                'burst_size_inv': self.burst_size_inv,
+                'creation_rna': self.creation_rna,
+                'creation_protein': self.creation_protein,
+                'degradation_rna': self.degradation_rna,
+                'degradation_protein': self.degradation_protein,
+                'basal': self.basal,
+                'interaction': self.interaction 
+            }
+        )
+
+    def save(self, path: str | Path) -> Path:
+        return save_npz(
+            path, 
+            {
+                'burst_frequency_min': self.burst_frequency_min,
+                'burst_frequency_max': self.burst_frequency_max,
+                'burst_size_inv': self.burst_size_inv,
+                'creation_rna': self.creation_rna,
+                'creation_protein': self.creation_protein,
+                'degradation_rna': self.degradation_rna,
+                'degradation_protein': self.degradation_protein,
+                'basal': self.basal,
+                'interaction': self.interaction 
+            }
+        )
+
 
     # Network size properties
     # =======================

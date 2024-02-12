@@ -399,4 +399,4 @@ class Hartree(Inference):
                 self._get_kinetics(data, np.unique(data.time_points))
             )
         )
-        return Dataset(data.time_points.copy(), y.astype(np.uint)) 
+        return Dataset(data.time_points, y.astype(np.uint), data.gene_names) 

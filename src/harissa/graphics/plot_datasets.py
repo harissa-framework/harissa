@@ -13,8 +13,7 @@ def plot_data_distrib(dataset_ref: Dataset,
                       dataset_sim: Dataset, 
                       path: str,
                       t_ref: np.ndarray | None = None,
-                      t_sim: np.ndarray | None = None,
-                      names: np.ndarray | None = None):
+                      t_sim: np.ndarray | None = None):
     data_ref = dataset_ref.count_matrix[:, 1:]
     data_sim = dataset_sim.count_matrix[:, 1:]
 
@@ -31,8 +30,10 @@ def plot_data_distrib(dataset_ref: Dataset,
     nb_genes = data_ref.shape[1]
     nb_pages = int(nb_genes / nb_genes_by_pages) + 1
 
-    if names is None:
+    if dataset_ref.gene_names is None:
         names = np.array([f'g_{i+1}' for i in range(nb_genes)], dtype=str)
+    else:
+        names = dataset_ref.gene_names[1:]
 
     param_hist_ref = {
         'density': True,
@@ -104,8 +105,7 @@ def compare_marginals(dataset_ref: Dataset,
                       dataset_sim: Dataset, 
                       path: str,
                       t_ref: np.ndarray | None = None, 
-                      t_sim: np.ndarray | None = None, 
-                      names: np.ndarray | None = None):
+                      t_sim: np.ndarray | None = None):
 
     data_ref = dataset_ref.count_matrix[:, 1:]
     data_sim = dataset_sim.count_matrix[:, 1:]
@@ -121,8 +121,10 @@ def compare_marginals(dataset_ref: Dataset,
     T = t_ref.size
     nb_genes = data_ref.shape[1]
 
-    if names is None:
+    if dataset_ref.gene_names is None:
         names = np.array([f'g_{i+1}' for i in range(nb_genes)], dtype=str)
+    else:
+        names = dataset_ref.gene_names[1:]
 
     pval_netw = np.ones((T, nb_genes))
     for t, time in enumerate(t_ref):

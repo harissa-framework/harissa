@@ -2,17 +2,10 @@ import numpy as np
 import argparse as ap
 from pathlib import Path
 
-from harissa import NetworkModel
+from harissa import NetworkModel, NetworkParameter
 from harissa.core.dataset import Dataset
-from harissa.utils.npz_io import (load_network_parameter_txt,
-                                  load_network_parameter,
-                                  load_dataset_txt, 
-                                  load_dataset,
-                                  save_dataset_txt, 
-                                  save_dataset,
-                                  suffixes)
 from harissa.processing import binarize
-from harissa.utils.cli.infer import add_export_options, export_formats
+from harissa.utils.cli.infer import add_export_options, export_choices
 from harissa.utils.cli.trajectory import add_methods
 
 def simulate_dataset(args):
@@ -22,22 +15,17 @@ def simulate_dataset(args):
         output = Path(args.dataset_path.stem + '_dataset_result')
 
     if args.network_parameter_path.is_dir():
-        load_network_fn = load_network_parameter_txt
+        network_param = NetworkParameter.load_txt(args.network_parameter_path)
     else:
-        load_network_fn = load_network_parameter
+        network_param = NetworkParameter.load(args.network_parameter_path)
 
-    if args.dataset_path.suffix == suffixes[0]:
-        load_dataset_fn = load_dataset        
+    if args.dataset_path.suffix == '.npz':
+        dataset = Dataset.load(args.dataset_path)        
     else:
-        load_dataset_fn = load_dataset_txt
+        dataset = Dataset.load_txt(args.dataset_path)
 
+    model= NetworkModel(network_param, simulation=args.create_simulation(args))
 
-    model = NetworkModel(
-        load_network_fn(args.network_parameter_path),
-        simulation=args.create_simulation(args)
-    )
-
-    dataset = load_dataset_fn(args.dataset_path)
     data_prot = binarize(dataset).count_matrix
     data_sim = np.empty(dataset.count_matrix.shape, dtype=np.uint)
 
@@ -45,7 +33,7 @@ def simulate_dataset(args):
     non_zero_time_points = dataset.time_points != 0.0
 
     # set stimuli in 1rst column with non zero time points
-    dataset.count_matrix[:, 0] = non_zero_time_points
+    # dataset.count_matrix[:, 0] = non_zero_time_points
     data_prot[:, 0] = non_zero_time_points
     data_sim[:, 0] = non_zero_time_points
 
@@ -80,16 +68,11 @@ def simulate_dataset(args):
                 ).rna_levels[0, 1:]
             )
 
-    if args.format == export_formats[1]:
-        save_dataset_fn = save_dataset_txt
-    else:
-        save_dataset_fn = save_dataset 
-
+            
+    dataset.count_matrix[:] = data_sim
     print(
-        save_dataset_fn(
-            output, 
-            Dataset(dataset.time_points, data_sim)
-        )
+        dataset.save_txt(output) if args.format == export_choices[1] else 
+        dataset.save(output)
     )
 
 def add_subcommand(main_subparsers):
