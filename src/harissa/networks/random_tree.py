@@ -2,7 +2,7 @@
 Generate random tree-shaped activation pathways
 """
 import numpy as np
-from harissa.parameter import NetworkParameter
+from harissa.core.parameter import NetworkParameter
 
 def _random_step(state, a):
     """

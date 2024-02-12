@@ -2,7 +2,7 @@
 Generate activation cascade networks
 """
 import numpy as np
-from harissa.parameter import NetworkParameter
+from harissa.core.parameter import NetworkParameter
 
 def cascade(n_genes: int, autoactiv: bool = False) -> NetworkParameter:
     """

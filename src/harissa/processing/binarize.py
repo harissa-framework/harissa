@@ -1,7 +1,7 @@
 """
 Data binarization from the dynamical model
 """
-from harissa.core.inference import Hartree
+from harissa.inference.hartree import Hartree
 from harissa.core.dataset import Dataset
 
 def binarize(data: Dataset) -> Dataset:

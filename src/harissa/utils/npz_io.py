@@ -3,8 +3,8 @@ from pathlib import Path
 from dataclasses import asdict
 
 from harissa import NetworkParameter
-from harissa.simulation import Simulation
-from harissa.dataset import Dataset
+from harissa.core.simulation import Simulation
+from harissa.core.dataset import Dataset
 
 suffixes = ('.npz', '.txt')
 
@@ -27,8 +27,7 @@ names_allowed = {
     },
     'simulation parameter': {
         'time_points': (True, np.float_),
-        'M0': (False, np.float_),
-        'P0': (False, np.float_)
+        'initial_state': (False, np.float_)
     },
     'simulation result': {
         'time_points': (True, np.float_),
@@ -58,13 +57,13 @@ def _check_names(names, param_names) -> None:
     for name in names:
         if name not in param_names:
             raise RuntimeError('Unexpected array name, '
-                                f'{name} is not in {param_names}.')
+                              f'{name} is not in {list(param_names.keys())}.')
         elif param_names[name][0]:
             cur_required_names.append(name)
 
     for name, (required, _) in param_names.items():
         if required and name not in cur_required_names:
-            raise RuntimeError(f'{name} array is missing')
+            raise RuntimeError(f'{name} array is missing.')
 
 def load_dir(path : str | Path, param_names: dict) -> dict:
     path = Path(path) # convert it to Path (needed for str)

@@ -5,7 +5,7 @@ from alive_progress import alive_it
 from alive_progress.animations.spinners import bouncing_spinner_factory as bsp
 
 from harissa import NetworkModel
-from harissa.dataset import Dataset
+from harissa.core.dataset import Dataset
 from harissa.utils.npz_io import (load_network_parameter_txt,
                                   load_network_parameter,
                                   load_dataset_txt, 
@@ -13,7 +13,7 @@ from harissa.utils.npz_io import (load_network_parameter_txt,
                                   save_dataset_txt, 
                                   save_dataset,
                                   suffixes)
-from harissa.utils.processing import binarize
+from harissa.processing import binarize
 from harissa.utils.cli.infer import add_export_options, export_formats
 from harissa.utils.cli.trajectory import add_methods
 
@@ -63,12 +63,13 @@ def simulate_dataset(args):
             data_sim[cell_index, 1:] = dataset.count_matrix[cell_index, 1:]
         else:
             cell_index_at_t0 = np.random.choice(cell_indices_at_t0)
+            M0 = dataset.count_matrix[cell_index_at_t0]
+            P0 = data_prot[cell_index_at_t0]
             data_sim[cell_index, 1:] = np.random.poisson(
                 model.simulate(
-                    cell_time, 
-                    M0=dataset.count_matrix[cell_index_at_t0], 
-                    P0=data_prot[cell_index_at_t0]
-                ).rna_levels[0]
+                    cell_time,
+                    initial_state=np.vstack((M0, P0), dtype=np.float_)
+                ).rna_levels[0, 1:]
             )
 
     if args.format == export_formats[1]:

@@ -7,7 +7,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 from scipy.stats import ks_2samp as ks
 
-from harissa.dataset import Dataset
+from harissa.core.dataset import Dataset
 
 def plot_data_distrib(dataset_ref: Dataset, 
                       dataset_sim: Dataset, 
