@@ -2,8 +2,8 @@
 Perform simulations using the ODE model
 """
 import numpy as np
-from harissa.parameter import NetworkParameter
-from harissa.simulation import Simulation
+from harissa.core.parameter import NetworkParameter
+from harissa.core.simulation import Simulation
 from harissa.simulation.approx_ode.utils import kon
 
 def _kon_jit(p: np.ndarray, 
@@ -73,7 +73,7 @@ def _create_simulation(step):
             states[i] = state
         
         # Remove the stimulus
-        return states[..., 1:], step_count, dt
+        return states, step_count, dt
     
     return simulation
 
@@ -122,8 +122,8 @@ class ApproxODE(Simulation):
         p: solution of a nonlinear ODE system involving proteins only
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
-        k0 = parameter.burst_frequency_min * parameter.degradation_rna
-        k1 = parameter.burst_frequency_max * parameter.degradation_rna
+        k0 = parameter.burst_frequency_min
+        k1 = parameter.burst_frequency_max
 
         states, step_count, dt = self._simulation(
             state=initial_state, 

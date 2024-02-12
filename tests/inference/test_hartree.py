@@ -1,6 +1,6 @@
 import numpy as np
-from harissa.parameter import NetworkParameter
-from harissa.inference import Inference, Hartree
+from harissa import NetworkParameter, Inference
+from harissa.inference import Hartree
 
 def test_subclass():
     assert(issubclass(Hartree, Inference))

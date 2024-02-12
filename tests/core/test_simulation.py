@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from harissa.simulation.simulation import Simulation, NetworkParameter
+from harissa import NetworkParameter, Simulation
 
 def test_simulation_instance():
     with pytest.raises(TypeError):

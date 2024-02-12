@@ -2,8 +2,8 @@
 Perform simulations using the PDMP model
 """
 import numpy as np
-from harissa.parameter import NetworkParameter
-from harissa.simulation import Simulation
+from harissa.core.parameter import NetworkParameter
+from harissa.core.simulation import Simulation
 from harissa.simulation.bursty_pdmp.utils import kon, kon_bound, flow
 
 def _kon_jit(p: np.ndarray, 
@@ -147,7 +147,7 @@ def _create_simulation(step, flow):
             states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
 
         # Remove the stimulus
-        return states[..., 1:], phantom_jump_count, true_jump_count
+        return states, phantom_jump_count, true_jump_count
     
     return simulation
 
@@ -199,8 +199,8 @@ class BurstyPDMP(Simulation):
         """
         Perform simulation of the network model (bursty PDMP version).
         """
-        k0 = parameter.burst_frequency_min * parameter.degradation_rna
-        k1 = parameter.burst_frequency_max * parameter.degradation_rna
+        k0 = parameter.burst_frequency_min
+        k1 = parameter.burst_frequency_max
 
         # Thinning parameter
         tau = None if self.thin_adapt else np.sum(k1)

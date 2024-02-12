@@ -4,11 +4,11 @@ Main class for network parameters
 import numpy as np
 
 # Default parameter values
-default_burst_frequency_min = 0.0
-default_burst_frequency_max = 2.0
-default_burst_size_inv = 0.02
 default_degradation_rna = np.log(2.0) / 9.0
 default_degradation_protein = np.log(2.0) / 46.0
+default_burst_frequency_min = 0.0 * default_degradation_rna
+default_burst_frequency_max = 2.0 * default_degradation_rna
+default_burst_size_inv = 0.02
 
 # Main class
 class NetworkParameter:
@@ -38,11 +38,11 @@ class NetworkParameter:
         # Genes plus stimulus
         G = self.n_genes_stim
         # Initialize parameters
-        self._burst = _masked_zeros((3,G))
-        self._creation = _masked_zeros((2,G))
-        self._degradation = _masked_zeros((2,G))
+        self._burst = _masked_zeros((3, G))
+        self._creation = _masked_zeros((2, G))
+        self._degradation = _masked_zeros((2, G))
         self._basal = _masked_zeros(G)
-        self._interaction = _masked_zeros((G,G))
+        self._interaction = _masked_zeros((G, G))
         # Default bursting parameters
         self._burst[0] = default_burst_frequency_min
         self._burst[1] = default_burst_frequency_max
@@ -59,7 +59,8 @@ class NetworkParameter:
         if isinstance(other, NetworkParameter):
             test = [other._n_genes == self._n_genes]
             for k in self._array_names():
-                test.append(np.all(getattr(other, k) == getattr(self, k)))
+                test.append(bool(
+                    np.all(getattr(other, k) == getattr(self, k))))
             return all(test)
         return NotImplemented
 
@@ -166,6 +167,11 @@ class NetworkParameter:
         """Interactions between genes."""
         return self._interaction
 
+    # @property
+    # def k_normalized(self):
+    #     """Bursting kinetics (not normalized)."""
+    #     return self._burst
+
     # Shortcut methods
     # ================
 
@@ -205,8 +211,8 @@ def _check_n_genes(arg):
             return arg
         else:
             raise ValueError('n_genes must be strictly positive.')
-    raise TypeError(f'n_genes of type {type(arg).__name__} '
-                     'must be an integer.')
+    raise TypeError((f'n_genes of type {type(arg).__name__} '
+                     'must be an integer.'))
 
 def _masked_zeros(shape):
     """Array of zeros with given shape and hard-masked first column.
