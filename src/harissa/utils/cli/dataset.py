@@ -1,8 +1,6 @@
 import numpy as np
 import argparse as ap
 from pathlib import Path
-from alive_progress import alive_it
-from alive_progress.animations.spinners import bouncing_spinner_factory as bsp
 
 from harissa import NetworkModel
 from harissa.core.dataset import Dataset
@@ -53,11 +51,21 @@ def simulate_dataset(args):
 
     # extract cell indices at time_points == 0
     cell_indices_at_t0 = np.flatnonzero(~non_zero_time_points)
+
+    try:
+        from alive_progress import alive_it
+        from alive_progress.animations.spinners import bouncing_spinner_factory
+    except ImportError:
+        cell_iterator = range(dataset.time_points.size)
+    else:
+        cell_iterator = alive_it(
+            range(dataset.time_points.size),
+            title='Processing cells',
+            spinner=bouncing_spinner_factory('🌶', 6, hide=False),
+            receipt=False
+        )
     
-    for cell_index in alive_it(range(dataset.time_points.size), 
-                               title='Processing cells',
-                               spinner=bsp('🌶', 6, hide=False),
-                               receipt=False):
+    for cell_index in cell_iterator:
         cell_time = dataset.time_points[cell_index]
         if cell_time == 0.0:
             data_sim[cell_index, 1:] = dataset.count_matrix[cell_index, 1:]

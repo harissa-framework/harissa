@@ -32,10 +32,12 @@ dependencies = [
     "scipy>=1.7",
     "numba>=0.55",
     "matplotlib>=3.4",
-    "networkx>=2.6",
-    "alive-progress>=3.0"
+    "networkx>=2.6"
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+cli = ["alive-progress>=3.0", "umap-learn"]
 
 [project.urls]
 Repository = "https://github.com/harissa-framework/harissa"

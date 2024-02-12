@@ -205,8 +205,8 @@ def plot_data_umap(dataset_ref: Dataset,
         from umap import UMAP
     except ImportError:
         import sys
-        print('umap-learn not found this function '
-              'will do nothing. Please install umap-learn.',
+        print('umap-learn not found. It wont plot the umap. '
+              'Please install umap-learn.',
               file=sys.stderr)
         return
     
