@@ -300,6 +300,7 @@ class Hartree(Inference):
             save_npz(path + '_basal_time', basal_time)
             save_npz(path + '_interaction_time', inter_time)
             save_npz(path + '_y', {'y': self.y} )
+            # np.save(path + '_y', self.y)
 
     def __init__(self, 
                  penalization_strength: float = 1.0, 

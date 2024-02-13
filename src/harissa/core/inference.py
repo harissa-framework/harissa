@@ -18,6 +18,7 @@ class Inference(ABC):
         # Add a "save" methods
         def save_txt(self, path):
             return self.parameter.save_txt(path)
+        
         def save_extra_txt(self, path):
             pass
 

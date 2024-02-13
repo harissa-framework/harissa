@@ -64,7 +64,7 @@ def visualize(args):
 
 
 def add_subcommand(main_subparsers):
-    parser = main_subparsers.add_parser('visualize')
+    parser = main_subparsers.add_parser('visualize', help='visualize help')
     parser.add_argument(
         'ref_dataset_path',
         type=Path, 
