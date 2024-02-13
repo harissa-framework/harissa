@@ -39,15 +39,11 @@ def infer(args):
     else: 
         output = Path(args.dataset_path.stem + '_inference_result')
 
-    if args.format == 'npz':
-        print(res.save(output))
-        if args.save_extra:
-            res.save_extra(output)
-    else:
-        print(res.save_txt(output))
-        if args.save_extra:
-            res.save_extra_txt(output)
-
+    print(
+        res.save(output, args.save_extra) if args.format == 'npz' else
+        res.save_txt(output, args.save_extra)
+    )
+    
     if args.save_plot:
         inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
         plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))

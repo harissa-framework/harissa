@@ -16,13 +16,17 @@ class Inference(ABC):
                 setattr(self, key, value)
 
         # Add a "save" methods
-        def save_txt(self, path):
+        def save_txt(self, path, save_extra=False):
+            if save_extra:
+                self.save_extra_txt(path)
             return self.parameter.save_txt(path)
         
         def save_extra_txt(self, path):
             pass
 
-        def save(self, path):
+        def save(self, path, save_extra=False):
+            if save_extra:
+                self.save_extra(path)
             return self.parameter.save(path)
         
         def save_extra(self, path):
