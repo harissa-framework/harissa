@@ -1,13 +1,16 @@
 """
 Core functions for network inference using likelihood maximization
 """
+from pathlib import Path
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
+
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
 from harissa.core.dataset import Dataset
 from harissa.inference.hartree.utils import estimate_gamma_poisson
+from harissa.utils.npz_io import save_dir, save_npz
 
 def p1(x, s):
     """
@@ -267,6 +270,37 @@ infer_network = _create_infer_network(objective, grad_theta)
 _infer_network_jit = None
 
 class Hartree(Inference):
+    class Result(Inference.Result):
+        def __init__(self, 
+                     parameter: NetworkParameter,
+                     basal_time: dict[float, np.ndarray],
+                     interaction_time: dict[float, np.ndarray],
+                     y: np.ndarray) -> None:
+            super().__init__(
+                parameter, 
+                basal_time=basal_time, 
+                interaction_time= interaction_time,
+                y=y
+            )
+
+        def save_extra_txt(self, path: str | Path):
+            path = Path(path) / 'extra'
+            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
+            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
+
+            save_dir(path / 'basal_time', basal_time)
+            save_dir(path / 'interaction_time', inter_time)
+            np.savetxt(path / 'y', self.y)
+        
+        def save_extra(self, path: str | Path):
+            path = str(path) + '_extra'
+            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
+            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
+            
+            save_npz(path + '_basal_time', basal_time)
+            save_npz(path + '_interaction_time', inter_time)
+            save_npz(path + '_y', {'y': self.y} )
+
     def __init__(self, 
                  penalization_strength: float = 1.0, 
                  tolerance: float = 1e-5, 
@@ -355,12 +389,7 @@ class Hartree(Inference):
         p.basal[:] = basal_time[times[-1]]
         p.interaction[:] = inter_time[times[-1]]
 
-        return Inference.Result(
-            parameter=p,
-            basal_time=basal_time,
-            interaction_time=inter_time,
-            y=y
-        )
+        return self.Result(p, basal_time, inter_time, y)
 
     def _get_kinetics(self, 
                       data: Dataset, 
