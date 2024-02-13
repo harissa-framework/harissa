@@ -1,6 +1,7 @@
 """
 Main class for network inference and simulation
 """
+from harissa.core.dataset import Dataset
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
@@ -28,10 +29,8 @@ class NetworkModel:
         elif isinstance(parameter, int):
             self._parameter = NetworkParameter(parameter)
         else:
-            raise TypeError(
-                "parameter argument must be "
-                "an int or a NetworkParameter (or None)."
-            )
+            raise TypeError(('parameter argument must be '
+                'an int or a NetworkParameter (or None).'))
 
         self._inference = _check_type(inference, Inference)
         self._simulation = _check_type(simulation, Simulation)
@@ -147,7 +146,7 @@ class NetworkModel:
     # Methods
     # =======
 
-    def fit(self, data: np.ndarray) -> Inference.Result:
+    def fit(self, data: Dataset) -> Inference.Result:
         """
         Fit the network model to the data.
         """
@@ -155,51 +154,59 @@ class NetworkModel:
         self.parameter = res.parameter
         return res
 
-    def simulate(self, time_points: np.ndarray, *,
-                 initial_state: np.ndarray | None = None,
-                 burn_in: float | None = None) -> Simulation.Result:
-        """
-        Perform simulation of the network model.
+    def _simulate(self, time_points, initial_state, initial_time):
+        parameter = _check_parameter_specified(self.parameter)
+        res = self.simulation.run(initial_state, time_points-initial_time,
+            parameter)
+        res.time_points[:] = time_points
+        return res
+
+    def simulate(self,
+        time_points: np.ndarray,
+        initial_state: np.ndarray | None = None,
+        initial_time = 0,
+        burn_in: float | None = None
+        ) -> Simulation.Result:
+        """Perform simulation of the network model.
         Note: the stimulus is given by initial_state[1,0] (protein 0).
         If burn_in is not None, this value is ignored.
-        """
-        _check_parameter_specified(self.parameter)
 
+        Note: time points must be in increasing order, and the firs
+        time point must be greater than or equal to `initial_time`.
+        """
         t_pts_nb_dim = time_points.ndim
         if t_pts_nb_dim == 0:
             time_points = np.array([time_points])
         elif t_pts_nb_dim >= 2:
-            raise ValueError(f'Time points is a {t_pts_nb_dim}D np.ndarray. '
-                              'It must be a 0D or 1D np.ndarray.')
-        
-        if np.any(time_points != np.sort(time_points)):
+            raise ValueError((f'Time points is a {t_pts_nb_dim}D np.ndarray. '
+                              'It must be a 0D or 1D np.ndarray.'))
+        if np.any(time_points != np.unique(time_points)):
             raise ValueError('Time points must appear in increasing order')
-        
+        if time_points[0] < initial_time:
+            raise ValueError(('The first time point must be greater than or '
+                'equal to initial time.'))
+
         # Initial state: row 0 <-> rna, row 1 <-> protein
         if initial_state is None:
-            initial_state = np.zeros((2, self.parameter.basal.size))
+            initial_state = np.zeros((2, self.n_genes_stim))
             # Activate the stimulus
-            initial_state[1, 0] = 1.0
+            initial_state[1, 0] = 1.
         else:
             initial_state = initial_state.copy()
 
         # Burn_in simulation without stimulus
         if burn_in is not None:
             # Deactivate the stimulus
-            initial_state[1, 0] = 0.0
+            initial_state[1, 0] = 0.
             # Burn-in simulation
-            res_burn_in = self.simulation.run(
-                initial_state,
-                np.array([burn_in]),
-                self.parameter
-            )
+            res_burn_in = self._simulate(np.array([burn_in]), initial_state, 0)
             # Update initial state 
             initial_state = res_burn_in.final_state
             # Activate the stimulus
             initial_state[1, 0] = 1.0
 
         # Main simulation
-        res = self.simulation.run(initial_state, time_points, self.parameter)
+        res = self._simulate(time_points, initial_state, initial_time)
 
         # NOTE: maybe wrap it to AnnData
         return res
@@ -213,8 +220,8 @@ class NetworkModel:
 def _check_type(arg, cls):
     if isinstance(arg, cls):
         return arg
-    raise TypeError(f'argument of type {type(arg).__name__} '
-                    f'should be a {cls.__name__} object.')
+    raise TypeError((f'argument of type {type(arg).__name__} '
+                    f'should be a {cls.__name__} object.'))
 
 def _check_parameter_specified(arg):
     if arg is not None:

@@ -228,4 +228,4 @@ class BurstyPDMP(Simulation):
             else: 
                 print('Exact simulation used no jump')
         
-        return Simulation.Result(time_points, states[:, 0], states[:, 1])
+        return self.Result(time_points, states[:, 0], states[:, 1])
