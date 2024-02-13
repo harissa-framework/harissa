@@ -4,7 +4,7 @@ from harissa.utils.npz_io import (load_dir,
                                   load_npz,
                                   save_dir,
                                   save_npz)
-from harissa.utils.cli.trajectory import simulation_param_names
+from harissa.cli.trajectory import simulation_param_names
 
 names_allowed = {
     'dataset': Dataset.param_names,

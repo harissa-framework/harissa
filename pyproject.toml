@@ -37,7 +37,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-cli = ["alive-progress>=3.0", "umap-learn"]
+extra = ["alive-progress>=3.0", "umap-learn"]
 
 [project.urls]
 Repository = "https://github.com/harissa-framework/harissa"
@@ -45,7 +45,7 @@ Documentation = "https://harissa-framework.github.io/harissa"
 "Legacy Repository" = "https://github.com/ulysseherbach/harissa"
 
 [project.scripts]
-harissa = "harissa.utils.cli:main"
+harissa = "harissa.cli:main"
 
 [tool.setuptools]
 platforms = ["any"]
