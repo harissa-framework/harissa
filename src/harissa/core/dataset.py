@@ -82,7 +82,7 @@ class Dataset:
             for i, name in enumerate(cls.param_names):
                 data[name] = data_list[i]
         else:
-            data = load_dir(cls.param_names)
+            data = load_dir(path, cls.param_names)
 
         return cls(**data)
 
