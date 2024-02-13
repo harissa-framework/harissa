@@ -63,8 +63,9 @@ class Dataset:
     @classmethod
     def load_txt(cls, path: str | Path) -> Dataset:
         path = Path(path) # convert it to Path (needed for str)
-        
         if path.suffix == '.txt':
+            if not path.exists():
+                raise RuntimeError(f"{path} doesn't exist.")
             # Backward compatibility, dataset inside a txt file.
             # It assumes that the 1rst column is the time points (arr_list[0]) 
             # and the rest is the count matrix (arr_list[1])

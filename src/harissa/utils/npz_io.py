@@ -16,6 +16,8 @@ def _check_names(names, param_names) -> None:
 
 def load_dir(path : str | Path, param_names: dict) -> dict:
     path = Path(path) # convert it to Path (needed for str)
+    if not path.exists():
+        raise RuntimeError(f"{path} doesn't exist.")
     suffix = '.txt'
     _check_names(map(lambda p : p.stem, path.glob(f'*{suffix}')), param_names)
 
@@ -29,6 +31,10 @@ def load_dir(path : str | Path, param_names: dict) -> dict:
 
 
 def load_npz(path: str | Path, param_names: dict) -> dict:
+    path = Path(path)
+    if not path.exists():
+        raise RuntimeError(f"{path} doesn't exist.")
+    
     data = {}
     with np.load(path) as npz_file:
         data = dict(npz_file)
