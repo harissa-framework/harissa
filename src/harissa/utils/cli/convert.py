@@ -15,6 +15,9 @@ names_allowed = {
 
 def convert(args) -> Path: 
     path = Path(args.path)
+    if not path.exists():
+        raise RuntimeError(f"{path} doesn't exist.")
+
     is_dir = path.is_dir()
     suffixes = ('.npz', '.txt')
     if path.suffix == suffixes[1]:
@@ -42,7 +45,7 @@ def convert(args) -> Path:
 
     if args.output_path is not None:
         path = Path(args.output_path)
-        is_dir = path.is_dir()
+        is_dir = path.is_dir() or path.suffix == ''
         if not (path.suffix == suffixes[0] or is_dir):
             raise ValueError(f'{path} must be a '
                              f'{suffixes[0]} file or a directory.')
