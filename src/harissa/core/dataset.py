@@ -69,11 +69,11 @@ class Dataset:
             # Backward compatibility, dataset inside a txt file.
             # It assumes that the 1rst column is the time points (arr_list[0]) 
             # and the rest is the count matrix (arr_list[1])
-            data_real = np.loadtxt(path)
+            arr = np.loadtxt(path)
             data_list = [
-                data_real[:, 0].copy(), 
-                data_real.astype(np.uint), 
-                None
+                arr[:, 0].copy(),     # time points
+                arr.astype(np.uint),  # count matrix
+                None                  # gene names
             ]
 
             # Set stimuli instead of time_points
