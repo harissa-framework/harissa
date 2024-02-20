@@ -1,3 +1,9 @@
+"""
+harissa.cli
+-----------
+
+Command line interface for the Harissa package.
+"""
 import argparse as ap
 
 from harissa import __version__
