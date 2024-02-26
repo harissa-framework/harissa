@@ -155,67 +155,82 @@ class NetworkModel:
         self.parameter = res.parameter
         return res
 
-    def _simulate(self, time_points, initial_state, initial_time):
-        parameter = _check_parameter_specified(self.parameter)
-        res = self.simulation.run(initial_state, time_points-initial_time,
-            parameter)
-        res.time_points[:] = time_points
-        return res
-
     def simulate(self,
         time_points: np.ndarray,
         initial_state: np.ndarray | None = None,
-        initial_time = 0,
-        burn_in: float | None = None
+        initial_time = 0
         ) -> Simulation.Result:
-        """Perform simulation of the network model.
+        """
+        Perform simulation of the network model.
         Note: the stimulus is given by initial_state[1,0] (protein 0).
-        If burn_in is not None, this value is ignored.
 
-        Note: time points must be in increasing order, and the firs
+        Note: time points must be in increasing order, and the first
         time point must be greater than or equal to `initial_time`.
         """
+        parameter = _check_parameter_specified(self.parameter)
+
         t_pts_nb_dim = time_points.ndim
         if t_pts_nb_dim == 0:
             time_points = np.array([time_points])
         elif t_pts_nb_dim >= 2:
             raise ValueError((f'Time points is a {t_pts_nb_dim}D np.ndarray. '
-                              'It must be a 0D or 1D np.ndarray.'))
+                               'It must be a 0D or 1D np.ndarray.'))
         if np.any(time_points != np.unique(time_points)):
             raise ValueError('Time points must appear in increasing order')
         if time_points[0] < initial_time:
             raise ValueError(('The first time point must be greater than or '
-                'equal to initial time.'))
+                              'equal to initial time.'))
 
         # Initial state: row 0 <-> rna, row 1 <-> protein
         if initial_state is None:
             initial_state = np.zeros((2, self.n_genes_stim))
             # Activate the stimulus
-            initial_state[1, 0] = 1.
+            initial_state[1, 0] = 1.0
         else:
             initial_state = initial_state.copy()
 
-        # Burn_in simulation without stimulus
-        if burn_in is not None:
-            # Deactivate the stimulus
-            initial_state[1, 0] = 0.
-            # Burn-in simulation
-            res_burn_in = self._simulate(np.array([burn_in]), initial_state, 0)
-            # Update initial state 
-            initial_state = res_burn_in.final_state
-            # Activate the stimulus
-            initial_state[1, 0] = 1.0
-
         # Main simulation
-        res = self._simulate(time_points, initial_state, initial_time)
+        res = self.simulation.run(
+            time_points - initial_time,
+            initial_state,
+            parameter
+        )
+        # Set time points
+        res.time_points[:] = time_points
 
         # NOTE: maybe wrap it to AnnData
         return res
     
+    def burn_in(self, duration: float) -> np.ndarray:
+        """
+        Burn-in simulation without stimulus
+
+        Parameters
+        ----------
+        duration :
+            Simulation duration
+
+        Returns
+        -------
+            Simulation final state with stimulus activated
+        """
+        # Burn-in simulation
+        res_burn_in = self.simulate(
+            np.array([duration]),
+            np.zeros((2, self.n_genes_stim))
+        )
+        
+        final_state = res_burn_in.final_state
+        # Activate the stimulus
+        final_state[1, 0] = 1.0
+
+        return final_state
+
+    
     def simulate_dataset(self,
             time_points: np.ndarray, 
             n_cells: int | list[int] | tuple[int] | np.ndarray,
-            burn_in: float = 5.0 
+            burn_in_duration: float = 5.0 
         ) -> Dataset:
         """
         Generate a dataset
@@ -249,27 +264,30 @@ class NetworkModel:
         print('Cells per time point: ' + ', '.join([f'{c}' for c in n_cells]))
         print(f'Total cells: {tot_cells}')
 
-        time = np.empty(tot_cells)
+        cells_time = np.empty(tot_cells)
         count_matrix = np.empty((tot_cells, self.n_genes_stim), dtype=np.uint)
         offset = 0
         
         for i in range(time_points.size):
-            t = time_points[i]
+            time = time_points[i]
             n_cell = n_cells[i]
 
             # Copy time points
-            time[offset:offset+n_cell] = t
+            cells_time[offset:offset+n_cell] = time
             # Stimulus
-            count_matrix[offset:offset+n_cell, 0] = t != 0.0
+            count_matrix[offset:offset+n_cell, 0] = time != 0.0
             # Generate data
             for cell in range(n_cell):
                 count_matrix[offset + cell, 1:] = np.random.poisson(
-                    self.simulate(t, burn_in=burn_in).rna_levels[0, 1:]
+                    self.simulate(
+                        time,
+                        initial_state=self.burn_in(burn_in_duration)
+                    ).rna_levels[0, 1:]
                 )
 
             offset += n_cell
         
-        return Dataset(time, count_matrix)
+        return Dataset(cells_time, count_matrix)
 
     # FEATURE: dynamic stimulus
     # def simulate_dynamic(self, time_points, stimulus_states):
