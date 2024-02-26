@@ -112,8 +112,8 @@ class ApproxODE(Simulation):
     
 
     def run(self, 
+            time_points: np.ndarray,
             initial_state: np.ndarray, 
-            time_points: np.ndarray, 
             parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (ODE version).

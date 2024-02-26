@@ -55,8 +55,8 @@ class Simulation(ABC):
 
     @abstractmethod
     def run(self, 
-            initial_state: np.ndarray,
             time_points: np.ndarray,
+            initial_state: np.ndarray,
             parameter: NetworkParameter) -> Result:
         """Note: here time points must start from 0 (Markov model)."""
         raise NotImplementedError(

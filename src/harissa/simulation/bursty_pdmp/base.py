@@ -193,8 +193,8 @@ class BurstyPDMP(Simulation):
             self._use_numba = use_numba
     
     def run(self,
-            initial_state: np.ndarray,
             time_points: np.ndarray,
+            initial_state: np.ndarray,
             parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
