@@ -1,6 +1,7 @@
 """
 Main class for network inference and simulation
 """
+from __future__ import annotations
 from harissa.core.dataset import Dataset
 import numpy as np
 from harissa.core.parameter import NetworkParameter
@@ -210,6 +211,65 @@ class NetworkModel:
 
         # NOTE: maybe wrap it to AnnData
         return res
+    
+    def simulate_dataset(self,
+            time_points: np.ndarray, 
+            n_cells: int | list[int] | tuple[int] | np.ndarray,
+            burn_in: float = 5.0 
+        ) -> Dataset:
+        """
+        Generate a dataset
+
+        Parameters
+        ----------
+        time_points:
+            The time points
+        n_cells:
+            The number of cells per time point 
+
+        Returns
+        -------
+        Dataset
+            The simulated dataset
+        """
+        if isinstance(n_cells, int):
+            n_cells = np.full(time_points.size, n_cells, dtype=np.int_)
+        elif isinstance(n_cells, (list, tuple)):
+            n_cells = np.array(n_cells, dtype=np.int_)
+
+        if n_cells.size != time_points.size:
+            raise ValueError((f'n_cells ({n_cells.size}) must have the same '
+                              f'size as time_points ({time_points.size})'))
+        
+        if np.any(n_cells <= 0):
+            raise ValueError('n_cells must contains only positive elements.')
+        
+        tot_cells = np.sum(n_cells)
+        print('Time points: ' + ', '.join([f'{t:.3f}' for t in time_points]))
+        print('Cells per time point: ' + ', '.join([f'{c}' for c in n_cells]))
+        print(f'Total cells: {tot_cells}')
+
+        time = np.empty(tot_cells)
+        count_matrix = np.empty((tot_cells, self.n_genes_stim), dtype=np.uint)
+        offset = 0
+        
+        for i in range(time_points.size):
+            t = time_points[i]
+            n_cell = n_cells[i]
+
+            # Copy time points
+            time[offset:offset+n_cell] = t
+            # Stimulus
+            count_matrix[offset:offset+n_cell, 0] = t != 0.0
+            # Generate data
+            for cell in range(n_cell):
+                count_matrix[offset + cell, 1:] = np.random.poisson(
+                    self.simulate(t, burn_in=burn_in).rna_levels[0, 1:]
+                )
+
+            offset += n_cell
+        
+        return Dataset(time, count_matrix)
 
     # FEATURE: dynamic stimulus
     # def simulate_dynamic(self, time_points, stimulus_states):
