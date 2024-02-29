@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from harissa import Inference
+from harissa.core import Inference, Dataset
 
 def test_inference_instance():
     with pytest.raises(TypeError):
@@ -18,11 +18,11 @@ class InferenceSuperRun(Inference):
     def __init__(self):
         ...
 
-    def run(self, data: np.ndarray) -> Inference.Result:
+    def run(self, data: Dataset) -> Inference.Result:
         return super().run(data)
     
 def test_inference_super_run():
     inf = InferenceSuperRun()
 
     with pytest.raises(NotImplementedError):
-        inf.run(np.empty(1))
+        inf.run(Dataset(np.empty(1), np.empty((1, 2), dtype=np.uint)))

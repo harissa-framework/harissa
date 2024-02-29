@@ -42,3 +42,8 @@ def test_setters():
 
     assert param.basal[0] is np.ma.masked
     assert param.basal[1] == 1.0
+
+    param.basal[:] = np.full(param.basal.shape, 2.0)
+
+    assert param.basal[0] is np.ma.masked
+    assert param.basal[1] == 2.0
