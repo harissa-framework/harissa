@@ -11,19 +11,19 @@ def plot_simulation(sim: Simulation.Result, plot_stimulus: bool = False):
     """
     Basic plotting function for simulations.
     """
-    plt.figure(figsize=(12,4))
+    plt.figure(figsize=(10,4))
     gs = gridspec.GridSpec(2 + plot_stimulus, 1)
     if plot_stimulus:
         ax_stim = plt.subplot(gs[0, 0])
     ax1 = plt.subplot(gs[0 + plot_stimulus, 0])
     ax2 = plt.subplot(gs[1 + plot_stimulus, 0])
     n = sim.protein_levels.shape[1]
-    y_scale = 1.3
+    y_scale = 1.4
 
     if plot_stimulus:
         ax_stim.plot(sim.time_points, sim.stimulus_levels, label='$Stimulus$')
         ax_stim.set_xlim(sim.time_points[0], sim.time_points[-1])
-        ax_stim.set_ylim(0, y_scale)
+        ax_stim.set_ylim(1.0-y_scale, y_scale)
         ax_stim.tick_params(axis='x', labelbottom=False)
         ax_stim.legend(loc='upper left', ncol=1, borderaxespad=0, frameon=False)    
 

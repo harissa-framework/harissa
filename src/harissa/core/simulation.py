@@ -52,6 +52,19 @@ class Simulation(ABC):
 
         def save(self, path: str | Path) -> Path:
             return save_npz(path, asdict(self))
+        
+        def __add__(self, result: Simulation.Result):
+            if isinstance(result, Simulation.Result):
+                if self.time_points[-1] < result.time_points[0]:
+                    return Simulation.Result(
+                        np.concatenate((self.time_points, result.time_points)),
+                        np.concatenate((self.rna_levels, result.rna_levels)),
+                        np.concatenate((self.protein_levels, result.protein_levels))
+                    )
+                else:
+                    raise ValueError(f'{self.time_points[-1]} >= {result.time_points[0]}')
+            else:
+                raise NotImplementedError
 
     @abstractmethod
     def run(self, 
