@@ -16,8 +16,8 @@ single-cell data with transcriptional bursting.
 
 Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
-from importlib.metadata import version as _version
-from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
+from importlib.metadata import (version as _version,
+                                PackageNotFoundError as _PackageNotFoundError)
 from harissa.core import NetworkModel, NetworkParameter
 
 __all__ = ['NetworkModel', 'NetworkParameter']
