@@ -53,6 +53,8 @@ def save_dir(path: str | Path, output_dict: dict) -> Path:
             max_val = np.max(value)
             width = 1 if max_val == 0 else int(np.log10(max_val) + 1.0) 
             np.savetxt(file_name, value, fmt=f'%{width}d')
+        elif value.dtype.type is np.str_:
+            np.savetxt(file_name, value, fmt='%s')
         else:
             np.savetxt(file_name, value)
 
