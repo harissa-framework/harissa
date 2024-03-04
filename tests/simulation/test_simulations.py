@@ -36,6 +36,6 @@ def _create_test_group(cls):
 
     return (f'{Test.__name__}_{cls.__name__}', Test)
 
-for _, cls in getmembers(sys.modules['harissa.simulation'], isclass):
-    test_name, test_group = _create_test_group(cls)
+for members_class in getmembers(sys.modules['harissa.simulation'], isclass):
+    test_name, test_group = _create_test_group(members_class[1])
     globals()[test_name] = test_group
