@@ -57,3 +57,17 @@ local_scheme= "no-local-version"
 [tool.ruff]
 select = ["E", "F"]
 line-length = 79
+
+[tool.pytest.ini_options]
+required_plugins = ["pytest-cov"]
+addopts = "--cov=harissa --cov-report lcov --cov-report html"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+fail_under = 40
+
+[tool.coverage.html]
+directory = "coverage"
