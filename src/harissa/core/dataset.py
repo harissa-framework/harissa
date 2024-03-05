@@ -44,8 +44,8 @@ class Dataset:
             raise TypeError('count_matrix must have at least 2 columns.')
         
         if gene_names is not None:
-            if not (gene_names.ndim == 1 and 
-                    gene_names.dtype == self.param_names['gene_names'][1]):
+            if not (gene_names.ndim == 1 and
+                   gene_names.dtype.type is self.param_names['gene_names'][1]):
                 raise TypeError('gene_names must be a str 1D ndarray.')
              
             if gene_names.shape[0] != count_matrix.shape[1]:
