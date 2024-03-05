@@ -79,7 +79,8 @@ class NetworkParameter:
                 test.append(bool(
                     np.all(getattr(other, k) == getattr(self, k))))
             return all(test)
-        return NotImplemented
+        
+        raise NotImplementedError
     
 
     @classmethod
