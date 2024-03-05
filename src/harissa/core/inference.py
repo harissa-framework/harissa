@@ -11,6 +11,9 @@ class Inference(ABC):
         Inference result
         """
         def __init__(self, parameter: NetworkParameter, **kwargs) -> None:
+            if not isinstance(parameter, NetworkParameter):
+                raise TypeError(('parameter must be a NetworkParameter'
+                                 f'(instead of {type(parameter)})'))
             self.parameter: NetworkParameter = parameter
             for key, value in kwargs.items():
                 setattr(self, key, value)
@@ -22,7 +25,7 @@ class Inference(ABC):
             return self.parameter.save_txt(path)
         
         def save_extra_txt(self, path):
-            pass
+            return
 
         def save(self, path, save_extra=False):
             if save_extra:
@@ -30,7 +33,7 @@ class Inference(ABC):
             return self.parameter.save(path)
         
         def save_extra(self, path):
-            pass
+            return
 
     @abstractmethod
     def run(self, data: Dataset) -> Result:
