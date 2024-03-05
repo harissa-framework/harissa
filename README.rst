@@ -9,6 +9,11 @@ Harissa 🌶
    :alt: GitHub Pages status
    :target: https://harissa-framework.github.io/harissa/
 
+.. image:: https://img.shields.io/conda/v/conda-forge/harissa
+   :alt: Conda - Version
+   :target: https://anaconda.org/conda-forge/harissa
+
+
 This is a Python package for both simulation and inference of gene 
 regulatory networks from single-cell data. Its name comes from 
 ‘HARtree approximation for Inference along with a Stochastic Simulation Algorithm.’ 
