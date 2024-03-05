@@ -62,7 +62,8 @@ class Simulation(ABC):
                         np.concatenate((self.protein_levels, result.protein_levels))
                     )
                 else:
-                    raise ValueError(f'{self.time_points[-1]} >= {result.time_points[0]}')
+                    raise ValueError(('Time points of first element must be '
+                                      'lower than that of second element'))
             else:
                 raise NotImplementedError
 
