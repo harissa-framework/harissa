@@ -5,13 +5,13 @@ Harissa 🌶
    :alt: PyPI - Version
    :target: https://pypi.org/project/harissa/
 
-.. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
-   :alt: GitHub Pages status
-   :target: https://harissa-framework.github.io/harissa/
-
 .. image:: https://img.shields.io/conda/v/conda-forge/harissa
    :alt: Conda - Version
    :target: https://anaconda.org/conda-forge/harissa
+
+.. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
+   :alt: GitHub Pages status
+   :target: https://harissa-framework.github.io/harissa/
 
 
 This is a Python package for both simulation and inference of gene 
