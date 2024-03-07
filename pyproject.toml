@@ -42,7 +42,7 @@ extra = ["alive-progress>=3.0", "umap-learn"]
 [project.urls]
 Repository = "https://github.com/harissa-framework/harissa"
 Documentation = "https://harissa-framework.github.io/harissa"
-"Legacy Repository" = "https://github.com/ulysseherbach/harissa"
+"Repository (legacy)" = "https://github.com/ulysseherbach/harissa"
 
 [project.scripts]
 harissa = "harissa.cli:main"
@@ -59,12 +59,22 @@ select = ["E", "F"]
 line-length = 79
 
 [tool.pytest.ini_options]
+minversion = "6.0"
 required_plugins = ["pytest-cov"]
-addopts = "--cov=harissa --cov-report lcov --cov-report html"
+addopts = [
+    "--import-mode=importlib",
+    "--cov",
+    "--cov-append",
+    "--cov-report=xml",
+    "--cov-report=html",
+    "--cov-report=term"
+]
 testpaths = ["tests"]
 
 [tool.coverage.run]
+source = ['harissa']
 branch = true
+omit = ['src/harissa/graphics/*', 'src/harissa/cli/*']
 
 [tool.coverage.report]
 fail_under = 40
