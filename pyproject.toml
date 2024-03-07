@@ -77,7 +77,7 @@ branch = true
 omit = ['src/harissa/graphics/*', 'src/harissa/cli/*']
 
 [tool.coverage.report]
-fail_under = 40
+fail_under = 80
 
 [tool.coverage.html]
 directory = "coverage"
