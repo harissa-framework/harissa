@@ -33,8 +33,8 @@ class NetworkModel:
             raise TypeError(('parameter argument must be '
                 'an int or a NetworkParameter (or None).'))
 
-        self._inference = _check_type(inference, Inference)
-        self._simulation = _check_type(simulation, Simulation)
+        self.inference = inference
+        self.simulation = simulation
 
     # Properties
     # ==========
@@ -151,6 +151,10 @@ class NetworkModel:
         """
         Fit the network model to the data.
         """
+        if not isinstance(data, Dataset):
+            raise TypeError(( 'data must be Dataset objet ' 
+                             f'and not a(n) {type(data)}.'))
+        
         res = self.inference.run(data)
         self.parameter = res.parameter
         return res
@@ -158,7 +162,7 @@ class NetworkModel:
     def simulate(self,
         time_points: np.ndarray,
         initial_state: np.ndarray | None = None,
-        initial_time = 0
+        initial_time: float = 0.0
         ) -> Simulation.Result:
         """
         Perform simulation of the network model.
@@ -169,24 +173,34 @@ class NetworkModel:
         """
         parameter = _check_parameter_specified(self.parameter)
 
+        if not (isinstance(time_points, np.ndarray) 
+                or isinstance(time_points, np.generic)):
+            raise TypeError(('time_points must be a np.ndarray and '
+                             f'not a(n) {type(time_points)}'))
+
         t_pts_nb_dim = time_points.ndim
         if t_pts_nb_dim == 0:
             time_points = np.array([time_points])
         elif t_pts_nb_dim >= 2:
             raise ValueError((f'Time points is a {t_pts_nb_dim}D np.ndarray. '
                                'It must be a 0D or 1D np.ndarray.'))
-        if np.any(time_points != np.unique(time_points)):
+        if not np.array_equal(time_points, np.unique(time_points)):
             raise ValueError('Time points must appear in increasing order')
         if time_points[0] < initial_time:
             raise ValueError(('The first time point must be greater than or '
                               'equal to initial time.'))
 
         # Initial state: row 0 <-> rna, row 1 <-> protein
+        state_shape = (2, self.n_genes_stim)
         if initial_state is None:
-            initial_state = np.zeros((2, self.n_genes_stim))
+            initial_state = np.zeros(state_shape)
             # Activate the stimulus
             initial_state[1, 0] = 1.0
         else:
+            if (not isinstance(initial_state, np.ndarray) 
+                or initial_state.shape != state_shape):
+                raise TypeError(('initial_state must be a 2D np.ndarray '
+                                f'of shape {state_shape}.'))
             initial_state = initial_state.copy()
 
         # Main simulation
@@ -247,15 +261,28 @@ class NetworkModel:
         Dataset
             The simulated dataset
         """
+        if not isinstance(time_points, np.ndarray) or time_points.ndim != 1:
+            raise TypeError(('time_points must be a 1D np.ndarray '
+                            f'and not {type(time_points)}'))
+
         if isinstance(n_cells, int):
             n_cells = np.full(time_points.size, n_cells, dtype=np.int_)
         elif isinstance(n_cells, (list, tuple)):
             n_cells = np.array(n_cells, dtype=np.int_)
+        elif (not isinstance(n_cells, np.ndarray) 
+              or n_cells.dtype != np.int_
+              or n_cells.ndim != 1):
+            raise TypeError(('n_cells must be an int 1D np.ndarray '
+                            f' and not {type(n_cells)}'))
 
         if n_cells.size != time_points.size:
             raise ValueError((f'n_cells ({n_cells.size}) must have the same '
                               f'size as time_points ({time_points.size})'))
         
+        if np.any(time_points < 0):
+            raise ValueError(('time_points must contains '
+                              'only non negative elements.'))
+
         if np.any(n_cells <= 0):
             raise ValueError('n_cells must contains only positive elements.')
         
