@@ -5,10 +5,10 @@ from harissa.utils.npz_io import load_dir, load_npz, save_dir, save_npz
 @pytest.fixture
 def param_names():
     return {
-        'time_points': (True, np.float_),
-        'initial_state': (False, np.float_),
-        'count_matrix': (True, np.uint),
-        'gene_names': (False, np.str_)
+        'time_points': (True, np.float_, 1),
+        'initial_state': (False, np.float_, 2),
+        'count_matrix': (True, np.uint, 2),
+        'gene_names': (False, np.str_, 1)
     }
 
 @pytest.fixture(scope="module")
@@ -87,11 +87,11 @@ class TestDir:
 
     def test_load_unexpected_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_dir(npz_file, {'foo': (True, np.float_)})
+            load_dir(npz_file, {'foo': (True, np.float_, 1)})
     
     def test_load_missing_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_dir(npz_file, {'time_points': (True, np.float_)})
+            load_dir(npz_file, {'time_points': (True, np.float_, 1)})
     
     def test_save(self, tmp_path, arrays):
         path = save_dir(tmp_path / 'foo', arrays)

@@ -12,9 +12,9 @@ from harissa.utils.npz_io import (load_dir,
 @dataclass(frozen=True, init=False)
 class Dataset:
     param_names: ClassVar[dict] = {
-        'time_points': (True, np.float_), 
-        'count_matrix': (True, np.uint),
-        'gene_names': (False, np.str_)
+        'time_points': (True, np.float_, 1), 
+        'count_matrix': (True, np.uint, 2),
+        'gene_names': (False, np.str_, 1)
     }
     time_points: np.ndarray
     count_matrix: np.ndarray

@@ -10,7 +10,7 @@ def _check_names(names, param_names) -> None:
         elif param_names[name][0]:
             cur_required_names.append(name)
 
-    for name, (required, _) in param_names.items():
+    for name, (required, _, _) in param_names.items():
         if required and name not in cur_required_names:
             raise RuntimeError(f'{name} array is missing.')
 
@@ -22,10 +22,10 @@ def load_dir(path : str | Path, param_names: dict) -> dict:
     _check_names(map(lambda p : p.stem, path.glob(f'*{suffix}')), param_names)
 
     data = {}
-    for name, (required, dtype) in param_names.items():
+    for name, (required, dtype, ndim) in param_names.items():
         file_name = (path / name).with_suffix(suffix)
         if required or file_name.exists():
-            data[name] = np.loadtxt(file_name, dtype=dtype)
+            data[name] = np.loadtxt(file_name, dtype=dtype, ndmin=ndim)
     
     return data
 

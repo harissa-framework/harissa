@@ -38,15 +38,15 @@ class NetworkParameter:
     """
 
     param_names : dict = {
-        'burst_frequency_min': (True, np.float_),
-        'burst_frequency_max': (True, np.float_),
-        'burst_size_inv': (True, np.float_),
-        'creation_rna': (True, np.float_),
-        'creation_protein': (True, np.float_),
-        'degradation_rna': (True, np.float_),
-        'degradation_protein': (True, np.float_),
-        'basal': (True, np.float_),
-        'interaction': (True, np.float_)
+        'burst_frequency_min': (True, np.float_, 1),
+        'burst_frequency_max': (True, np.float_, 1),
+        'burst_size_inv': (True, np.float_, 1),
+        'creation_rna': (True, np.float_, 1),
+        'creation_protein': (True, np.float_, 1),
+        'degradation_rna': (True, np.float_, 1),
+        'degradation_protein': (True, np.float_, 1),
+        'basal': (True, np.float_, 1),
+        'interaction': (True, np.float_, 2)
     }
 
     def __init__(self, n_genes):

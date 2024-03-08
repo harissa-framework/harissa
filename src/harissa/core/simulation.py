@@ -18,9 +18,9 @@ class Simulation(ABC):
         Simulation result
         """
         param_names: ClassVar[dict[str, tuple[bool, np.dtype]]] = {
-            'time_points': (True, np.float_),
-            'rna_levels': (True, np.float_),
-            'protein_levels' :(True, np.float_)
+            'time_points': (True, np.float_, 1),
+            'rna_levels': (True, np.float_, 2),
+            'protein_levels' :(True, np.float_, 2)
         }
         time_points: np.ndarray
         rna_levels: np.ndarray
