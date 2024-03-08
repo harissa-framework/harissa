@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import inspect
+from inspect import getmembers
 
 from harissa import NetworkParameter
 
@@ -40,9 +40,10 @@ def test_properties(network_parameter):
 
     props = [
         (k, getattr(network_parameter, k)) 
-        for k, _ in inspect.getmembers(
+        for k, _ in getmembers(
             type(network_parameter), 
-            lambda o: isinstance(o, property))
+            lambda o: isinstance(o, property)
+        )
     ]
 
     for _, prop in filter(lambda p:isinstance(p[1], np.ma.MaskedArray), props):
