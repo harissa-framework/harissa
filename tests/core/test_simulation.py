@@ -35,7 +35,7 @@ class TestSimulation:
 
 @pytest.fixture(scope='module')
 def time_points():
-    return np.zeros(2)
+    return np.arange(2, dtype=np.float_)
 
 @pytest.fixture(scope='module')
 def rna_levels():
@@ -43,7 +43,7 @@ def rna_levels():
 
 @pytest.fixture(scope='module')
 def protein_levels():
-    return np.zeros((2, 2))
+    return np.ones((2, 2))
 
 @pytest.fixture(scope='module')
 def simulation_res(time_points, rna_levels, protein_levels):
@@ -85,20 +85,22 @@ class TestSimulationResult:
         assert np.array_equal(res.protein_levels, protein_levels)
 
         assert res.time_points.shape[0] == res.rna_levels.shape[0]
-        assert res.time_points.shape[0] == res.protein_levels.shape[0]
         assert res.rna_levels.shape == res.protein_levels.shape
+
+        assert np.array_equal(res.stimulus_levels, protein_levels[:, 0])
+        assert np.array_equal(
+            res.final_state, 
+            np.vstack((rna_levels[-1], protein_levels[-1]))
+        )
 
 
     @pytest.mark.parametrize('times_shape,rna_shape,protein_shape',[
-        ((1,),  (1,2),  (2,2)),
-        ((1,),  (2,2),  (1,2)),
-        ((1,),  (1,2),  (1,3)),
-        ((1,),  (1,3),  (1,2)),
         ((1,2), (1,2),  (1,2)),
         ((1,2), (1,),   (1,2)),
-        ((1,2), (1,2),  (1,))
+        ((1,2), (1,2),  (1,)),
+        ((1,2), (1,2),  (1,3,4))
     ])
-    def test_init_wrong_shape(self, times_shape, rna_shape, protein_shape):
+    def test_init_wrong_dim(self, times_shape, rna_shape, protein_shape):
         with pytest.raises(TypeError):
             Simulation.Result(
                 np.zeros(times_shape), 
@@ -106,6 +108,62 @@ class TestSimulationResult:
                 np.zeros(protein_shape)
             )
 
+    @pytest.mark.parametrize('times_shape,rna_shape,protein_shape',[
+        ((1,),  (1,2),  (2,2)),
+        ((1,),  (2,2),  (1,2)),
+        ((1,),  (1,2),  (1,3)),
+        ((1,),  (1,3),  (1,2))
+    ])
+    def test_init_wrong_shape(self, times_shape, rna_shape, protein_shape):
+        with pytest.raises(ValueError):
+            Simulation.Result(
+                np.zeros(times_shape), 
+                np.zeros(rna_shape), 
+                np.zeros(protein_shape)
+            )
+
+    def test_add(self, simulation_res):
+        rna_levels = np.array([[0.0,2.0],[2.0,2.0]])
+        protein_levels = np.array([[1.0,3.0],[3.0,3.0]])
+        time_points = (simulation_res.time_points[-1] 
+                       + np.arange(1, 3, dtype=np.float_))
+        
+        sim = (simulation_res 
+               + Simulation.Result(time_points, rna_levels, protein_levels))
+        
+        for key in ['time_points', 'rna_levels', 'protein_levels']:
+            s_arr = getattr(sim, key)
+            s_res_arr = getattr(simulation_res, key)
+            l_arr = locals()[key]
+
+            assert s_arr.size == s_res_arr.size + l_arr.size
+            assert np.array_equal(s_arr[:s_res_arr.shape[0]], s_res_arr)
+            assert np.array_equal(s_arr[s_res_arr.shape[0]:], l_arr)
+
+    @pytest.mark.parametrize('sim', [1, 3.0, 'foo'])
+    def test_add_wrong_type(self, simulation_res, sim):
+        with pytest.raises(NotImplementedError):
+            simulation_res + sim
+    
+    @pytest.mark.parametrize('sim', [
+        Simulation.Result(
+            np.arange(-1, 1, dtype=np.float_),
+            np.zeros((2, 2)), 
+            np.zeros((2, 2))
+        ),
+        Simulation.Result(
+            np.arange(3, 5, dtype=np.float_),
+            np.zeros((2, 3)), 
+            np.zeros((2, 3))
+        ),
+        None
+    ])
+    def test_add_wrong_values(self, simulation_res, sim):
+        if sim is None:
+            sim = simulation_res
+        
+        with pytest.raises(ValueError):
+            simulation_res + sim
     def test_load(self, npz_file, time_points, rna_levels, protein_levels):
         res = Simulation.Result.load(npz_file)
         

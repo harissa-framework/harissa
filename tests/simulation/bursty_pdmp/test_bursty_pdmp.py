@@ -90,7 +90,7 @@ def test_run_with_numba():
     param.creation_rna[:] = param.degradation_rna * scale 
     param.creation_protein[:] = param.degradation_protein * scale
     
-    time_points = np.arange(10)
+    time_points = np.arange(10, dtype=np.float_)
     initial_state = np.zeros((2, param.n_genes_stim))
     initial_state[1, 0] = 1
 
