@@ -166,8 +166,8 @@ class TestIO:
         path = network_parameter.save(tmp_path / 'foo.npz')
         data = np.load(path)
 
-        for name, (required, _) in NetworkParameter.param_names.items():
-            if required:
+        for name, infos in NetworkParameter.param_names.items():
+            if infos[0]:
                 assert np.array_equal(
                     getattr(network_parameter, name),
                     data[name]
@@ -177,13 +177,13 @@ class TestIO:
 
         path = network_parameter.save_txt(tmp_path / 'foo')
 
-        for name, (required, dtype) in NetworkParameter.param_names.items():
+        for name, (required, dtype, ndim) in NetworkParameter.param_names.items():
             if required:
                 assert np.array_equal(
                     getattr(network_parameter, name), 
                     np.loadtxt(
                         (path / name).with_suffix('.txt'), 
                         dtype=dtype, 
-                        ndmin=1
+                        ndmin=ndim
                     )
                 )
