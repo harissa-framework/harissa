@@ -9,15 +9,14 @@ from harissa.utils.npz_io import load_dir, load_npz
 from harissa.cli.infer import add_export_options, export_choices
 
 simulation_param_names = {
-    'time_points': (True, np.float_),
-    'initial_state': (False, np.float_)
+    'time_points': (True, np.float_, 1),
+    'initial_state': (False, np.float_, 2),
+    'initial_time': (False, np.float_, 0)
 }
 
 def _create_load_simulation_parameter(load_fn):
-    def load_simulation_parameter(path: str | Path, 
-                                  burn_in: float| None) -> dict:
+    def load_simulation_parameter(path: str | Path) -> dict:
         sim_param = load_fn(path, simulation_param_names)
-        sim_param['burn_in'] = burn_in
         sim_param['time_points'] = np.unique(sim_param['time_points'])
 
         return sim_param
@@ -50,18 +49,17 @@ def simulate(args):
         network_param = NetworkParameter.load(args.network_parameter_path)
 
     if args.simulation_parameter_path.is_dir():
-        load_simu_fn = load_simulation_parameter_txt
+        param = load_simulation_parameter_txt(args.simulation_parameter_path)
     else:
-        load_simu_fn = load_simulation_parameter
+        param = load_simulation_parameter(args.simulation_parameter_path)
 
     model= NetworkModel(network_param, simulation=args.create_simulation(args))
+
+    if args.burn_in is not None:
+        # override initial state
+        param['initial_state'] = model.burn_in(args.burn_in)
     
-    res = model.simulate(
-        **load_simu_fn(
-            args.simulation_parameter_path, 
-            args.burn_in
-        )
-    )
+    res = model.simulate(**param)
 
     print(
         res.save_txt(output) if args.format == export_choices[1] else
@@ -119,7 +117,7 @@ def add_subcommand(main_subparsers):
         '-b', '--burn-in',
         type=float,
         # default=ap.SUPPRESS,
-        help='burn in parameter.'
+        help='burn in duration. (override the initial state)'
     )
     add_export_options(parser, True)
     # set command function (called in the main of cli.py) 
