@@ -12,7 +12,7 @@ class Simulation(ABC):
     """
     Abstract class for simulations.
     """
-    @dataclass
+    @dataclass(init=False)
     class Result:
         """
         Simulation result
@@ -25,6 +25,41 @@ class Simulation(ABC):
         time_points: np.ndarray
         rna_levels: np.ndarray
         protein_levels: np.ndarray
+
+        def __init__(self, time_points, rna_levels, protein_levels) -> None:
+            if (not isinstance(time_points, np.ndarray) 
+                or time_points.ndim != 1
+                # or time_points.dtype != np.float_
+                ):
+                raise TypeError('time_points must be a 1D float np.ndarray')
+            
+            if (not isinstance(rna_levels, np.ndarray) 
+                or rna_levels.ndim != 2
+                # or rna_levels.dtype != np.float_
+                ):
+                raise TypeError('rna_levels must be a 2D float np.ndarray')
+            
+            if (not isinstance(protein_levels, np.ndarray) 
+                or protein_levels.ndim != 2
+                # or protein_levels.dtype != np.float_
+                ):
+                raise TypeError('protein_levels must be a 2D float np.ndarray')
+            
+            if not np.array_equal(time_points, np.unique(time_points)):
+                raise ValueError('time_points must be sorted and unique')
+            
+            if time_points.shape[0] != rna_levels.shape[0]:
+                raise ValueError('The number of time points must' 
+                                 'be equal to number of rna levels')
+            
+            if rna_levels.shape != protein_levels.shape:
+                raise ValueError('rna_levels and protein_levels'
+                                 'shape must be equal')
+            
+
+            self.time_points = time_points
+            self.rna_levels = rna_levels
+            self.protein_levels = protein_levels
 
         @property
         def stimulus_levels(self):
@@ -55,17 +90,32 @@ class Simulation(ABC):
         
         def __add__(self, result: Simulation.Result):
             if isinstance(result, Simulation.Result):
-                if self.time_points[-1] < result.time_points[0]:
-                    return Simulation.Result(
-                        np.concatenate((self.time_points, result.time_points)),
-                        np.concatenate((self.rna_levels, result.rna_levels)),
-                        np.concatenate((self.protein_levels, result.protein_levels))
-                    )
+                if self.rna_levels.shape == result.rna_levels.shape:
+                    if self.time_points[-1] < result.time_points[0]:
+                        return Simulation.Result(
+                            np.concatenate((
+                                self.time_points,
+                                result.time_points
+                            )),
+                            np.concatenate((
+                                self.rna_levels,
+                                result.rna_levels
+                            )),
+                            np.concatenate((
+                                self.protein_levels,
+                                result.protein_levels
+                            ))
+                        )
+                    else:
+                        raise ValueError(
+                            ('Time points of first element must be '
+                             'lower than that of second element.')
+                        )
                 else:
-                    raise ValueError(('Time points of first element must be '
-                                      'lower than that of second element'))
+                    raise ValueError('The shapes of rna levels are not equal.')
             else:
-                raise NotImplementedError
+                raise NotImplementedError('The right operand must be a '
+                                          'Simulation.Result object.')
 
     @abstractmethod
     def run(self, 
