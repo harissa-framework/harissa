@@ -290,7 +290,7 @@ class Hartree(Inference):
 
             save_dir(path / 'basal_time', basal_time)
             save_dir(path / 'interaction_time', inter_time)
-            np.savetxt(path / 'y', self.y)
+            np.savetxt(path / 'y.txt', self.y)
         
         def save_extra(self, path: str | Path):
             path = str(path) + '_extra'
