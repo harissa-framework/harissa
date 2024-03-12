@@ -35,6 +35,9 @@ jobs:
     name: Run tests
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,7 +55,17 @@ jobs:
       - name: Install pytest
         run: pip install pytest pytest-cov
       - name: Run tests and coverage
-        run: pytest -v --cov-report term --cov=harissa --junit-xml=report.xml tests
+        run: pytest
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: 'report.xml'
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          path: 'coverage'
 
   doc:
     name: Generate documentation
