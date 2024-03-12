@@ -167,7 +167,7 @@ class TestIO:
         data = np.load(path)
 
         for name, infos in NetworkParameter.param_names.items():
-            if infos[0]:
+            if infos.required:
                 assert np.array_equal(
                     getattr(network_parameter, name),
                     data[name]
