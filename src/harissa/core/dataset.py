@@ -4,17 +4,20 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import ClassVar
 
-from harissa.utils.npz_io import (load_dir, 
-                                  load_npz, 
-                                  save_dir, 
-                                  save_npz) 
+from harissa.utils.npz_io import (
+    ParamInfos,
+    load_dir,
+    load_npz,
+    save_dir,
+    save_npz
+) 
 
 @dataclass(frozen=True, init=False)
 class Dataset:
-    param_names: ClassVar[dict] = {
-        'time_points': (True, np.float_, 1), 
-        'count_matrix': (True, np.uint, 2),
-        'gene_names': (False, np.str_, 1)
+    param_names: ClassVar[dict[str, ParamInfos]] = {
+        'time_points': ParamInfos(True, np.float_, 1), 
+        'count_matrix': ParamInfos(True, np.uint, 2),
+        'gene_names': ParamInfos(False, np.str_, 1)
     }
     time_points: np.ndarray
     count_matrix: np.ndarray
@@ -26,11 +29,11 @@ class Dataset:
                  gene_names=None) -> None:
 
         if not (time_points.ndim == 1 and 
-                time_points.dtype == self.param_names['time_points'][1]):
+                time_points.dtype == self.param_names['time_points'].dtype):
             raise TypeError('time_points must be a float 1D ndarray.')
 
         if not (count_matrix.ndim == 2 and 
-                count_matrix.dtype == self.param_names['count_matrix'][1]):
+                count_matrix.dtype == self.param_names['count_matrix'].dtype):
             raise TypeError('count_matrix must be an uint 2D ndarray.')
 
         if time_points.shape[0] != count_matrix.shape[0]:
@@ -44,8 +47,8 @@ class Dataset:
             raise TypeError('count_matrix must have at least 2 columns.')
         
         if gene_names is not None:
-            if not (gene_names.ndim == 1 and
-                   gene_names.dtype.type is self.param_names['gene_names'][1]):
+            if (gene_names.ndim != 1 or
+                gene_names.dtype.type is not np.str_):
                 raise TypeError('gene_names must be a str 1D ndarray.')
              
             if gene_names.shape[0] != count_matrix.shape[1]:

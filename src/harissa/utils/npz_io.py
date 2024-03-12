@@ -1,20 +1,30 @@
 import numpy as np
 from pathlib import Path
+from dataclasses import dataclass, astuple
 
-def _check_names(names, param_names) -> None:
+@dataclass
+class ParamInfos:
+    required: bool
+    dtype: np.dtype
+    ndim: int
+
+    def __iter__(self):
+        return iter(astuple(self))
+
+def _check_names(names, param_names: dict[str, ParamInfos]) -> None:
     cur_required_names = []
     for name in names:
         if name not in param_names:
             raise RuntimeError('Unexpected array name, '
                               f'{name} is not in {list(param_names.keys())}.')
-        elif param_names[name][0]:
+        elif param_names[name].required:
             cur_required_names.append(name)
 
-    for name, (required, _, _) in param_names.items():
-        if required and name not in cur_required_names:
+    for name, infos in param_names.items():
+        if infos.required and name not in cur_required_names:
             raise RuntimeError(f'{name} array is missing.')
 
-def load_dir(path : str | Path, param_names: dict) -> dict:
+def load_dir(path : str | Path, param_names: dict[str, ParamInfos]) -> dict:
     path = Path(path) # convert it to Path (needed for str)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
@@ -30,7 +40,7 @@ def load_dir(path : str | Path, param_names: dict) -> dict:
     return data
 
 
-def load_npz(path: str | Path, param_names: dict) -> dict:
+def load_npz(path: str | Path, param_names: dict[str, ParamInfos]) -> dict:
     path = Path(path)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
@@ -43,7 +53,7 @@ def load_npz(path: str | Path, param_names: dict) -> dict:
 
     return data
 
-def save_dir(path: str | Path, output_dict: dict) -> Path:
+def save_dir(path: str | Path, output_dict: dict[str, np.ndarray]) -> Path:
     path = Path(path).with_suffix('')
     path.mkdir(parents=True, exist_ok=True)
 
@@ -59,7 +69,7 @@ def save_dir(path: str | Path, output_dict: dict) -> Path:
             np.savetxt(file_name, value)
 
     return path
-def save_npz(path: str | Path, output_dict: dict) -> Path:
+def save_npz(path: str | Path, output_dict: dict[str, np.ndarray]) -> Path:
     path = Path(path).with_suffix('.npz')
 
     path.parent.mkdir(parents=True, exist_ok=True)

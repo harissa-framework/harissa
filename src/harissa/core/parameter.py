@@ -5,7 +5,13 @@ from __future__ import annotations
 import numpy as np
 from pathlib import Path
 
-from harissa.utils.npz_io import load_dir, load_npz, save_dir, save_npz
+from harissa.utils.npz_io import (
+    ParamInfos,
+    load_dir,
+    load_npz,
+    save_dir,
+    save_npz
+)
 
 # Default parameter values
 default_degradation_rna = np.log(2.0) / 9.0
@@ -38,15 +44,15 @@ class NetworkParameter:
     """
 
     param_names : dict = {
-        'burst_frequency_min': (True, np.float_, 1),
-        'burst_frequency_max': (True, np.float_, 1),
-        'burst_size_inv': (True, np.float_, 1),
-        'creation_rna': (True, np.float_, 1),
-        'creation_protein': (True, np.float_, 1),
-        'degradation_rna': (True, np.float_, 1),
-        'degradation_protein': (True, np.float_, 1),
-        'basal': (True, np.float_, 1),
-        'interaction': (True, np.float_, 2)
+        'burst_frequency_min': ParamInfos(True, np.float_, 1),
+        'burst_frequency_max': ParamInfos(True, np.float_, 1),
+        'burst_size_inv': ParamInfos(True, np.float_, 1),
+        'creation_rna': ParamInfos(True, np.float_, 1),
+        'creation_protein': ParamInfos(True, np.float_, 1),
+        'degradation_rna': ParamInfos(True, np.float_, 1),
+        'degradation_protein': ParamInfos(True, np.float_, 1),
+        'basal': ParamInfos(True, np.float_, 1),
+        'interaction': ParamInfos(True, np.float_, 2)
     }
 
     def __init__(self, n_genes):

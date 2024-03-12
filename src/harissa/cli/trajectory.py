@@ -5,13 +5,13 @@ import argparse as ap
 from harissa import NetworkModel, NetworkParameter
 from harissa.simulation import default_simulation, BurstyPDMP, ApproxODE
 from harissa.graphics import plot_simulation
-from harissa.utils.npz_io import load_dir, load_npz
+from harissa.utils.npz_io import ParamInfos, load_dir, load_npz
 from harissa.cli.infer import add_export_options, export_choices
 
 simulation_param_names = {
-    'time_points': (True, np.float_, 1),
-    'initial_state': (False, np.float_, 2),
-    'initial_time': (False, np.float_, 0)
+    'time_points': ParamInfos(True, np.float_, 1),
+    'initial_state': ParamInfos(False, np.float_, 2),
+    'initial_time': ParamInfos(False, np.float_, 0)
 }
 
 def _create_load_simulation_parameter(load_fn):

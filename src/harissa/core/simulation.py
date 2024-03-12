@@ -6,7 +6,13 @@ from pathlib import Path
 from typing import ClassVar
 
 from harissa.core.parameter import NetworkParameter
-from harissa.utils.npz_io import load_dir, load_npz, save_dir, save_npz
+from harissa.utils.npz_io import (
+    ParamInfos, 
+    load_dir, 
+    load_npz, 
+    save_dir, 
+    save_npz
+)
 
 class Simulation(ABC):
     """
@@ -18,9 +24,9 @@ class Simulation(ABC):
         Simulation result
         """
         param_names: ClassVar[dict[str, tuple[bool, np.dtype]]] = {
-            'time_points': (True, np.float_, 1),
-            'rna_levels': (True, np.float_, 2),
-            'protein_levels' :(True, np.float_, 2)
+            'time_points': ParamInfos(True, np.float_, 1),
+            'rna_levels': ParamInfos(True, np.float_, 2),
+            'protein_levels' :ParamInfos(True, np.float_, 2)
         }
         time_points: np.ndarray
         rna_levels: np.ndarray
