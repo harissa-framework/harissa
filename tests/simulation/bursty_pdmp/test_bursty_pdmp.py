@@ -11,6 +11,34 @@ def reload_base():
         del sys.modules['numba']
     reload(base)
 
+@pytest.fixture
+def time_points():
+    return np.arange(10, dtype=np.float_)
+
+@pytest.fixture
+def network_parameter():
+    param = NetworkParameter(3)
+    param.degradation_rna[:] = 1
+    param.degradation_protein[:] = 0.2
+    param.basal[1] = 5
+    param.basal[2] = 5
+    param.basal[3] = 5
+    param.interaction[1,2] = -10
+    param.interaction[2,3] = -10
+    param.interaction[3,1] = -10
+    scale = param.burst_size_inv / param.burst_frequency_max
+    param.creation_rna[:] = param.degradation_rna * scale 
+    param.creation_protein[:] = param.degradation_protein * scale
+
+    return param
+
+@pytest.fixture
+def initial_state(network_parameter):
+    state = np.zeros((2, network_parameter.n_genes_stim))
+    state[1, 0] = 1
+
+    return state
+
 def test_use_numba_default(reload_base):
     sim = base.BurstyPDMP()
     assert not sim.use_numba
@@ -74,26 +102,19 @@ def test_use_numba_True_False_True(reload_base):
     assert base._simulation_jit is not None
     assert sim._simulation is base._simulation_jit
 
-def test_run_with_numba():
-    sim = base.BurstyPDMP(use_numba=True)
+def test_run_with_numba(time_points, initial_state, network_parameter):
+    from numba.core import config
+    for disable_jit in [1, 0]:
+        config.DISABLE_JIT = disable_jit
+        reload(base)
+        sim = base.BurstyPDMP(use_numba=True)
 
-    param = NetworkParameter(3)
-    param.degradation_rna[:] = 1
-    param.degradation_protein[:] = 0.2
-    param.basal[1] = 5
-    param.basal[2] = 5
-    param.basal[3] = 5
-    param.interaction[1,2] = -10
-    param.interaction[2,3] = -10
-    param.interaction[3,1] = -10
-    scale = param.burst_size_inv / param.burst_frequency_max
-    param.creation_rna[:] = param.degradation_rna * scale 
-    param.creation_protein[:] = param.degradation_protein * scale
-    
-    time_points = np.arange(10, dtype=np.float_)
-    initial_state = np.zeros((2, param.n_genes_stim))
-    initial_state[1, 0] = 1
+        res = sim.run(time_points, initial_state, network_parameter)
+        assert isinstance(res, Simulation.Result)
 
-    res = sim.run(time_points, initial_state, param)
 
+def test_run_without_numba(time_points, initial_state, network_parameter):
+    sim = base.BurstyPDMP(use_numba=False)
+
+    res = sim.run(time_points, initial_state, network_parameter)
     assert isinstance(res, Simulation.Result)
