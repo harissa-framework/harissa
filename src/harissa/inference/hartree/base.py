@@ -240,22 +240,27 @@ def _create_infer_network(objective, grad_theta):
         theta = np.zeros((times_unique.size, nb_genes_stim, nb_genes_stim))
         theta0 = np.zeros((nb_genes_stim, nb_genes_stim))
         # Optimization parameters
-        params = {'method': 'L-BFGS-B'}
-        if tolerance is not None: 
-            params['tol'] = tolerance
+        optimization_params = {
+            'fun': objective,
+            'jac': grad_theta,
+            'method': 'L-BFGS-B', 
+            'tol': tolerance
+        }
         # Inference routine
         for t, time in enumerate(times_unique):
-            res = minimize(objective, 
-                        theta0.reshape(nb_genes_stim**2),
-                        args=(theta0, 
-                                x[time_points==time], 
-                                y[time_points==time], 
-                                a, c, d, 
-                                penalization_strength, 
-                                t, 
-                                smoothing_threshold),
-                        jac=grad_theta, 
-                        **params)
+            res = minimize(
+                **optimization_params, 
+                x0=theta0.reshape(nb_genes_stim**2),
+                args= (
+                    theta0, 
+                    x[time_points==time], 
+                    y[time_points==time], 
+                    a, c, d, 
+                    penalization_strength, 
+                    t, 
+                    smoothing_threshold
+                )
+            )
             if not res.success:
                 print(f'Warning: maximization failed (time {t})')
             # Update theta0
