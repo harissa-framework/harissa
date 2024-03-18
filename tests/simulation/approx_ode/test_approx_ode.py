@@ -110,14 +110,15 @@ def test_run_with_numba(time_points, initial_state, network_parameter):
         config.DISABLE_JIT = disable_jit
         reload(base)
 
-        sim = base.ApproxODE(use_numba=True)
-        res = sim.run(time_points, initial_state, network_parameter)
+        sim = base.ApproxODE(verbose=True, use_numba=True)
+        for tp in [time_points, np.array([time_points[-1]])]:
+            res = sim.run(tp, initial_state, network_parameter)
 
-        assert isinstance(res, Simulation.Result)
+            assert isinstance(res, Simulation.Result)
 
 
 def test_run_without_numba(time_points, initial_state, network_parameter):
-    sim = base.ApproxODE(use_numba=False)
+    sim = base.ApproxODE(verbose=True, use_numba=False)
     res = sim.run(time_points, initial_state, network_parameter)
 
     assert isinstance(res, Simulation.Result)

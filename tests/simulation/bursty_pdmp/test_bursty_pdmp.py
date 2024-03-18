@@ -107,14 +107,24 @@ def test_run_with_numba(time_points, initial_state, network_parameter):
     for disable_jit in [1, 0]:
         config.DISABLE_JIT = disable_jit
         reload(base)
-        sim = base.BurstyPDMP(use_numba=True)
+        for thin_adapt in [True, False]:
+            sim = base.BurstyPDMP(
+                thin_adapt=thin_adapt,
+                verbose=True, 
+                use_numba=True
+            )
 
-        res = sim.run(time_points, initial_state, network_parameter)
-        assert isinstance(res, Simulation.Result)
+            res = sim.run(time_points, initial_state, network_parameter)
+            assert isinstance(res, Simulation.Result)
 
 
 def test_run_without_numba(time_points, initial_state, network_parameter):
-    sim = base.BurstyPDMP(use_numba=False)
+    for thin_adapt in [True, False]:
+        sim = base.BurstyPDMP(
+            thin_adapt=thin_adapt, 
+            verbose=True, 
+            use_numba=False
+        )
 
-    res = sim.run(time_points, initial_state, network_parameter)
-    assert isinstance(res, Simulation.Result)
+        res = sim.run(time_points, initial_state, network_parameter)
+        assert isinstance(res, Simulation.Result)

@@ -25,6 +25,19 @@ def dataset():
     ], dtype=np.uint)
     return Dataset(time_points, count_matrix)
 
+@pytest.fixture
+def dataset_one():
+    time_points = np.array([0.0, 0.0, 1.0, 1.0, 1.0])
+    count_matrix = np.array([
+        # s g1 g2 g3
+        [0, 1, 1, 1], # Cell 1
+        [0, 1, 1, 1], # Cell 2
+        [1, 1, 1, 1], # Cell 3
+        [1, 1, 1, 1], # Cell 4
+        [1, 1, 1, 1], # Cell 5
+    ], dtype=np.uint)
+    return Dataset(time_points, count_matrix)
+
 class TestHartree:
     def test_use_numba_default(self, reload_base):
         inf = base.Hartree()
@@ -75,7 +88,7 @@ class TestHartree:
             config.DISABLE_JIT = disable_jit
             reload(base)
 
-            inf = base.Hartree(use_numba=True)
+            inf = base.Hartree(verbose= True, use_numba=True)
             res = inf.run(dataset)
 
             n_genes_stim = dataset.count_matrix.shape[1]
@@ -89,7 +102,7 @@ class TestHartree:
             assert res.parameter.n_genes_stim == n_genes_stim
 
     def test_run_without_numba(self, dataset):
-        inf = base.Hartree(use_numba=False)
+        inf = base.Hartree(verbose= True, use_numba=False)
         res = inf.run(dataset)
 
         n_genes_stim = dataset.count_matrix.shape[1]
@@ -101,6 +114,14 @@ class TestHartree:
         assert isinstance(res.parameter, NetworkParameter)
 
         assert res.parameter.n_genes_stim == n_genes_stim
+
+    def test_dataset_one(self, dataset_one):
+        inf = base.Hartree(tolerance= 1e-10, use_numba=False)
+
+        inf.run(dataset_one)
+
+        assert True
+
 
 def test_save_extra_txt(tmp_path, dataset):
     inf = base.Hartree(use_numba=False)

@@ -94,11 +94,20 @@ class TestSimulationResult:
         )
 
 
+    @pytest.mark.parametrize('times,rna,protein',[
+        ([2.5], np.zeros((1,2)),  np.zeros((1,2))),
+        (np.zeros(1), [0.5, 1.8], np.zeros((1,2))),
+        (np.zeros(1), np.zeros((1,2)),  [0.5, 1.8]),
+    ])
+    def test_init_wrong_type(self, times, rna, protein):
+        with pytest.raises(TypeError):
+            Simulation.Result(times, rna, protein)
+
     @pytest.mark.parametrize('times_shape,rna_shape,protein_shape',[
         ((1,2), (1,2),  (1,2)),
-        ((1,2), (1,),   (1,2)),
-        ((1,2), (1,2),  (1,)),
-        ((1,2), (1,2),  (1,3,4))
+        ((1,), (1,),   (1,2)),
+        ((1,), (1,2),  (1,)),
+        ((1,), (1,2),  (1,3,4))
     ])
     def test_init_wrong_dim(self, times_shape, rna_shape, protein_shape):
         with pytest.raises(TypeError):
@@ -120,6 +129,20 @@ class TestSimulationResult:
                 np.zeros(times_shape), 
                 np.zeros(rna_shape), 
                 np.zeros(protein_shape)
+            )
+
+    @pytest.mark.parametrize('times', [
+        np.array([0.0, 2.0, 1.0]),
+        np.array([0.0, 0.0, 1.0]),
+        np.array([0.0, 0.0, 2.0, 1.0])
+    ])
+    def test_init_times_not_unique(self, times):
+        n_genes_stim = 2
+        with pytest.raises(ValueError):
+            Simulation.Result(
+                times, 
+                np.zeros((times.size, n_genes_stim)), 
+                np.zeros((times.size, n_genes_stim))
             )
 
     def test_add(self, simulation_res):

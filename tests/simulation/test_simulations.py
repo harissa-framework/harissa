@@ -38,10 +38,11 @@ def _create_test_group(cls):
             initial_state = np.zeros((2, param.n_genes_stim))
             initial_state[1, 0] = 1
             
-            res = cls().run(time_points, initial_state, param)
+            for tp in [time_points, np.array([time_points[-1]])]:
+                res = cls().run(tp, initial_state, param)
 
-            assert isinstance(res, Simulation.Result)
-            assert res.rna_levels.shape[1] == param.n_genes_stim
+                assert isinstance(res, Simulation.Result)
+                assert res.rna_levels.shape[1] == param.n_genes_stim
 
     return (f'{Test.__name__}{cls.__name__}', Test)
 
