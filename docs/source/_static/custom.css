@@ -37,3 +37,11 @@
 .o {
     user-select: none;
 }
+
+.nbinput button.copybtn {
+    top: 0.3em;
+}
+
+.nboutput button.copybtn {
+    display: none;
+}
