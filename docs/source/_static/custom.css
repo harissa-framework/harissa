@@ -33,4 +33,7 @@
   height: unset;
   /* height: calc(var(--sidebar-item-line-height) + 6 * var(--sidebar-item-spacing-vertical));   */
 }
-  
+
+.o {
+    user-select: none;
+}

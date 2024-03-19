@@ -49,6 +49,7 @@ release = version
 extensions = [
     'sphinx.ext.autodoc',
     # 'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
@@ -64,6 +65,10 @@ extensions = [
 
 # coverage_show_missing_items = True
 # coverage_statistics_to_stdout = True
+
+autodoc_typehints = 'description'
+# autoclass_content = 'both'
+# autodoc_class_signature = 'separated'
 
 autosummary_generate = True
 autosummary_ignore_module_all = False
@@ -129,8 +134,9 @@ napoleon_numpy_docstring = True
 
 # -- Options for sphinx-copybutton ------------------------------------------
 # https://sphinx-copybutton.readthedocs.io/en/latest
-copybutton_exclude = '.linenos, .gp, .go'
-copybutton_prompt_text = '$ '
+copybutton_exclude = '.linenos, .gp, .go, .o'
+# copybutton_prompt_text = r"[$!]\s*"
+# copybutton_prompt_is_regexp = True
 
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
