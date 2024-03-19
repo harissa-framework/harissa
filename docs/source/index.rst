@@ -19,11 +19,11 @@ Welcome to Harissa's 🌶 documentation!
 
 .. include:: ../../README.rst
     :start-line: 3
-    :end-line: 7
+    :end-line: 18
 
 .. include:: ../../README.rst
-   :start-line: 11
-   :end-line: 111
+   :start-line: 23
+   :end-line: 124
 
 Indices and tables
 ##################
