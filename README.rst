@@ -13,10 +13,13 @@ Harissa 🌶
    :alt: Conda - Version
    :target: https://anaconda.org/conda-forge/harissa
 
+.. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/ci.yml?label=build%20and%20test
+   :alt: GitHub Actions Workflow Status
+   :target: https://github.com/harissa-framework/harissa/actions/workflows/ci.yml
+
 .. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
    :alt: GitHub Pages status
    :target: https://harissa-framework.github.io/harissa/
-
 
 This is a Python package for both simulation and inference of gene 
 regulatory networks from single-cell data. Its name comes from 
@@ -51,9 +54,9 @@ Installation
 
 Harissa can be installed using `pip <https://packaging.python.org/en/latest/tutorials/installing-packages/>`_:
 
-.. code-block:: bash
+.. code-block:: console
 
-  pip install harissa
+  $ pip install harissa
 
 This command will also check for all required dependencies (see below) 
 and install them if necessary. 
