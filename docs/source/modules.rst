@@ -1,5 +1,5 @@
-Harissa API documentation
-=========================
+API documentation
+=================
 
 Main package
 ------------
