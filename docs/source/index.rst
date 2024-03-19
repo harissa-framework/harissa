@@ -13,6 +13,7 @@ Welcome to Harissa's 🌶 documentation!
    Harissa <README>
    modules
    notebooks/README
+   cli/cli
 
 -------------------------------
 
