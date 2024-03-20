@@ -7,15 +7,21 @@ import os
 import re 
 import sys
 from importlib.metadata import version as get_version
+from pathlib import Path
+from shutil import copytree, ignore_patterns
 
-cmd_name = os.path.basename(os.environ['_'])
+from sphinxcontrib.collections.drivers.copy_folder import CopyFolderDriver
+from sphinxcontrib.collections.api import register_driver
+
+
+cmd_name = Path(os.environ['_']).name
 is_multi_version_sub_process = (
     cmd_name == 'sphinx-multiversion' 
-    and cmd_name != os.path.basename(sys.argv[0])
+    and cmd_name != Path(sys.argv[0]).name
 )
 
 if is_multi_version_sub_process:
-    sys.path[0] =  os.path.join(sys.path[0], 'src')
+    sys.path[0] =  str(Path(sys.path[0]) / 'src')
 
     def root_index_content(redirect_version):
         v_index = f'{redirect_version}/index.html' 
@@ -48,7 +54,7 @@ release = version
 
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
@@ -56,15 +62,48 @@ extensions = [
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
     'nbsphinx',
-    'nbsphinx_link',
+    'nbsphinx_link', # keep it for legacy version
+    'sphinxcontrib.collections', 
     # 'sphinx_gallery.gen_gallery',   
     'sphinx_gallery.load_style',
     'sphinx_copybutton',
     # 'myst-nb'
 ]
 
+# -- Options for sphinx collections output ----------------------------------
+# https://sphinx-collections.readthedocs.io/en/latest/
+
+class CopyFolderOnly(CopyFolderDriver):
+    def copy_only(self, path, names):
+        patterns = self.config.get('only', [])
+        return set(names) - ignore_patterns(*patterns)(path, names)
+    
+    def run(self):
+        self.info("Copy folder...")
+        src_dir = Path(__file__).parent / Path(self.config["source"])
+        if not src_dir.exists():
+            self.error(f"Source {src_dir} does not exist")
+            return
+
+        try:
+            copytree(src_dir, self.config['target'], ignore=self.copy_only)
+        except IOError as e:
+            self.error("Problems during copying folder.", e)
+
+register_driver('copy_folder_only', CopyFolderOnly)
+
 # coverage_show_missing_items = True
 # coverage_statistics_to_stdout = True
+collections = {
+    'notebooks' : {
+        'driver': 'copy_folder_only',
+        'source': '../../notebooks',
+        'only': ['*.ipynb']
+    }
+}
+
+# -- Options for autodoc output ----------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
 
 autodoc_typehints = 'description'
 # autoclass_content = 'both'
@@ -72,9 +111,6 @@ autodoc_typehints = 'description'
 
 autosummary_generate = True
 autosummary_ignore_module_all = False
-# autosummary_filename_map = {
-#     'harissa.utils.plot_network': 'harissa.utils.plot_network_m'
-# }
 # autosummary_imported_members = True
 
 # sphinx_gallery_conf = {

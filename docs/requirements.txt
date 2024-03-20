@@ -2,6 +2,7 @@ sphinx
 furo
 nbsphinx
 nbsphinx-link
+sphinx-collections
 ipython
 sphinx-gallery
 sphinx-copybutton
