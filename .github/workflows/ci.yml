@@ -61,6 +61,8 @@ jobs:
         if: always()
         with:
           files: 'report.xml'
+      - name: Renames src files name for coveralls
+        run: sed -i -E "s/(SF:).*(\/harissa.*)/\1src\2/g" coverage.lcov
       - name: Coveralls
         uses: coverallsapp/github-action@v2
         if: always()
