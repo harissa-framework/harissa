@@ -61,11 +61,11 @@ jobs:
         if: always()
         with:
           files: 'report.xml'
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v3
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
         if: always()
         with:
-          path: 'coverage'
+          file: coverage.lcov
 
   doc:
     name: Generate documentation
@@ -97,5 +97,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: 'doc'
+          name: 'documentation'
           path: 'html'
