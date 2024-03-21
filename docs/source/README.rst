@@ -1,6 +1,6 @@
 .. include:: ../../README.rst
     :start-line: 0
-    :end-line: 18
+    :end-line: 21
 
 .. include:: ../../README.rst
-    :start-line: 23
+    :start-line: 26

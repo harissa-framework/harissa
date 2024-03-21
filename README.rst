@@ -17,6 +17,9 @@ Harissa 🌶
    :alt: GitHub Actions Workflow Status
    :target: https://github.com/harissa-framework/harissa/actions/workflows/ci.yml
 
+.. image:: https://img.shields.io/coverallsCoverage/github/harissa-framework/harissa
+   :alt: Coveralls
+
 .. image:: https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/github-pages.yml?label=documentation
    :alt: GitHub Pages status
    :target: https://harissa-framework.github.io/harissa/
