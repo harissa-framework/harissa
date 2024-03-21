@@ -140,10 +140,7 @@ class ApproxODE(Simulation):
         
         if self.is_verbose:
             # Display info about steps
-            if step_count > 0:
-                print(f'ODE simulation used {step_count} steps '
-                      f'(step size = {dt:.5f})')
-            else: 
-                print('ODE simulation used no step')
-        
+            print(f'ODE simulation used {step_count} steps '
+                    f'(step size = {dt:.5f})')
+            
         return Simulation.Result(time_points, states[:, 0], states[:, 1])

@@ -221,11 +221,8 @@ class BurstyPDMP(Simulation):
         if self.is_verbose:
             # Display info about jumps
             total_jump = phantom_jump_count + true_jump_count
-            if total_jump > 0:
-                print(f'Exact simulation used {total_jump} jumps '
-                      f'including {phantom_jump_count} phantom jumps '
-                      f'({100*phantom_jump_count/total_jump : .2f}%)')
-            else: 
-                print('Exact simulation used no jump')
+            print(f'Exact simulation used {total_jump} jumps '
+                    f'including {phantom_jump_count} phantom jumps '
+                    f'({100*phantom_jump_count/total_jump : .2f}%)')
         
         return self.Result(time_points, states[:, 0], states[:, 1])

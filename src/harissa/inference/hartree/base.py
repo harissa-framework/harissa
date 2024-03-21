@@ -159,9 +159,9 @@ def infer_kinetics(x: np.ndarray,
         a[i], b[i] = estimate_gamma_poisson(x[cells])
     b = np.mean(b)
     # Newton-like method
-    k, c = 0, 0
+    k, c = 0, tolerance + 1
     sx = np.sum(x)
-    while (k == 0) or (k < max_iteration and c > tolerance):
+    while (k < max_iteration and c > tolerance):
         da = np.zeros(m)
         for i in range(m):
             if a[i] > 0:
@@ -172,32 +172,16 @@ def infer_kinetics(x: np.ndarray,
                 d = n[i]*(np.log(b)-np.log(b+1)-psi(a[i])) + p0
                 h = p1 - n[i]*polygamma(1, a[i])
                 da[i] = -d/h
-        anew = a + da
-        if np.sum(anew < 0) == 0: 
-            a[:] = anew
-        else:
-            max_test = 5
-            test = 0
-            da *= 0.5
-            while (np.sum(a + da < 0) > 0) and (test < max_test):
-                da *= 0.5
-                test += 1
-            if test < max_test: 
-                a[:] = a + da
-            else: 
-                print('Warning: parameter a not improved')
+        a[:] = a + da
         b = np.sum(n*a)/sx if np.sum(a == 0) == 0 else 1
         c = np.max(np.abs(da))
         k += 1
     if (k == max_iteration) and (c > tolerance):
         # print('Warning: bad convergence (b = {})'.format(b))
         a, b = a/b, 1
-    if np.sum(a < 0) > 0:
-        print('WARNING: a < 0')
-    if b < 0: 
-        print('WARNING: b < 0')
-    if np.all(a == 0): 
-        print('WARNING: a == 0')
+
+    if np.any(a <= 0): 
+        print('WARNING: a <= 0')
     # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
     return a, b, k
 

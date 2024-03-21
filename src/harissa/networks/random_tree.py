@@ -15,11 +15,8 @@ def _random_step(state, a):
 def _loop_erasure(path):
     """
     Compute the loop erasure of a given path.
-    """
-    if path[0] == path[-1]: 
-        return [path[0]]
-    else: 
-        i = np.max(np.arange(len(path))*(np.array(path)==path[0]))
+    """ 
+    i = np.max(np.arange(len(path))*(np.array(path)==path[0]))
     
     if path[i+1] == path[-1]: 
         return [path[0], path[i+1]]
@@ -55,13 +52,19 @@ def _random_spanning_tree(a):
     
     return tuple([tuple(tree[i]) for i in range(n)])
 
-def random_tree(n_genes: int, 
-         weight: np.ndarray | None = None, 
-         autoactiv: bool = False) -> NetworkParameter:
+def random_tree(
+        n_genes: int, 
+        weight: np.ndarray | None = None, 
+        autoactiv: bool = False
+    ) -> NetworkParameter:
     """
     Generate a random tree-like network parameter.
     A tree with root 0 is sampled from the ‘weighted-uniform’ distribution,
     where weight[i,j] is the probability weight of link (i) -> (j).
+    The matrix `weight` must satisfy 2 conditions:
+    
+    - weight[1:, 1:] matrix must be irreducible
+    - weight[0, 1:] must contain at least 1 nonzero element
     """
     G = n_genes + 1
     if weight is not None:
@@ -70,8 +73,9 @@ def random_tree(n_genes: int,
     else: 
         weight = np.ones((G, G))
     # Enforcing the proper structure
-    weight[:, 0] = 0
     weight = weight - np.diag(np.diag(weight))
+    weight[:, 0] = 0
+    
     # Generate the network
     tree = _random_spanning_tree(weight)
     basal = np.zeros(G)
