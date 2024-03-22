@@ -1,9 +1,11 @@
 sphinx
 furo
+myst-parser
+myst-nb
 nbsphinx
 nbsphinx-link
 sphinx-collections
 ipython
 sphinx-gallery
 sphinx-copybutton
-sphinx_multiversion
+sphinx-multiversion
