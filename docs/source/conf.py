@@ -76,11 +76,20 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
+    'myst_parser',
     'nbsphinx',
     # 'sphinx_gallery.gen_gallery',   
     'sphinx_gallery.load_style',
     'sphinx_copybutton',
     # 'myst-nb'
+]
+
+myst_enable_extensions = [
+    # 'amsmath',
+    'dollarmath',
+    'colon_fence',
+    'strikethrough',
+    'tasklist',
 ]
 
 if use_nbsphinx_link:
@@ -90,7 +99,6 @@ else:
 
     # -- Options for sphinx collections output -------------------------------
     # https://sphinx-collections.readthedocs.io/en/latest/
-
 
     class CopyFolderOnly(Driver):
         def copy_only(self, path, names):
@@ -117,7 +125,8 @@ else:
                 copytree(
                     self.config['source'], 
                     self.config['target'], 
-                    ignore=self.copy_only
+                    ignore=self.copy_only,
+                    dirs_exist_ok=True # for sphinx-autobuild
                 )
             except IOError as e:
                 self.error("Problems during copying folder.", e)
@@ -162,11 +171,11 @@ autosummary_ignore_module_all = False
 #     'gallery_dirs': 'notebooks',  # path to where to save gallery generated output
 # }
 
-# source_suffix = {
-#     '.rst': 'restructuredtext',
-#     # '.txt': 'restructuredtext',
-#     '.md': 'markdown',
-# }
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}
 
 templates_path = ['_templates']
 exclude_patterns = []
