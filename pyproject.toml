@@ -10,7 +10,7 @@ authors = [
     { name="Ulysse Herbach", email="ulysse.herbach@inria.fr" },
 ]
 description = "Tools for mechanistic gene network inference from single-cell data"
-readme = "README.rst"
+readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: BSD License",
