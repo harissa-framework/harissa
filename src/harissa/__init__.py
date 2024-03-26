@@ -16,6 +16,21 @@ single-cell data with transcriptional bursting.
 
 Author: Ulysse Herbach (ulysse.herbach@inria.fr)
 """
-from .model import NetworkModel, Cascade, Tree
+from importlib.metadata import version as _version
+from harissa.core import NetworkModel, NetworkParameter, Dataset
 
-__all__ = ['NetworkModel', 'Cascade', 'Tree']
+__all__ = ['NetworkModel', 'NetworkParameter', 'Dataset']
+
+try:
+    __version__ = _version('harissa')
+except Exception:
+    __version__ = 'unknown version'
+
+# Handle exceptions with user-friendly traceback:
+# this may be moved later to specific end-user scripts
+# ====================================================
+# import sys, traceback
+# def _excepthook(exc_type, exc_value, exc_traceback):
+#     """Show minimal traceback for exceptions."""
+#     traceback.print_exception(exc_value, limit=1)
+# sys.excepthook = _excepthook

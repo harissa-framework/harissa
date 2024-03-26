@@ -1,52 +1,73 @@
 name: Continous Integration
 
 on:
-  push:
-    branches-ignore:
-      - main
   pull_request:
-    types: [opened, reopened]
     branches: 
       - main
 
 jobs:
-  check_duplicate:
-    name: Check duplicate
-    runs-on: ubuntu-latest
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@v5
-        with:
-          skip_after_successful_duplicate: 'true'
-
   build:
     name: Build python 🐍 package 📦
-    needs: check_duplicate
-    if: needs.check_duplicate.outputs.should_skip != 'true'
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        fetch-tags: true
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    - name: Install packaging tools
-      run : pip install build twine
-    - name: Build package
-      run: python -m build
-    - name: Check package
-      run: twine check dist/*
-    - name: Upload distribution
-      uses: actions/upload-artifact@v3
-      with:
-        name: distribution
-        path: dist
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install packaging tools
+        run : pip install build twine
+      - name: Build package
+        run: python -m build
+      - name: Check package
+        run: twine check dist/*
+      - name: Upload distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: distribution
+          path: dist
+
+  test:
+    name: Run tests
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Dowload distribution artifact 
+        uses: actions/download-artifact@v4
+        with:
+          name: distribution
+          path: dist
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install harissa
+        run: pip install dist/*.whl
+      - name: Install pytest
+        run: pip install pytest pytest-cov
+      - name: Run tests and coverage
+        run: pytest
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: 'report.xml'
+      - name: Renames src files name for coveralls
+        run: sed -i -E "s/(SF:).*(\/harissa.*)/\1src\2/g" coverage.lcov
+      - name: Upload to coveralls
+        uses: coverallsapp/github-action@v2
+        if: always()
+        with:
+          file: coverage.lcov
 
   doc:
     name: Generate documentation
@@ -56,12 +77,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Dowload distribution artifact 
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: distribution
           path: dist
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       - name: Install harissa
@@ -76,7 +97,7 @@ jobs:
       - name: Clean up .doctrees
         run: rm -rf html/.doctrees
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: 'doc'
+          name: 'documentation'
           path: 'html'

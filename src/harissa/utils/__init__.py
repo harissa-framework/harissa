@@ -4,7 +4,11 @@ harissa.utils
 
 Various utility functions.
 """
-from .plot_network import build_pos, plot_network
-from .processing import binarize
+# from harissa.inference.hartree.utils import (estimate_gamma,
+#     estimate_gamma_poisson, transform)
 
-__all__ = ['build_pos', 'plot_network', 'binarize']
+# __all__ = ['estimate_gamma', 'estimate_gamma_poisson', 'transform']
+
+from harissa.utils.npz_io import load_dir, load_npz, save_dir, save_npz
+
+__all__ = ['load_dir', 'load_npz', 'save_dir', 'save_npz']

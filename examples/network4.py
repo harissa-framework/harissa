@@ -2,7 +2,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from harissa import NetworkModel, NetworkParameter
-from harissa.utils import build_pos, plot_network
+from harissa.plot import build_pos, plot_network
+from harissa.utils.npz_io import load_dataset
+
 #### Simulate scRNA-seq data ####
 
 # Number of cells
@@ -35,9 +37,9 @@ param.interaction[3,4] = 10
 param.interaction[4,1] = -10
 param.interaction[2,2] = 10
 param.interaction[3,3] = 10
-scale = param.burst_size / param.burst_frequency_max
-param.creation_rna = param.degradation_rna * scale 
-param.creation_protein = param.degradation_protein * scale
+scale = param.burst_size_inv / param.burst_frequency_max
+param.creation_rna[:] = param.degradation_rna * scale 
+param.creation_protein[:] = param.degradation_protein * scale
 model = NetworkModel(param)
 
 # Generate data
@@ -88,7 +90,7 @@ fig.savefig('network4_graph.pdf', bbox_inches='tight')
 #### Perform network inference ####
 
 # Load the data
-x = np.loadtxt('network4_data.txt', dtype=int, delimiter='\t')
+x = load_dataset('network4_data.txt')
 
 # Calibrate the model
 model = NetworkModel()

@@ -1,21 +1,18 @@
 @media not print {
     @media (prefers-color-scheme: dark) {
-        body:not([data-theme="light"]) .nboutput img {
-            filter: invert();
-        }
-
+        body:not([data-theme="light"]) .nboutput img,
+        body:not([data-theme="light"]) .cell_output img,
         body:not([data-theme="light"]) .nbsphinx-gallery img {
             filter: invert();
         }
     }
   
-    body[data-theme="dark"] .nboutput img {
-        filter: invert();
-    }
-
+    body[data-theme="dark"] .nboutput img,
+    body[data-theme="dark"] .cell_output img,
     body[data-theme="dark"] .nbsphinx-gallery img {
         filter: invert();
     }
+
 }
 
 .sidebar-versions {
@@ -33,4 +30,16 @@
   height: unset;
   /* height: calc(var(--sidebar-item-line-height) + 6 * var(--sidebar-item-spacing-vertical));   */
 }
-  
+
+.o {
+    user-select: none;
+}
+
+.nbinput button.copybtn {
+    top: 0.3em;
+}
+
+.nboutput button.copybtn,
+.cell_output button.copybtn {
+    display: none;
+}

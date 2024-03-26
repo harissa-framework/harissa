@@ -16,9 +16,9 @@ param.basal[3] = 5
 param.interaction[1,2] = -10
 param.interaction[2,3] = -10
 param.interaction[3,1] = -10
-scale = param.burst_size / param.burst_frequency_max
-param.creation_rna = param.degradation_rna * scale 
-param.creation_protein = param.degradation_protein * scale
+scale = param.burst_size_inv / param.burst_frequency_max
+param.creation_rna[:] = param.degradation_rna * scale 
+param.creation_protein[:] = param.degradation_protein * scale
 
 # Time points
 time = np.linspace(0,100,1000)

@@ -1,0 +1,27 @@
+name: Publish coverage to Coveralls
+
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install harissa
+      run: pip install -e .
+    - name: Install pytest
+      run: pip install pytest pytest-cov
+    - name: Run tests and coverage
+      run: pytest
+    - name: Upload to coveralls
+      uses: coverallsapp/github-action@v2
+      with:
+        file: coverage.lcov

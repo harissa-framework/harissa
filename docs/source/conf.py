@@ -6,17 +6,26 @@
 import os
 import re 
 import sys
-from importlib.metadata import version as get_version
+from importlib.metadata import version as get_version, PackageNotFoundError
+from pathlib import Path
+from shutil import copytree, rmtree, ignore_patterns
 
-cmd_name = os.path.basename(os.environ['_'])
+from sphinxcontrib.collections.drivers import Driver
+from sphinxcontrib.collections.api import register_driver
+
+project_dir = Path(__file__).parent.parent.parent
+tmp_dir = project_dir
+
+cmd_name = Path(os.environ['_']).name
 is_multi_version_sub_process = (
     cmd_name == 'sphinx-multiversion' 
-    and cmd_name != os.path.basename(sys.argv[0])
+    and cmd_name != Path(sys.argv[0]).name
 )
 
-if is_multi_version_sub_process:
-    sys.path[0] =  os.path.join(sys.path[0], 'src')
 
+if is_multi_version_sub_process:
+    tmp_dir = Path(sys.argv[-2]).parent.parent
+    sys.path[0] =  str(tmp_dir / 'src')
     def root_index_content(redirect_version):
         v_index = f'{redirect_version}/index.html' 
         relative_url = f'./{v_index}'
@@ -32,6 +41,9 @@ if is_multi_version_sub_process:
     </head>
 </html>
 '''
+    
+use_nbsphinx_link = (tmp_dir / 'docs' / 'source' / 'notebooks').is_dir()
+print(f'{use_nbsphinx_link=}')
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -40,7 +52,16 @@ project = 'Harissa'
 copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
 # harissa needs to be installed (at least in editable mode)
-version = get_version(project.lower())
+import harissa
+
+if hasattr(harissa, '__version__'):
+    version = harissa.__version__
+else:
+    try:
+        version = get_version(project.lower())
+    except PackageNotFoundError:
+        version = 'unknown version'
+
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -48,28 +69,103 @@ release = version
 
 extensions = [
     'sphinx.ext.autodoc',
-    # 'sphinx.ext.intersphinx',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
-    'nbsphinx',
-    'nbsphinx_link',
-    # 'sphinx_gallery.gen_gallery',   
-    'sphinx_gallery.load_style',
+    # 'sphinx_gallery.gen_gallery',
     'sphinx_copybutton',
     # 'myst-nb'
 ]
 
-# coverage_show_missing_items = True
-# coverage_statistics_to_stdout = True
+myst_enable_extensions = [
+    # 'amsmath',
+    'dollarmath',
+    'colon_fence',
+    'strikethrough',
+    'tasklist',
+]
+
+# myst_heading_anchors = 3
+
+if use_nbsphinx_link:
+    extensions.append('nbsphinx')
+    extensions.append('nbsphinx_link')
+    extensions.append('sphinx_gallery.load_style')
+else:
+    extensions.append('sphinxcontrib.collections')
+    extensions.append('myst_nb')
+
+    # -- Options for sphinx collections output -------------------------------
+    # https://sphinx-collections.readthedocs.io/en/latest/
+
+    class CopyFolderOnly(Driver):
+        def copy_only(self, path, names):
+            patterns = self.config.get('only', [])
+            return set(names) - ignore_patterns(*patterns)(path, names)
+        
+        def run(self):
+            # override it to be able to copy in the tmp_dir (multiversion)
+            # rel_dir = Path(self.config['target']).relative_to(project_dir)
+            # self.config['target'] = str(tmp_dir / rel_dir)
+
+            self.info(f'is sub process: {is_multi_version_sub_process}')
+
+            self.info(
+                (f'Copy folder {self.config["source"]} '
+                f'into {self.config["target"]} ...')
+            )
+
+            if not Path(self.config['source']).exists():
+                self.error(f'Source {self.config["source"]} does not exist')
+                return
+
+            try:
+                copytree(
+                    self.config['source'], 
+                    self.config['target'], 
+                    ignore=self.copy_only,
+                    dirs_exist_ok=True # for sphinx-autobuild
+                )
+            except IOError as e:
+                self.error("Problems during copying folder.", e)
+
+        def clean(self):
+            try:
+                rmtree(self.config['target'])
+                self.info(f'Folder deleted: {self.config["target"]}')
+            except FileNotFoundError:
+                pass  # Already cleaned? I'm okay with it.
+            except IOError as e:
+                self.error(f'Problems during cleaning for collection {self.config["name"]}', e)
+
+    register_driver('copy_folder_only', CopyFolderOnly)
+
+    # coverage_show_missing_items = True
+    # coverage_statistics_to_stdout = True
+
+    collections = {
+        'notebooks' : {
+            'driver': 'copy_folder_only',
+            'source': str(tmp_dir / 'notebooks'),
+            # 'target': str(tmp_dir/'docs'/'source'/'_collections'/'notebooks'),
+            'only': ['*.ipynb'],
+        }
+    }
+    collections_target = str(tmp_dir/'docs'/'source'/'_collections')
+
+# -- Options for autodoc output ----------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+
+autodoc_typehints = 'description'
+# autoclass_content = 'both'
+# autodoc_class_signature = 'separated'
 
 autosummary_generate = True
 autosummary_ignore_module_all = False
-# autosummary_filename_map = {
-#     'harissa.utils.plot_network': 'harissa.utils.plot_network_m'
-# }
 # autosummary_imported_members = True
 
 # sphinx_gallery_conf = {
@@ -79,8 +175,9 @@ autosummary_ignore_module_all = False
 
 # source_suffix = {
 #     '.rst': 'restructuredtext',
-#     # '.txt': 'restructuredtext',
+#     '.txt': 'markdown',
 #     '.md': 'markdown',
+#     '.ipynb': 'markdown',
 # }
 
 templates_path = ['_templates']
@@ -121,6 +218,7 @@ nbsphinx_execute_arguments = [
   "--InlineBackend.rc=figure.dpi=96"
 ]
 
+nb_execution_mode = "off"
 
 #-- Options for Napoleon ----------------------------------------------------
 napoleon_google_docstring = False
@@ -129,8 +227,9 @@ napoleon_numpy_docstring = True
 
 # -- Options for sphinx-copybutton ------------------------------------------
 # https://sphinx-copybutton.readthedocs.io/en/latest
-copybutton_exclude = '.linenos, .gp, .go'
-copybutton_prompt_text = '$ '
+copybutton_exclude = '.linenos, .gp, .go, .o'
+# copybutton_prompt_text = r"[$!]\s*"
+# copybutton_prompt_is_regexp = True
 
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
@@ -181,7 +280,10 @@ if active_versions:
                 f'It redirects to version {redirect_version}')
         
         def setup(app):
-            current_version = os.path.basename(app.outdir)
+            current_version = Path(app.outdir).name
+            # hack for sphinx collections and multiversion
+            if not use_nbsphinx_link:
+                app.confdir = tmp_dir /'docs'/'source'
             
             # fallback redirection
             if current_version == active_versions[0]:

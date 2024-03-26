@@ -2,7 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from harissa import NetworkModel, NetworkParameter
-from harissa.utils import build_pos, plot_network
+from harissa.plot import build_pos, plot_network
+from harissa.utils.npz_io import load_dataset
 
 #### Simulate scRNA-seq data ####
 
@@ -35,9 +36,9 @@ param1.interaction[0,1] = 10
 param1.interaction[1,2] = 10
 param1.interaction[1,3] = 10
 param1.interaction[2,4] = 10
-scale = param1.burst_size / param1.burst_frequency_max
-param1.creation_rna = param1.degradation_rna * scale 
-param1.creation_protein = param1.degradation_protein * scale
+scale = param1.burst_size_inv / param1.burst_frequency_max
+param1.creation_rna[:] = param1.degradation_rna * scale 
+param1.creation_protein[:] = param1.degradation_protein * scale
 model1 = NetworkModel(param1)
 
 # Model 2
@@ -49,9 +50,9 @@ param2.interaction[0,1] = 10
 param2.interaction[1,2] = 10
 param2.interaction[1,3] = 10
 param2.interaction[3,4] = 10
-scale = param2.burst_size / param2.burst_frequency_max
-param2.creation_rna = param2.degradation_rna * scale 
-param2.creation_protein = param2.degradation_protein * scale
+scale = param2.burst_size_inv / param2.burst_frequency_max
+param2.creation_rna[:] = param2.degradation_rna * scale 
+param2.creation_protein[:] = param2.degradation_protein * scale
 model2 = NetworkModel(param2)
 
 # Generate data
@@ -114,7 +115,7 @@ for i, model in [(1,model1),(2,model2)]:
 
 for i in [1,2]:
     # Load the data
-    x = np.loadtxt(f'pathways_data{i}.txt', dtype=int, delimiter='\t')
+    x = load_dataset(f'pathways_data{i}.txt')
     # Calibrate the model
     model = NetworkModel()
     model.fit(x)
