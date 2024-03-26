@@ -76,10 +76,7 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
-    'myst_parser',
-    'nbsphinx',
-    # 'sphinx_gallery.gen_gallery',   
-    'sphinx_gallery.load_style',
+    # 'sphinx_gallery.gen_gallery',
     'sphinx_copybutton',
     # 'myst-nb'
 ]
@@ -92,10 +89,15 @@ myst_enable_extensions = [
     'tasklist',
 ]
 
+# myst_heading_anchors = 3
+
 if use_nbsphinx_link:
+    extensions.append('nbsphinx')
     extensions.append('nbsphinx_link')
+    extensions.append('sphinx_gallery.load_style')
 else:
     extensions.append('sphinxcontrib.collections')
+    extensions.append('myst_nb')
 
     # -- Options for sphinx collections output -------------------------------
     # https://sphinx-collections.readthedocs.io/en/latest/
@@ -171,11 +173,12 @@ autosummary_ignore_module_all = False
 #     'gallery_dirs': 'notebooks',  # path to where to save gallery generated output
 # }
 
-source_suffix = {
-    '.rst': 'restructuredtext',
-    '.txt': 'markdown',
-    '.md': 'markdown',
-}
+# source_suffix = {
+#     '.rst': 'restructuredtext',
+#     '.txt': 'markdown',
+#     '.md': 'markdown',
+#     '.ipynb': 'markdown',
+# }
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -215,6 +218,7 @@ nbsphinx_execute_arguments = [
   "--InlineBackend.rc=figure.dpi=96"
 ]
 
+nb_execution_mode = "off"
 
 #-- Options for Napoleon ----------------------------------------------------
 napoleon_google_docstring = False

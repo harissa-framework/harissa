@@ -5,7 +5,7 @@
 :::
 
 :::{if-collection} notebooks
-:::{nbgallery}
+:::{toctree}
 :glob:
 
 _collections/notebooks/*

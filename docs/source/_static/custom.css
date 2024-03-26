@@ -4,12 +4,20 @@
             filter: invert();
         }
 
+        body:not([data-theme="light"]) .cell_output img {
+            filter: invert();
+        }
+
         body:not([data-theme="light"]) .nbsphinx-gallery img {
             filter: invert();
         }
     }
   
     body[data-theme="dark"] .nboutput img {
+        filter: invert();
+    }
+
+    body[data-theme="dark"] .cell_output img {
         filter: invert();
     }
 
@@ -43,5 +51,9 @@
 }
 
 .nboutput button.copybtn {
+    display: none;
+}
+
+.cell_output button.copybtn {
     display: none;
 }
