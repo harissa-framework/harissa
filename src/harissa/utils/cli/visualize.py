@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 from harissa.core import Dataset
-from harissa.graphics.plot_datasets import (plot_data_distrib, 
+from harissa.plot.plot_datasets import (plot_data_distrib, 
                                             compare_marginals, 
                                             plot_data_umap)
 

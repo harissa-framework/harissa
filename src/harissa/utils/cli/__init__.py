@@ -1,17 +1,17 @@
 """
-harissa.cli
------------
+harissa.utils.cli
+-----------------
 
 Command line interface for the Harissa package.
 """
 import argparse as ap
 
 from harissa import __version__
-import harissa.cli.infer as cli_infer
-import harissa.cli.trajectory as cli_trajectory
-import harissa.cli.dataset as cli_dataset
-import harissa.cli.visualize as cli_visualize
-import harissa.cli.convert as cli_convert
+import harissa.utils.cli.infer as cli_infer
+import harissa.utils.cli.trajectory as cli_trajectory
+import harissa.utils.cli.dataset as cli_dataset
+import harissa.utils.cli.visualize as cli_visualize
+import harissa.utils.cli.convert as cli_convert
 
 def main():
     parser = ap.ArgumentParser(

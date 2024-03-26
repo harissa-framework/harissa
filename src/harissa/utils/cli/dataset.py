@@ -5,8 +5,8 @@ from pathlib import Path
 from harissa import NetworkModel, NetworkParameter
 from harissa.core.dataset import Dataset
 from harissa.processing import binarize
-from harissa.cli.infer import add_export_options, export_choices
-from harissa.cli.trajectory import add_methods
+from harissa.utils.cli.infer import add_export_options, export_choices
+from harissa.utils.cli.trajectory import add_methods
 
 def simulate_dataset(args):
     if args.output is not None:

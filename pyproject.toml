@@ -45,7 +45,7 @@ Documentation = "https://harissa-framework.github.io/harissa"
 "Repository (legacy)" = "https://github.com/ulysseherbach/harissa"
 
 [project.scripts]
-harissa = "harissa.cli:main"
+harissa = "harissa.utils.cli:main"
 
 [tool.setuptools]
 platforms = ["any"]
@@ -75,7 +75,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ['harissa']
 branch = true
-omit = ['*/harissa/graphics/*', '*/harissa/cli/*']
+omit = ['*/harissa/plot/*', '*/harissa/utils/cli/*']
 
 [tool.coverage.report]
 fail_under = 80

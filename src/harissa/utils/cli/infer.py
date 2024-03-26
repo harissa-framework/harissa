@@ -4,7 +4,7 @@ import argparse as ap
 
 from harissa import NetworkModel
 from harissa.inference import default_inference, Hartree
-from harissa.graphics import build_pos, plot_network
+from harissa.plot import build_pos, plot_network
 from harissa.core import Dataset
 
 export_choices = ('npz', 'txt')
