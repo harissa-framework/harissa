@@ -1,6 +1,6 @@
 # Harissa 🌶
 
-[![GitHub Release](https://img.shields.io/github/v/release/harissa-framework/harissa?logo=github)]([text](https://github.com/harissa-framework/harissa/releases)) 
+[![GitHub Release](https://img.shields.io/github/v/release/harissa-framework/harissa?logo=github)](https://github.com/harissa-framework/harissa/releases)
 [![PyPI - Version](https://img.shields.io/pypi/v/harissa?logo=pypi)](https://pypi.org/project/harissa/)
 [![Conda - Version](https://img.shields.io/conda/v/conda-forge/harissa?logo=condaforge)](https://anaconda.org/conda-forge/harissa)
 [![CI Status](https://img.shields.io/github/actions/workflow/status/harissa-framework/harissa/ci.yml?label=CI)](https://github.com/harissa-framework/harissa/actions/workflows/ci.yml)
