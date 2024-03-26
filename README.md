@@ -54,15 +54,22 @@ A toy example is:
 
 ```python
 import numpy as np
+from harissa import Dataset
 
-data = np.array([
-    #t g1 g2 g3
+# List of time points
+time_points = np.array([0.0, 0.0, 1.0, 1.0, 1.0])
+
+# Matrix of mRNA counts
+count_matrix = np.array([
+    #s g1 g2 g3
     [0, 4, 1, 0], # Cell 1
     [0, 5, 0, 1], # Cell 2
     [1, 1, 2, 4], # Cell 3
     [1, 2, 0, 8], # Cell 4
     [1, 0, 0, 3], # Cell 5
-])
+], dtype=np.uint)
+
+data = Dataset(time_points, count_matrix)
 ```
 
 The `time` argument for simulations is either a single time or a list of time points.
@@ -72,7 +79,7 @@ For example, a single-cell trajectory (not available from scRNA-seq) from *t* = 
   time = np.linspace(0, 10, 1000)
 ```
 
-The `sim` output stores mRNA and protein levels as attributes `sim.m` and `sim.p`, respectively (each row is a time point and each column is a gene).
+The `sim` output stores mRNA and protein levels as a `Simulation.Result` object, with attributes `sim.time_points`, `sim.rna_levels` and `sim.protein_levels` (each row is a time point and each column is a gene).
 
 ## About the data
 
