@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from harissa import NetworkModel, NetworkParameter
-from harissa.graphics import build_pos, plot_network
+from harissa.plot import build_pos, plot_network
 from harissa.utils.npz_io import load_dataset
 
 #### Simulate scRNA-seq data ####

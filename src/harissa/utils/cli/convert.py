@@ -49,6 +49,7 @@ def convert(args) -> Path:
         if not (path.suffix == suffixes[0] or is_dir):
             raise ValueError(f'{path} must be a '
                              f'{suffixes[0]} file or a directory.')
+        is_dir = not is_dir
         
     print(save_npz(path, data) if is_dir else save_dir(path, data))
 

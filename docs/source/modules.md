@@ -20,11 +20,11 @@
 
    harissa.core
    harissa.inference
+   harissa.networks
+   harissa.plot
+   harissa.processing
    harissa.simulation
    harissa.utils
-   harissa.graphics
-   harissa.processing
-   harissa.networks
 ```
 
 ## Modules
@@ -46,9 +46,9 @@
    harissa.simulation.approx_ode.base
    harissa.simulation.approx_ode.utils
    harissa.utils.npz_io
-   .. harissa.graphics.plot_network
-   .. harissa.graphics.plot_simulation
-   harissa.graphics.plot_datasets
+   .. harissa.plot.plot_network
+   .. harissa.plot.plot_simulation
+   harissa.plot.plot_datasets
    harissa.processing.binarize
    .. harissa.networks.cascade
    .. harissa.networks.random_tree
