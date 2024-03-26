@@ -76,7 +76,7 @@ The `time` argument for simulations is either a single time or a list of time po
 For example, a single-cell trajectory (not available from scRNA-seq) from *t* = 0h to *t* = 10h can be simulated using:
 
 ```python
-  time = np.linspace(0, 10, 1000)
+time = np.linspace(0, 10, 1000)
 ```
 
 The `sim` output stores mRNA and protein levels as a `Simulation.Result` object, with attributes `sim.time_points`, `sim.rna_levels` and `sim.protein_levels` (each row is a time point and each column is a gene).
