@@ -89,6 +89,8 @@ myst_enable_extensions = [
     'tasklist',
 ]
 
+nb_number_source_lines = True
+
 # myst_heading_anchors = 3
 
 if use_nbsphinx_link:
@@ -217,6 +219,7 @@ nbsphinx_execute_arguments = [
   "--InlineBackend.figure_formats={'svg', 'pdf'}",
   "--InlineBackend.rc=figure.dpi=96"
 ]
+nbsphinx_execute = 'never'
 
 nb_execution_mode = "off"
 
