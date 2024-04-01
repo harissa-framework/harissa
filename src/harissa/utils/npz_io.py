@@ -9,6 +9,10 @@ from dataclasses import dataclass, astuple
 
 @dataclass
 class ParamInfos:
+    """
+    Store loading informations for an array.
+    """
+
     required: bool
     dtype: npt.DTypeLike
     ndim: int
@@ -40,6 +44,22 @@ def load_dir(
     path: Union[str, Path], 
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
+    """
+    Load multiple arrays from a directory. 
+    Each array is stored inside a `.txt` file.
+
+    Parameters
+    ----------
+    path:
+        Path to the directory.
+    param_names:
+        Dictionary containing loading informations of each array.
+
+    Raises
+    ------
+    RuntimeError
+        if `path` doesn't exist.
+    """
     path = Path(path)  # convert it to Path (needed for str)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
@@ -59,6 +79,21 @@ def load_npz(
     path: Union[str, Path], 
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
+    """
+    Load multiple arrays from a `.npz` file.
+
+    Parameters
+    ----------
+    path :
+        Path to the `.npz` file.
+    param_names :
+        Dictionary containing loading informations of each array.
+
+    Raises
+    ------
+    RuntimeError
+        if `path` doesn't exist.
+    """
     path = Path(path)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
@@ -76,6 +111,18 @@ def save_dir(
     path: Union[str, Path], 
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
+    """
+    Save multiple arrays inside a directory.
+    Each array is stored inside a `.txt` file. 
+
+    Parameters
+    ----------
+    path :
+        Path to the directory. 
+        If the directory doesn't exist it will be created.
+    output_dict : 
+        Dictionary containing the arrays.
+    """
     path = Path(path).with_suffix("")
     path.mkdir(parents=True, exist_ok=True)
 
@@ -97,6 +144,16 @@ def save_npz(
     path: Union[str, Path], 
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
+    """
+    Save multiple arrays inside a `.npz` file.
+
+    Parameters
+    ----------
+    path :
+        Path to the `.npz` file.
+    output_dict :
+        Dictionary containing the arrays.
+    """
     path = Path(path).with_suffix(".npz")
 
     path.parent.mkdir(parents=True, exist_ok=True)
