@@ -1,6 +1,8 @@
 """
 Generate random tree-shaped activation pathways
 """
+# from __future__ import annotations
+from typing import Optional
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 
@@ -54,7 +56,7 @@ def _random_spanning_tree(a):
 
 def random_tree(
         n_genes: int, 
-        weight: np.ndarray | None = None, 
+        weight: Optional[np.ndarray] = None, 
         autoactiv: bool = False
     ) -> NetworkParameter:
     """

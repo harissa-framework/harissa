@@ -23,7 +23,7 @@ keywords = [
     "gene regulatory networks",
     "single-cell transcriptomics",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
     "numpy>=1.20",
     "scipy>=1.7",
@@ -64,6 +64,10 @@ raw-options = { local_scheme = "no-local-version" }
 [tool.ruff]
 select = ["E", "F"]
 line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
 
 # Pytest
 

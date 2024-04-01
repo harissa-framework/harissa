@@ -1,7 +1,8 @@
 """
 Main class for network inference and simulation
 """
-from __future__ import annotations
+# from __future__ import annotations
+from typing import List, Tuple, Union, Optional
 from harissa.core.dataset import Dataset
 import numpy as np
 from harissa.core.parameter import NetworkParameter
@@ -161,7 +162,7 @@ class NetworkModel:
 
     def simulate(self,
         time_points: np.ndarray,
-        initial_state: np.ndarray | None = None,
+        initial_state: Optional[np.ndarray] = None,
         initial_time: float = 0.0
         ) -> Simulation.Result:
         """
@@ -243,7 +244,7 @@ class NetworkModel:
     
     def simulate_dataset(self,
             time_points: np.ndarray, 
-            n_cells: int | list[int] | tuple[int] | np.ndarray,
+            n_cells: Union[int, List[int], Tuple[int], np.ndarray],
             burn_in_duration: float = 5.0 
         ) -> Dataset:
         """

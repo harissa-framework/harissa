@@ -1,6 +1,7 @@
 """
 Perform simulations using the PDMP model
 """
+from __future__ import annotations
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 from harissa.core.simulation import Simulation
