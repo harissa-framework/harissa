@@ -1,7 +1,6 @@
 """
 Generate random tree-shaped activation pathways
 """
-# from __future__ import annotations
 from typing import Optional
 import numpy as np
 from harissa.core.parameter import NetworkParameter

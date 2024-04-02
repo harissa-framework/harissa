@@ -1,7 +1,6 @@
 """
 Main class for network inference and simulation
 """
-# from __future__ import annotations
 from typing import List, Tuple, Union, Optional
 from harissa.core.dataset import Dataset
 import numpy as np
