@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
@@ -12,8 +13,8 @@ from harissa.core.dataset import Dataset
 def plot_data_distrib(dataset_ref: Dataset, 
                       dataset_sim: Dataset, 
                       path: str,
-                      t_ref: np.ndarray | None = None,
-                      t_sim: np.ndarray | None = None):
+                      t_ref: Optional[np.ndarray] = None,
+                      t_sim: Optional[np.ndarray] = None):
     data_ref = dataset_ref.count_matrix[:, 1:]
     data_sim = dataset_sim.count_matrix[:, 1:]
 
@@ -104,8 +105,8 @@ def plot_data_distrib(dataset_ref: Dataset,
 def compare_marginals(dataset_ref: Dataset,
                       dataset_sim: Dataset, 
                       path: str,
-                      t_ref: np.ndarray | None = None, 
-                      t_sim: np.ndarray | None = None):
+                      t_ref: Optional[np.ndarray] = None, 
+                      t_sim: Optional[np.ndarray] = None):
 
     data_ref = dataset_ref.count_matrix[:, 1:]
     data_sim = dataset_sim.count_matrix[:, 1:]
@@ -199,8 +200,8 @@ def _configure(ax):
 def plot_data_umap(dataset_ref: Dataset, 
                     dataset_sim: Dataset,
                     path: str, 
-                    t_ref: np.ndarray | None = None,
-                    t_sim: np.ndarray | None = None):
+                    t_ref: Optional[np.ndarray] = None,
+                    t_sim: Optional[np.ndarray] = None):
     
     try:
         # import here because it takes forever to import umap

@@ -1,6 +1,7 @@
 """
 Perform simulations using the PDMP model
 """
+from typing import Tuple, Optional
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 from harissa.core.simulation import Simulation
@@ -52,7 +53,7 @@ def step(state: np.ndarray,
          k0: np.ndarray,
          k1: np.ndarray,
          b: np.ndarray,
-         tau: float | None) -> tuple[float, bool, np.ndarray]:
+         tau: Optional[float]) -> Tuple[float, bool, np.ndarray]:
     """
     Compute the next jump and the next step of the
     thinning method, in the case of the bursty model.
@@ -88,7 +89,7 @@ def _step_jit(state: np.ndarray,
               k0: np.ndarray,
               k1: np.ndarray,
               b: np.ndarray,
-              tau: float | None) -> tuple[float, bool, np.ndarray]:
+              tau: Optional[float]) -> Tuple[float, bool, np.ndarray]:
     """
     Compute the next jump and the next step of the
     thinning method, in the case of the bursty model.
@@ -125,7 +126,7 @@ def _create_simulation(step, flow):
                    k0: np.ndarray,
                    k1: np.ndarray,
                    b: np.ndarray,
-                   tau: float | None) -> tuple[np.ndarray, int, int]:
+                   tau: Optional[float]) -> Tuple[np.ndarray, int, int]:
         """
         Exact simulation of the network in the bursty PDMP case.
         """

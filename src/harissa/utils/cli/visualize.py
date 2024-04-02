@@ -3,9 +3,11 @@ import numpy as np
 from pathlib import Path
 
 from harissa.core import Dataset
-from harissa.plot.plot_datasets import (plot_data_distrib, 
-                                            compare_marginals, 
-                                            plot_data_umap)
+from harissa.plot.plot_datasets import (
+    plot_data_distrib,
+    compare_marginals,
+    plot_data_umap
+)
 
 def visualize(args):
     npz_suffix = '.npz'

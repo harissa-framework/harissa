@@ -221,7 +221,7 @@ nbsphinx_execute_arguments = [
 ]
 nbsphinx_execute = 'never'
 
-nb_execution_mode = "off"
+nb_execution_mode = 'off'
 
 #-- Options for Napoleon ----------------------------------------------------
 napoleon_google_docstring = False
@@ -281,24 +281,6 @@ if active_versions:
 
             print(f'{root_index} generated.\n' 
                 f'It redirects to version {redirect_version}')
-        
-        def setup(app):
-            current_version = Path(app.outdir).name
-            # hack for sphinx collections and multiversion
-            if not use_nbsphinx_link:
-                app.confdir = tmp_dir /'docs'/'source'
-            
-            # fallback redirection
-            if current_version == active_versions[0]:
-                root_index = os.path.join(app.outdir, '..' , 'index.html')
-                with open(root_index, 'w') as file:
-                    file.write(root_index_content(active_versions[0]))
-
-            for active_version in active_versions:
-                if (redirect_version == active_version 
-                    and active_version == current_version):
-                    app.connect('build-finished', generate_root_index)
-                    break
 
 tag_whitelist += r'$'
 
@@ -306,3 +288,38 @@ smv_tag_whitelist = tag_whitelist
 smv_branch_whitelist = r'^main$'
 smv_remote_whitelist = r'^$'
 smv_released_pattern = r'^tags/v\d+(\.\d+)*$'
+
+def clean_up(app, exception):
+    if exception is not None:
+        return
+
+    myst_nb_jupyter_execute_dir = Path(app.outdir).parent / 'jupyter_execute'
+    if myst_nb_jupyter_execute_dir.is_dir():
+        print('\033[1mCleaning jupyter_execute\033[0m')
+        rmtree(myst_nb_jupyter_execute_dir)
+
+    collections_dir = Path(app.confdir) / '_collections'
+    if collections_dir.is_dir():
+        print('\033[1mCleaning _collections\033[0m')
+        rmtree(collections_dir)
+
+def setup(app):
+    if is_multi_version_sub_process:
+        current_version = Path(app.outdir).name
+        # hack for sphinx collections and multiversion
+        if not use_nbsphinx_link:
+            app.confdir = tmp_dir /'docs'/'source'
+        
+        # fallback redirection
+        if current_version == active_versions[0]:
+            root_index = os.path.join(app.outdir, '..' , 'index.html')
+            with open(root_index, 'w') as file:
+                file.write(root_index_content(active_versions[0]))
+
+        for active_version in active_versions:
+            if (redirect_version == active_version 
+                and active_version == current_version):
+                app.connect('build-finished', generate_root_index)
+                break
+
+    app.connect('build-finished', clean_up)

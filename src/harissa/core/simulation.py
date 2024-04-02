@@ -1,9 +1,9 @@
 from __future__ import annotations
+from typing import Dict, ClassVar, Union
 import numpy as np
 from dataclasses import dataclass, asdict
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import ClassVar
 
 from harissa.core.parameter import NetworkParameter
 from harissa.utils.npz_io import (
@@ -23,7 +23,7 @@ class Simulation(ABC):
         """
         Simulation result
         """
-        param_names: ClassVar[dict[str, tuple[bool, np.dtype]]] = {
+        param_names: ClassVar[Dict[str, ParamInfos]] = {
             'time_points': ParamInfos(True, np.float_, 1),
             'rna_levels': ParamInfos(True, np.float_, 2),
             'protein_levels' :ParamInfos(True, np.float_, 2)
@@ -80,18 +80,18 @@ class Simulation(ABC):
             return state
 
         @classmethod
-        def load_txt(cls, path: str | Path) -> Simulation.Result:
+        def load_txt(cls, path: Union[str, Path]) -> Simulation.Result:
             return cls(**load_dir(path, cls.param_names))
         
         @classmethod
-        def load(cls, path: str | Path) -> Simulation.Result:
+        def load(cls, path: Union[str, Path]) -> Simulation.Result:
             return cls(**load_npz(path, cls.param_names))
             
         # Add a "save" methods
-        def save_txt(self, path: str | Path) -> Path:
+        def save_txt(self, path: Union[str, Path]) -> Path:
             return save_dir(path, asdict(self))    
 
-        def save(self, path: str | Path) -> Path:
+        def save(self, path: Union[str, Path]) -> Path:
             return save_npz(path, asdict(self))
         
         def __add__(self, result: Simulation.Result):

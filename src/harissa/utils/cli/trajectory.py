@@ -1,3 +1,4 @@
+from typing import Union
 import numpy as np
 from pathlib import Path
 import argparse as ap
@@ -15,7 +16,7 @@ simulation_param_names = {
 }
 
 def _create_load_simulation_parameter(load_fn):
-    def load_simulation_parameter(path: str | Path) -> dict:
+    def load_simulation_parameter(path: Union[str, Path]) -> dict:
         sim_param = load_fn(path, simulation_param_names)
         sim_param['time_points'] = np.unique(sim_param['time_points'])
 
@@ -27,13 +28,23 @@ load_simulation_parameter_txt = _create_load_simulation_parameter(load_dir)
 load_simulation_parameter = _create_load_simulation_parameter(load_npz)
 
 def create_bursty(args):
-    options = {'verbose' : args.verbose, 'use_numba': args.use_numba}
+    options = {}
+    if args.verbose is not None:
+        options['verbose'] = args.verbose
+    if args.use_numba is not None:
+        options['use_numba'] = args.use_numba
     if args.thin_adapt is not None:
         options['thin_adapt'] = args.thin_adapt
+    
     return BurstyPDMP(**options)
 
 def create_ode(args):
-    return ApproxODE(verbose=args.verbose, use_numba=args.use_numba)
+    options = {}
+    if args.verbose is not None:
+        options['verbose'] = args.verbose
+    if args.use_numba is not None:
+        options['use_numba'] = args.use_numba
+    return ApproxODE(**options)
 
 def simulate(args):
     if args.output is not None:
@@ -68,7 +79,7 @@ def simulate(args):
 
     if args.save_plot:
         fig = plot_simulation(res)
-        fig.savefig(output.with_suffix('.pdf'), bbox_inches='tight')
+        fig.savefig(str(output.with_suffix('.pdf')), bbox_inches='tight')
 
 def add_methods(parser):
     parser.set_defaults(create_simulation=lambda args: default_simulation())
@@ -85,7 +96,8 @@ def add_methods(parser):
     ode_parser = subparsers.add_parser('ode')
 
     # Bursty parser
-    bursty_parser.add_argument('--thin-adapt', action=ap.BooleanOptionalAction)
+    bursty_parser.add_argument('--thin-adapt', action='store_true')
+    bursty_parser.add_argument('--no-thin-adapt',action='store_false',dest='thin-adapt')
     bursty_parser.add_argument('-v', '--verbose', action='store_true')
     bursty_parser.add_argument('--use-numba', action='store_true')
     bursty_parser.set_defaults(create_simulation=create_bursty)
@@ -123,4 +135,4 @@ def add_subcommand(main_subparsers):
     # set command function (called in the main of cli.py) 
     parser.set_defaults(run=simulate)
     
-    add_methods(parser) 
+    add_methods(parser)
