@@ -63,14 +63,29 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: 'report.xml'
+          check_name: Test results (${{ matrix.python-version }})
+          files: report.xml
       - name: Renames src files name for coveralls
+        if: always()
         run: sed -i -E "s/(SF:).*(\/harissa.*)/\1src\2/g" coverage.lcov
       - name: Upload to coveralls
         uses: coverallsapp/github-action@v2
         if: always()
         with:
+          flag-name: test-${{ matrix.python-version }}
           file: coverage.lcov
+          parallel: true
+  
+  finish_coveralls:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v2
+      with:
+        parallel-finished: true
+        carryforward: "test-3.8,test-3.9,test-3.10,test-3.11,test-3.12"
 
   doc:
     name: Generate documentation
