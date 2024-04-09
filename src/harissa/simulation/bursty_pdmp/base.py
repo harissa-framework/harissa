@@ -38,7 +38,7 @@ def _kon_bound_jit(state: np.ndarray,
     p_max[0] = p[0] # Discard stimulus
     # Explicit upper bound for Kon
     phi = np.exp(basal + p_max @ ((inter > 0) * inter))
-    k_on = (k0 + k1*phi)/(1 + phi) + 1e-10 # Fix precision errors
+    k_on = (k0 + k1*phi)/(1 + phi)
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
@@ -106,7 +106,12 @@ def _step_jit(state: np.ndarray,
     state = _flow_jit(U, state, d0, d1, s1)
     
     # 2. Compute the next jump
-    v = _kon_jit(state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
+    v = _kon_jit(state[1], basal, inter, k0, k1)
+    s = np.sum(v[1:])
+    # Fix precision errors
+    if s > tau:
+        tau = s
+    v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
     v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
     i = np.nonzero(np.random.multinomial(1, v))[0][0]
     if i > 0:
