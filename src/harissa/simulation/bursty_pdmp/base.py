@@ -111,7 +111,7 @@ def _step_jit(state: np.ndarray,
     # Fix precision errors
     if s > tau:
         tau = s
-    v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
+    v[1:] /= (tau + 1e-10) # i = 1, ..., G-1 : burst of mRNA i
     v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
     i = np.nonzero(np.random.multinomial(1, v))[0][0]
     if i > 0:
