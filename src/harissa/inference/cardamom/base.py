@@ -3,89 +3,90 @@ Main class for network inference
 """
 import numpy as np
 from scipy.optimize import minimize
-from scipy.special import psi, polygamma, expit
+from scipy.special import expit
 
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
 from harissa.core.dataset import Dataset
+from harissa.inference.hartree.base import infer_kinetics
 from harissa.inference.cardamom.utils import (
     core_basins_binary, 
-    estim_gamma_poisson,
-    build_cnt
+    # estim_gamma_poisson,
+    # build_cnt
 )
 
 # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
-def infer_kinetics(x, times, tol=1e-5, max_iter=1000, verb=False):
-    """
-    Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson model
-    with time-dependant a and constant b for a given gene at m time points.
+# def infer_kinetics(x, times, tol=1e-5, max_iter=1000, verb=False):
+#     """
+#     Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson model
+#     with time-dependant a and constant b for a given gene at m time points.
 
-    Parameters
-    ----------
-    x[k] = gene expression in cell k
-    times[k] = time point of cell k
-    """
+#     Parameters
+#     ----------
+#     x[k] = gene expression in cell k
+#     times[k] = time point of cell k
+#     """
 
-    t = np.sort(list(set(times)))
-    m = t.size
-    n = np.zeros(m) # Number of cells for each time point
-    a = np.zeros(m)
-    b = np.zeros(m)
-    # Initialization of a and b
-    for i in range(m):
-        cells = (times == t[i])
-        n[i] = np.sum(cells)
-        a[i], b[i] = estim_gamma_poisson(x[cells])
-    b = np.mean(b)
-    # Newton-like method
-    k, c = 0, 0
-    sx = np.sum(x)
-    while (k == 0) or (k < max_iter and c > tol):
-        da = np.zeros(m)
-        for i in range(m):
-            if a[i] > 0:
-                cells = (times == t[i])
-                z = a[i] + x[cells]
-                p0 = np.sum(psi(z))
-                p1 = np.sum(polygamma(1, z))
-                d = n[i]*(np.log(b)-np.log(b+1)-psi(a[i])) + p0
-                h = p1 - n[i]*polygamma(1, a[i])
-                da[i] = -d/h
-        anew = a + da
-        if np.sum(anew < 0) == 0: 
-            a[:] = anew
-        else:
-            max_test = 5
-            test = 0
-            da *= 0.5
-            while (np.sum(a + da < 0) > 0) and (test < max_test):
-                da *= 0.5
-                test += 1
-            if test < max_test: 
-                a[:] = a + da
-            else: 
-                print('Warning: parameter a not improved')
-        if np.sum(a == 0) == 0:
-            b = np.sum(n*a)/sx
-        else: 
-            b = b
-        c = np.max(np.abs(da))
-        k += 1
-    if (k == max_iter) and (c > tol):
-        print('Warning: bad convergence (b = {})'.format(b))
-        a, b = a/b, 1
-    if verb: 
-        print(f'Estimation done in {k} iterations')
-    if np.sum(a < 0) > 0: 
-        print('WARNING: a < 0')
-    if b < 0: 
-        print('WARNING: b < 0')
-    if np.all(a == 0): 
-        print('WARNING: a == 0')
-    # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
+#     t = np.sort(list(set(times)))
+#     m = t.size
+#     n = np.zeros(m) # Number of cells for each time point
+#     a = np.zeros(m)
+#     b = np.zeros(m)
+#     # Initialization of a and b
+#     for i in range(m):
+#         cells = (times == t[i])
+#         n[i] = np.sum(cells)
+#         a[i], b[i] = estim_gamma_poisson(x[cells])
+#     b = np.mean(b)
+#     # Newton-like method
+#     k, c = 0, 0
+#     sx = np.sum(x)
+#     while (k == 0) or (k < max_iter and c > tol):
+#         da = np.zeros(m)
+#         for i in range(m):
+#             if a[i] > 0:
+#                 cells = (times == t[i])
+#                 z = a[i] + x[cells]
+#                 p0 = np.sum(psi(z))
+#                 p1 = np.sum(polygamma(1, z))
+#                 d = n[i]*(np.log(b)-np.log(b+1)-psi(a[i])) + p0
+#                 h = p1 - n[i]*polygamma(1, a[i])
+#                 da[i] = -d/h
+#         anew = a + da
+#         if np.sum(anew < 0) == 0: 
+#             a[:] = anew
+#         else:
+#             max_test = 5
+#             test = 0
+#             da *= 0.5
+#             while (np.sum(a + da < 0) > 0) and (test < max_test):
+#                 da *= 0.5
+#                 test += 1
+#             if test < max_test: 
+#                 a[:] = a + da
+#             else: 
+#                 print('Warning: parameter a not improved')
+#         if np.sum(a == 0) == 0:
+#             b = np.sum(n*a)/sx
+#         else: 
+#             b = b
+#         c = np.max(np.abs(da))
+#         k += 1
+#     if (k == max_iter) and (c > tol):
+#         print('Warning: bad convergence (b = {})'.format(b))
+#         a, b = a/b, 1
+#     if verb: 
+#         print(f'Estimation done in {k} iterations')
+#     if np.sum(a < 0) > 0: 
+#         print('WARNING: a < 0')
+#     if b < 0: 
+#         print('WARNING: b < 0')
+#     if np.all(a == 0): 
+#         print('WARNING: a == 0')
+#     # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
 
-    return a, b
+#     return a, b
 
 
 def penalization_l1(x, s):
@@ -224,16 +225,16 @@ def _create_core_inference(objective, grad_theta):
         theta_t = np.zeros((cnt_end - cnt_init, G, G + 1))
         for cnt, time in enumerate(times[cnt_init:cnt_end]):
             penalization_strength = l * np.sum(vect_t == time) * 2.5 / 100
-            if cnt + cnt_init > 1:
-                cnt_move = build_cnt(
-                    cnt + cnt_init, 
-                    cnt_move, 
-                    vect_kon, 
-                    vect_t, 
-                    times, 
-                    G,
-                    p
-                )
+            # if cnt + cnt_init > 1:
+            #     cnt_move = build_cnt(
+            #         cnt + cnt_init, 
+            #         cnt_move, 
+            #         vect_kon, 
+            #         vect_t, 
+            #         times, 
+            #         G,
+            #         p
+            #     )
 
             X_init = Xo.copy()
             for j in range(1, G):
@@ -313,7 +314,7 @@ def _create_inference_optim(core_inference):
 inference_optim = _create_inference_optim(core_inference)
 
 def _create_core_optim(inference_optim):
-    def core_optim(x, time_points, times_unique, n_genes_stim, mask, sl, p):
+    def core_optim(x, time_points, times_unique, n_genes_stim, sl, p):
         """
         Fit the network model to the data.
         """
@@ -344,16 +345,14 @@ def _create_core_optim(inference_optim):
         cnt_i, cnt_j = 0, 0
         for i in range(0, n_genes_stim):
             cnt_j = 0
-            if mask[i]:
-                for j in range(0, n_genes_stim):
-                    if mask[j]:
-                        inter_tot[i, j] = inter[cnt_j, cnt_i]
-                        inter_tot_t[:, i, j] = inter_t[:, cnt_j, cnt_i]
-                        variations_tot[i, j] = variations_time[cnt_j, cnt_i]
-                        cnt_j += 1
-                basal_tot[i] = basal[cnt_i]
-                basal_tot_t[:, i] = basal_t[:, cnt_i]
-                cnt_i += 1
+            for j in range(0, n_genes_stim):
+                inter_tot[i, j] = inter[cnt_j, cnt_i]
+                inter_tot_t[:, i, j] = inter_t[:, cnt_j, cnt_i]
+                variations_tot[i, j] = variations_time[cnt_j, cnt_i]
+                cnt_j += 1
+            basal_tot[i] = basal[cnt_i]
+            basal_tot_t[:, i] = basal_t[:, cnt_i]
+            cnt_i += 1
 
         return basal_tot, inter_tot, variations_tot, basal_tot_t, inter_tot_t
     
@@ -426,15 +425,19 @@ class Cardamom(Inference):
         a = np.ones((3, n_genes_stim))
         for g in range(1, n_genes_stim):
             x = data.count_matrix[:, g]
-            at, a[-1, g] = infer_kinetics(
+            at, a[-1, g], k = infer_kinetics(
                 x, 
-                data.time_points, 
-                verb=self.verbose
+                data.time_points,
+                times,
+                1e-5,
+                1000
             )
             a[0, g] = max(np.min(at), self.threshold)
             a[1, g] = max(np.max(at), self.threshold)
             if self.verbose: 
                 print(f'Gene {g} calibrated...', a[:, g])
+                print(f'Estimation done in {k} iterations')
+
             core_basins_binary(
                 x, 
                 data_bool[:, g], 
@@ -443,29 +446,28 @@ class Cardamom(Inference):
                 weight[:, g, :]
             )
         
-        # Remove genes with too small variations
-        mask = np.ones(n_genes_stim, dtype='bool')
-        for g in range(1, n_genes_stim):
-            mean_g = [
-                np.mean(data.count_matrix[data.time_points == time, g]) 
-                for time in times
-            ]
-            if np.max(mean_g) - np.min(mean_g) < 0.1:
-                mask[g] = 0
+        # # Remove genes with too small variations
+        # mask = np.ones(n_genes_stim, dtype='bool')
+        # for g in range(1, n_genes_stim):
+        #     mean_g = [
+        #         np.mean(data.count_matrix[data.time_points == time, g]) 
+        #         for time in times
+        #     ]
+        #     if np.max(mean_g) - np.min(mean_g) < 0.1:
+        #         mask[g] = False
 
-        if self.verbose:
-            print('number genes of interest', np.sum(mask))
-        
+        # if self.verbose:
+        #     print('number genes of interest', np.sum(mask))
+          
         param = NetworkParameter(n_genes_stim - 1)
-        for attr in ['a', 'd', 's', 'basal', 'interaction']:
-            getattr(param, attr).mask[..., ~mask] = True
+        # for attr in ['a', 'd', 's', 'basal', 'interaction']:
+        #     getattr(param, attr).mask[..., ~mask] = True
 
         basal, inter, variations, basal_t, inter_t = self._core_optim(
-            data_bool[:, mask], 
+            data_bool, 
             data.time_points, 
             times, 
-            n_genes_stim, 
-            mask,
+            n_genes_stim,
             self.sl,
             self.p
         )
