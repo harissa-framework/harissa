@@ -107,11 +107,13 @@ def _step_jit(state: np.ndarray,
     
     # 2. Compute the next jump
     v = _kon_jit(state[1], basal, inter, k0, k1)
-    s = np.sum(v[1:])
-    # Fix precision errors
-    if s > tau:
-        tau = s
-    v[1:] /= (tau + 1e-10) # i = 1, ..., G-1 : burst of mRNA i
+    #### # Fix precision errors
+    # s = np.sum(v[1:])
+    # if s > tau:
+    #     tau = s
+    # v[1:] /= (tau + 1e-10) # i = 1, ..., G-1 : burst of mRNA i
+    ####
+    v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
     v[0] = 1.0 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
     # i = np.nonzero(np.random.multinomial(1, v))[0][0]
     # use this instead of multinomial because of https://github.com/numba/numba/issues/3426
