@@ -112,8 +112,11 @@ def _step_jit(state: np.ndarray,
     if s > tau:
         tau = s
     v[1:] /= (tau + 1e-10) # i = 1, ..., G-1 : burst of mRNA i
-    v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
-    i = np.nonzero(np.random.multinomial(1, v))[0][0]
+    v[0] = 1.0 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
+    # i = np.nonzero(np.random.multinomial(1, v))[0][0]
+    # use this instead of multinomial because of https://github.com/numba/numba/issues/3426
+    # https://github.com/numba/numba/issues/2539#issuecomment-507306369
+    i = np.searchsorted(np.cumsum(v), np.random.random(), side="right")
     if i > 0:
         state[0, i] += np.random.exponential(1/b[i])
         jump = True
@@ -181,6 +184,7 @@ class BurstyPDMP(Simulation):
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
         global _kon_jit, _kon_bound_jit, _flow_jit, _step_jit, _simulation_jit
+        global _rand_choice_jit
 
         if self._use_numba != use_numba:
             if use_numba:
@@ -189,6 +193,7 @@ class BurstyPDMP(Simulation):
                     _kon_jit = njit()(_kon_jit)
                     _kon_bound_jit = njit()(_kon_bound_jit)
                     _flow_jit = njit()(flow)
+                    _rand_choice_jit = njit(_rand_choice_jit)
                     _step_jit = njit()(_step_jit)
                     _simulation_jit = njit()(_create_simulation(_step_jit,
                                                                 _flow_jit))
