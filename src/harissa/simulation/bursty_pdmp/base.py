@@ -184,7 +184,6 @@ class BurstyPDMP(Simulation):
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
         global _kon_jit, _kon_bound_jit, _flow_jit, _step_jit, _simulation_jit
-        global _rand_choice_jit
 
         if self._use_numba != use_numba:
             if use_numba:
@@ -193,7 +192,6 @@ class BurstyPDMP(Simulation):
                     _kon_jit = njit()(_kon_jit)
                     _kon_bound_jit = njit()(_kon_bound_jit)
                     _flow_jit = njit()(flow)
-                    _rand_choice_jit = njit(_rand_choice_jit)
                     _step_jit = njit()(_step_jit)
                     _simulation_jit = njit()(_create_simulation(_step_jit,
                                                                 _flow_jit))
