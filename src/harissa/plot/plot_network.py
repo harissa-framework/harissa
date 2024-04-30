@@ -244,12 +244,7 @@ def plot_network(inter, pos, width=1., height=1., scale=1., names=None,
         if nodes is None: I, J = inter.nonzero()
         else: I, J = nodes, nodes
     ax.axis('equal')
-    # ax.axis('off')
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_frame_on(False)
+    ax.axis('off')
     ax_pos = ax.get_position()
     plt.xlim([-w*ax_pos.width/2, w*ax_pos.width/2])
     plt.ylim([-h*ax_pos.height/2, h*ax_pos.height/2])
