@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-license = { file = "LICENSE" }
+license = { file = "LICENSE.txt" }
 # license-files = { paths = ["LICENSE"] }
 keywords = [
     "stochastic gene expression",
