@@ -373,9 +373,8 @@ class Hartree(Inference):
         p.burst_frequency_min[:] = a[0] 
         p.burst_frequency_max[:] = a[1]
         p.burst_size_inv[:] = a[2]
-        scale = p.scale()
-        p.creation_rna[:] = p.degradation_rna * scale
-        p.creation_protein[:] = p.degradation_protein * scale
+        p.creation_rna[:] = p.degradation_rna * p.rna_scale()
+        p.creation_protein[:] = p.degradation_protein * p.protein_scale()
         p.basal[:] = basal_time[times[-1]]
         p.interaction[:] = inter_time[times[-1]]
 
