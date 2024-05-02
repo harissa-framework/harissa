@@ -1,6 +1,8 @@
 """
 Core functions for network inference using likelihood maximization
 """
+from typing import Tuple, Dict, Union
+
 from pathlib import Path
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
@@ -131,7 +133,7 @@ def infer_kinetics(x: np.ndarray,
                    time_points: np.ndarray,
                    times_unique: np.ndarray, 
                    tolerance: float, 
-                   max_iteration: int) -> tuple[np.ndarray, np.ndarray, int]:
+                   max_iteration: int) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson 
     model with time-dependant a and constant b 
@@ -213,7 +215,7 @@ def _create_infer_network(objective, grad_theta):
                       c: np.ndarray, 
                       penalization_strength: float, 
                       tolerance: float,
-                      smoothing_threshold: float) -> tuple[np.ndarray, int]:
+                      smoothing_threshold: float) -> Tuple[np.ndarray, int]:
         """
         Network inference procedure.
         """
@@ -262,8 +264,8 @@ class Hartree(Inference):
     class Result(Inference.Result):
         def __init__(self, 
                      parameter: NetworkParameter,
-                     basal_time: dict[float, np.ndarray],
-                     interaction_time: dict[float, np.ndarray],
+                     basal_time: Dict[float, np.ndarray],
+                     interaction_time: Dict[float, np.ndarray],
                      y: np.ndarray) -> None:
             super().__init__(
                 parameter, 
@@ -272,7 +274,7 @@ class Hartree(Inference):
                 y=y
             )
 
-        def save_extra_txt(self, path: str | Path):
+        def save_extra_txt(self, path: Union[str, Path]):
             path = Path(path) / 'extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
             inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
@@ -281,7 +283,7 @@ class Hartree(Inference):
             save_dir(path / 'interaction_time', inter_time)
             np.savetxt(path / 'y.txt', self.y)
         
-        def save_extra(self, path: str | Path):
+        def save_extra(self, path: Union[str, Path]):
             path = str(path) + '_extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
             inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
@@ -352,12 +354,15 @@ class Hartree(Inference):
         # Get protein levels
         y = infer_proteins(data, a)
         # Inference procedure
-        theta, nb_iterations =  self._infer_network(data.time_points,
-                                                    times,
-                                                    x, y, a, c,
-                                                    self.penalization_strength,
-                                                    self.tolerance,
-                                                    self.smoothing_threshold)
+        theta, nb_iterations =  self._infer_network(
+            data.time_points,
+            times,
+            x, y, a, c,
+            self.penalization_strength,
+            self.tolerance,
+            self.smoothing_threshold
+        )
+
         if self.is_verbose: 
             print(f'Fitted theta in {nb_iterations} iterations')
         # Build the results
@@ -393,11 +398,14 @@ class Hartree(Inference):
         for g in range(1, nb_genes_stim):
             if self.is_verbose:
                 print(f'Calibrating gene {g}...')
-            a_g, b_g, k = infer_kinetics(x=data.count_matrix[:, g], 
-                                         time_points=data.time_points,
-                                         times_unique=times_unique, 
-                                         tolerance=self.tolerance, 
-                                         max_iteration=self.max_iteration)
+            a_g, b_g, k = infer_kinetics(
+                x=data.count_matrix[:, g],
+                time_points=data.time_points,
+                times_unique=times_unique,
+                tolerance=self.tolerance,
+                max_iteration=self.max_iteration
+            )
+            
             if self.is_verbose:
                 print(f'Estimation done in {k} iterations')
             a[0, g] = np.min(a_g)

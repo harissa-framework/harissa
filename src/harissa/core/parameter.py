@@ -2,6 +2,7 @@
 Main class for network parameters
 """
 from __future__ import annotations
+from typing import Union
 import numpy as np
 from pathlib import Path
 
@@ -89,7 +90,7 @@ class NetworkParameter:
     
 
     @classmethod
-    def load_txt(cls, path: str | Path) -> NetworkParameter:
+    def load_txt(cls, path: Union[str, Path]) -> NetworkParameter:
         data = load_dir(path, cls.param_names)
         network_param = cls(data['basal'].size - 1)
 
@@ -99,7 +100,7 @@ class NetworkParameter:
         return network_param
 
     @classmethod
-    def load(cls, path: str | Path) -> NetworkParameter:
+    def load(cls, path: Union[str, Path]) -> NetworkParameter:
         data = load_npz(path, cls.param_names)
         network_param = cls(data['basal'].size - 1)
 
@@ -108,7 +109,7 @@ class NetworkParameter:
 
         return network_param
     
-    def save_txt(self, path: str | Path) -> Path:
+    def save_txt(self, path: Union[str, Path]) -> Path:
         return save_dir(
             path, 
             {
@@ -124,7 +125,7 @@ class NetworkParameter:
             }
         )
 
-    def save(self, path: str | Path) -> Path:
+    def save(self, path: Union[str, Path]) -> Path:
         return save_npz(
             path, 
             {

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Dict, Union
 import numpy as np
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -14,7 +15,7 @@ from harissa.utils.npz_io import (
 
 @dataclass(frozen=True, init=False)
 class Dataset:
-    param_names: ClassVar[dict[str, ParamInfos]] = {
+    param_names: ClassVar[Dict[str, ParamInfos]] = {
         'time_points': ParamInfos(True, np.float_, 1), 
         'count_matrix': ParamInfos(True, np.uint, 2),
         'gene_names': ParamInfos(False, np.str_, 1)
@@ -64,7 +65,7 @@ class Dataset:
 
     # Add load method
     @classmethod
-    def load_txt(cls, path: str | Path) -> Dataset:
+    def load_txt(cls, path: Union[str, Path]) -> Dataset:
         path = Path(path) # convert it to Path (needed for str)
         if path.suffix == '.txt':
             if not path.exists():
@@ -90,19 +91,19 @@ class Dataset:
         return cls(**data)
 
     @classmethod
-    def load(cls, path: str | Path) -> Dataset:
+    def load(cls, path: Union[str, Path]) -> Dataset:
         return cls(**load_npz(path, cls.param_names))
     
-    def as_dict(self) -> dict:
+    def as_dict(self) -> Dict[str, np.ndarray]:
         return asdict(
             self, 
             dict_factory=lambda x: {k:v for (k, v) in x if v is not None}
         )
     
     # Add a "save" methods
-    def save_txt(self, path: str | Path) -> Path:
+    def save_txt(self, path: Union[str, Path]) -> Path:
         return save_dir(path, self.as_dict())
 
-    def save(self, path: str | Path) -> Path:
+    def save(self, path: Union[str, Path]) -> Path:
         return save_npz(path, self.as_dict())
 

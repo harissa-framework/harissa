@@ -1,7 +1,0 @@
-prune .github
-prune docs
-prune examples
-prune notebooks
-prune tests
-
-exclude .git*

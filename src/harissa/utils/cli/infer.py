@@ -100,5 +100,6 @@ def add_subcommand(main_subparsers):
     hartree_parser.add_argument('-t', '--tolerance', type=float)
     hartree_parser.add_argument('-n', '--max-iteration', type=int)
     hartree_parser.add_argument('-v', '--verbose', action='store_true')
-    hartree_parser.add_argument('--use-numba', action=ap.BooleanOptionalAction)
+    hartree_parser.add_argument('--use-numba', action='store_true')
+    hartree_parser.add_argument('--no-use-numba',action='store_false',dest='use_numba')
     hartree_parser.set_defaults(create_inference=create_hartree)

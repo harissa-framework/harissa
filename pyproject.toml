@@ -1,8 +1,6 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
-build-backend = "setuptools.build_meta"
-# requires = ["hatchling"]
-# build-backend = "hatchling.build"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "harissa"
@@ -19,14 +17,13 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 license = { file = "LICENSE" }
-# license = "BSD-3-Clause"
-# license-files = {paths = ["LICENSE"]}
+# license-files = { paths = ["LICENSE"] }
 keywords = [
     "stochastic gene expression",
     "gene regulatory networks",
     "single-cell transcriptomics",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
     "numpy>=1.20",
     "scipy>=1.7",
@@ -47,16 +44,32 @@ Documentation = "https://harissa-framework.github.io/harissa"
 [project.scripts]
 harissa = "harissa.utils.cli:main"
 
-[tool.setuptools]
-platforms = ["any"]
+# Tools config
 
-[tool.setuptools_scm]
-tag_regex = "^v(.*)$"
-local_scheme= "no-local-version"
+# Hatch
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src"]
+# core-metadata-version = "2.1" # force it to 2.1 it seems to put 2.3 by default
+
+# [tool.hatch.build.targets.wheel]
+# core-metadata-version = "2.1" # force it to 2.1 it seems to put 2.3 by default
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version" }
+
+# Ruff
 
 [tool.ruff]
 select = ["E", "F"]
 line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+# Pytest
 
 [tool.pytest.ini_options]
 minversion = "6.0"

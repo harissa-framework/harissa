@@ -1,6 +1,7 @@
 """
 Perform simulations using the PDMP model
 """
+from typing import Tuple, Optional
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 from harissa.core.simulation import Simulation
@@ -37,7 +38,7 @@ def _kon_bound_jit(state: np.ndarray,
     p_max[0] = p[0] # Discard stimulus
     # Explicit upper bound for Kon
     phi = np.exp(basal + p_max @ ((inter > 0) * inter))
-    k_on = (k0 + k1*phi)/(1 + phi) + 1e-10 # Fix precision errors
+    k_on = (k0 + k1*phi)/(1 + phi)
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
@@ -52,7 +53,7 @@ def step(state: np.ndarray,
          k0: np.ndarray,
          k1: np.ndarray,
          b: np.ndarray,
-         tau: float | None) -> tuple[float, bool, np.ndarray]:
+         tau: Optional[float]) -> Tuple[float, bool, np.ndarray]:
     """
     Compute the next jump and the next step of the
     thinning method, in the case of the bursty model.
@@ -88,7 +89,7 @@ def _step_jit(state: np.ndarray,
               k0: np.ndarray,
               k1: np.ndarray,
               b: np.ndarray,
-              tau: float | None) -> tuple[float, bool, np.ndarray]:
+              tau: Optional[float]) -> Tuple[float, bool, np.ndarray]:
     """
     Compute the next jump and the next step of the
     thinning method, in the case of the bursty model.
@@ -105,9 +106,19 @@ def _step_jit(state: np.ndarray,
     state = _flow_jit(U, state, d0, d1, s1)
     
     # 2. Compute the next jump
-    v = _kon_jit(state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
-    v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
-    i = np.nonzero(np.random.multinomial(1, v))[0][0]
+    v = _kon_jit(state[1], basal, inter, k0, k1)
+    #### # Fix precision errors
+    # s = np.sum(v[1:])
+    # if s > tau:
+    #     tau = s
+    # v[1:] /= (tau + 1e-10) # i = 1, ..., G-1 : burst of mRNA i
+    ####
+    v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
+    v[0] = 1.0 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
+    # i = np.nonzero(np.random.multinomial(1, v))[0][0]
+    # use this instead of multinomial because of https://github.com/numba/numba/issues/3426
+    # https://github.com/numba/numba/issues/2539#issuecomment-507306369
+    i = np.searchsorted(np.cumsum(v), np.random.random(), side="right")
     if i > 0:
         state[0, i] += np.random.exponential(1/b[i])
         jump = True
@@ -125,7 +136,7 @@ def _create_simulation(step, flow):
                    k0: np.ndarray,
                    k1: np.ndarray,
                    b: np.ndarray,
-                   tau: float | None) -> tuple[np.ndarray, int, int]:
+                   tau: Optional[float]) -> Tuple[np.ndarray, int, int]:
         """
         Exact simulation of the network in the bursty PDMP case.
         """

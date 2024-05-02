@@ -13,7 +13,7 @@ names_allowed = {
     'simulation result': Simulation.Result.param_names  
 }
 
-def convert(args) -> Path: 
+def convert(args) -> None: 
     path = Path(args.path)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
