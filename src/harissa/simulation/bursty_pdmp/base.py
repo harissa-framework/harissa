@@ -61,7 +61,6 @@ def step(state: np.ndarray,
     if tau is None:
         # Adaptive thinning parameter
         tau = np.sum(kon_bound(state, basal, inter, d0, d1, s1, k0, k1))
-    jump = False # Test if the jump is a true or phantom jump
     
     # 0. Draw the waiting time before the next jump
     U = np.random.exponential(scale=1/tau)
@@ -74,10 +73,10 @@ def step(state: np.ndarray,
     v = kon(state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
     v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
     i = np.random.choice(G, p=v)
-    if i > 0:
+    jump = i > 0 # Test if the jump is a true (i > 0) or phantom jump (i == 0)
+    if jump:
         state[0, i] += np.random.exponential(1/b[i])
-        jump = True
-    
+
     return U, jump, state
 
 def _step_jit(state: np.ndarray,
@@ -97,7 +96,6 @@ def _step_jit(state: np.ndarray,
     if tau is None:
         # Adaptive thinning parameter
         tau = np.sum(_kon_bound_jit(state, basal, inter, d0, d1, s1, k0, k1))
-    jump = False # Test if the jump is a true or phantom jump
     
     # 0. Draw the waiting time before the next jump
     U = np.random.exponential(scale=1/tau)
@@ -119,9 +117,9 @@ def _step_jit(state: np.ndarray,
     # use this instead of multinomial because of https://github.com/numba/numba/issues/3426
     # https://github.com/numba/numba/issues/2539#issuecomment-507306369
     i = np.searchsorted(np.cumsum(v), np.random.random(), side="right")
-    if i > 0:
+    jump = i > 0 # Test if the jump is a true (i > 0) or phantom jump (i == 0)
+    if jump:
         state[0, i] += np.random.exponential(1/b[i])
-        jump = True
     
     return U, jump, state
 
