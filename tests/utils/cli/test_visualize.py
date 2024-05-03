@@ -2,7 +2,7 @@ from pytest import fixture
 import subprocess
 import numpy as np
 from harissa import NetworkModel, NetworkParameter
-from .utils import cmd_to_args
+from . import cmd_to_args
 
 @fixture(scope='module')
 def outputs_dir(tmp_path_factory):

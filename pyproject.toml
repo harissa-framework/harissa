@@ -75,7 +75,6 @@ indent-style = "space"
 minversion = "6.0"
 required_plugins = ["pytest-cov"]
 addopts = [
-    "--import-mode=importlib",
     "--junit-xml=report.xml",
     "--cov",
     "--cov-append",

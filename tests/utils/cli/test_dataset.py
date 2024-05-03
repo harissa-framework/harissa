@@ -3,7 +3,7 @@ import subprocess
 import numpy as np
 from harissa import NetworkModel, NetworkParameter
 from harissa.inference import Hartree
-from .utils import cmd_to_args
+from . import cmd_to_args
 
 @fixture(scope='module')
 def output_dir(tmp_path_factory):

@@ -1,7 +1,7 @@
 from harissa import __version__
 import subprocess
 
-from .utils import cmd_to_args
+from . import cmd_to_args
 
 def test_help():
     process = subprocess.run(cmd_to_args('harissa -h'))
