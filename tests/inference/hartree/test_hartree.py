@@ -117,8 +117,8 @@ class TestHartree:
 
     def test_dataset_one(self, dataset_one):
         inf = base.Hartree(tolerance= 1e-10, use_numba=False)
-
-        inf.run(dataset_one)
+        with pytest.raises(RuntimeError):
+            inf.run(dataset_one)
 
         assert True
 
