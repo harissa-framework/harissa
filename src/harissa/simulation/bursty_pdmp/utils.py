@@ -32,7 +32,7 @@ def kon_bound(state: np.ndarray,
     p_max[0] = p[0] # Discard stimulus
     # Explicit upper bound for Kon
     sigma = expit(basal + p_max @ ((inter > 0) * inter))
-    k_on = (1-sigma)*k0 + sigma*k1 + 1e-10 # Fix precision errors
+    k_on = (1-sigma)*k0 + sigma*k1 
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
