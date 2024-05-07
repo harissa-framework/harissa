@@ -69,10 +69,12 @@ def step(state: np.ndarray,
     state = flow(U, state, d0, d1, s1)
     
     # 2. Compute the next jump
-    G = basal.size # Genes plus stimulus
-    v = kon(state[1], basal, inter, k0, k1) / tau # i = 1, ..., G-1 : burst of mRNA i
-    v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
-    i = np.random.choice(G, p=v)
+    G = basal.size # Genes plus stimulus    
+    # Deal robustly with precision errors
+    v = kon(state[1], basal, inter, k0, k1) # i = 1, ..., G-1 : burst of mRNA i
+    v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
+    v[0] = 1.0 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
+    i = np.searchsorted(np.cumsum(v), np.random.random(), side="right")
     jump = i > 0 # Test if the jump is a true (i > 0) or phantom jump (i == 0)
     if jump:
         state[0, i] += np.random.exponential(1/b[i])
