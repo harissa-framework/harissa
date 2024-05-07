@@ -68,8 +68,7 @@ def step(state: np.ndarray,
     # 1. Update the continuous states
     state = flow(U, state, d0, d1, s1)
     
-    # 2. Compute the next jump
-    G = basal.size # Genes plus stimulus    
+    # 2. Compute the next jump    
     # Deal robustly with precision errors
     v = kon(state[1], basal, inter, k0, k1) # i = 1, ..., G-1 : burst of mRNA i
     v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
