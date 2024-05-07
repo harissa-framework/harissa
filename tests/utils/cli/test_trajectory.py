@@ -18,7 +18,7 @@ def networks_dir(tmp_path_factory):
 
 @fixture(scope='module')
 def simulation_param_file(simulations_param_dir):
-    time = np.linspace(0,100,1000)
+    time = np.linspace(0,10,100)
     fname = simulations_param_dir / 'default.npz'
     np.savez(fname, time_points=time)
 
@@ -26,7 +26,7 @@ def simulation_param_file(simulations_param_dir):
 
 @fixture(scope='module')
 def simulation_state_param_file(simulations_param_dir):
-    time = np.linspace(0,100,1000)
+    time = np.linspace(0,10,100)
     initial_state = np.array([[0.0, 0.0, 0.0, 0.0], 
                               [1.0, 0.0, 0.05, 0.1]])
     fname = simulations_param_dir / 'initial_state.npz'

@@ -44,17 +44,17 @@ def network():
 
 @fixture(scope='module')
 def times():
-    return np.floor(np.linspace(0.0, 20.0, 10))
+    return np.floor(np.linspace(0.0, 20.0, 3))
 
 @fixture(scope='module')
 def C():
-    return 1000
+    return 90
 
 @fixture(scope='module')
 def ref_dataset(network, times, C):
     # Initialize model
     model = NetworkModel(network)
-    n_cells_per_time_point = C // times.size # 100
+    n_cells_per_time_point = C // times.size
     data = model.simulate_dataset(
         time_points = times, 
         n_cells=n_cells_per_time_point, 

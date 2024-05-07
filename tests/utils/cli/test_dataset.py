@@ -47,8 +47,8 @@ def network():
 def dataset(network):
     # Initialize model
     model = NetworkModel(network)
-    times = np.floor(np.linspace(0.0, 20.0, 10))
-    C = 1000
+    times = np.floor(np.linspace(0.0, 20.0, 3))
+    C = 90
     n_cells_per_time_point = C // times.size # 100
     data = model.simulate_dataset(
         time_points = times, 

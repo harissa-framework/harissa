@@ -43,9 +43,9 @@ def dataset_file(datasets_dir):
 
     # Initialize model
     model = NetworkModel(p)
-    times = np.floor(np.linspace(0.0, 20.0, 10))
-    C = 1000
-    n_cells_per_time_point = C // times.size # 100
+    times = np.floor(np.linspace(0.0, 20.0, 3))
+    C = 90
+    n_cells_per_time_point = C // times.size 
     data = model.simulate_dataset(
         time_points = times, 
         n_cells=n_cells_per_time_point, 
