@@ -38,9 +38,7 @@ def test_init(param, inf, sim):
     (5.0, default_inference(), default_simulation()),
     ('foo', default_inference(), default_simulation()),
     (None, 2, default_simulation()),
-    (None, None, default_simulation()),
     (None, default_inference(), 2),
-    (None, default_inference(), None),
 ])
 def test_init_wrong_type(param, inf, sim):
     with pytest.raises(TypeError):

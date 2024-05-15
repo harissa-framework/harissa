@@ -26,7 +26,7 @@ def _create_test_group(cls):
                 [1, 0, 0, 3], # Cell 5
             ], dtype=np.uint)
             data = Dataset(time_points, count_matrix)
-            res = inf.run(data)
+            res = inf.run(data, NetworkParameter(count_matrix.shape[1] - 1))
 
             n_genes_stim = data.count_matrix.shape[1]
 
