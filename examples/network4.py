@@ -93,7 +93,9 @@ fig.savefig('network4_graph.pdf', bbox_inches='tight')
 x = Dataset.load_txt('network4_data.txt')
 
 # Calibrate the model
-model = NetworkModel()
+model = NetworkModel(G)
+model.parameter.degradation_rna[:] = param.degradation_rna
+model.parameter.degradation_protein[:] = param.degradation_protein
 model.fit(x)
 
 # Export interaction matrix

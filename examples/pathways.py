@@ -119,7 +119,9 @@ for i in [1,2]:
     # Load the data
     x = Dataset.load_txt(f'pathways_data{i}.txt')
     # Calibrate the model
-    model = NetworkModel()
+    model = NetworkModel(G)
+    model.parameter.degradation_rna[:] = param1.degradation_rna
+    model.parameter.degradation_protein[:] = param1.degradation_protein
     model.fit(x)
     # Export interaction matrix
     np.savetxt(
