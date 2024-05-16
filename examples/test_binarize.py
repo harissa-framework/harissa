@@ -1,12 +1,12 @@
 # Perform simple data binarization using the `infer_proteins` function
 import numpy as np
+from harissa import Dataset
 from harissa.inference import Hartree
 from harissa.inference.hartree.base import infer_proteins
-from harissa.utils import binarize
-from harissa.utils.npz_io import load_dataset
+from harissa.processing import binarize
 
 # Import raw data (run network4.py)
-dataset = load_dataset('network4_data.txt')
+dataset = Dataset.load_txt('network4_data.txt')
 
 # Store binarized data
 new_data = np.zeros(dataset.count_matrix.shape, dtype=np.uint)

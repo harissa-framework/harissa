@@ -13,7 +13,6 @@
 *.npz
 *.lcov
 *.xml
-*.txt
 
 # Distribution
 *.egg-info

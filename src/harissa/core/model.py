@@ -20,8 +20,8 @@ class NetworkModel:
     def __init__(
         self,
         parameter=None,
-        inference=default_inference(),
-        simulation=default_simulation(),
+        inference=None,
+        simulation=None,
     ):
         # Option 1: NetworkParameter object or None
         if isinstance(parameter, NetworkParameter) or (parameter is None):
@@ -33,8 +33,8 @@ class NetworkModel:
             raise TypeError(('parameter argument must be '
                 'an int or a NetworkParameter (or None).'))
 
-        self.inference = inference
-        self.simulation = simulation
+        self.inference = inference or default_inference()
+        self.simulation = simulation or default_simulation()
 
     # Properties
     # ==========
@@ -155,7 +155,12 @@ class NetworkModel:
             raise TypeError(( 'data must be Dataset objet ' 
                              f'and not a(n) {type(data)}.'))
         
-        res = self.inference.run(data)
+        if self.parameter is None:
+            param = NetworkParameter(data.count_matrix.shape[1] - 1)
+        else:
+            param = self.parameter.copy()
+        
+        res = self.inference.run(data, param)
         self.parameter = res.parameter
         return res
 

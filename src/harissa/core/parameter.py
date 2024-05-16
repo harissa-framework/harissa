@@ -75,9 +75,8 @@ class NetworkParameter:
         self._degradation[0] = default_degradation_rna
         self._degradation[1] = default_degradation_protein
         # Default creation rates
-        scale = self.scale()
-        self._creation[0] = self._degradation[0] * scale
-        self._creation[1] = self._degradation[1] * scale
+        self._creation[0] = self._degradation[0] * self.rna_scale()
+        self._creation[1] = self._degradation[1] * self.protein_scale()
 
     def __eq__(self, other):
         if isinstance(other, NetworkParameter):
@@ -257,8 +256,10 @@ class NetworkParameter:
     def c(self):
         return self.b * self.d[0] / self.s[1]
 
-    def scale(self):
+    def rna_scale(self):
         return self.b / self.k[1]
+    def protein_scale(self):
+        return self.d[0] * self.b / self.k[1]
 
     # Methods
     # =======

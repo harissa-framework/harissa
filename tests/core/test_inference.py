@@ -10,8 +10,8 @@ class InferenceSuperRun(Inference):
     def __init__(self):
         ...
 
-    def run(self, data: Dataset) -> Inference.Result:
-        return super().run(data)
+    def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
+        return super().run(data, param)
 
 
 class TestInference:
@@ -25,9 +25,11 @@ class TestInference:
         
     def test_inference_super_run(self):
         inf = InferenceSuperRun()
+        net = NetworkParameter(1)
+        dataset = Dataset(np.empty(1), np.empty((1, 2), dtype=np.uint))
 
         with pytest.raises(NotImplementedError):
-            inf.run(Dataset(np.empty(1), np.empty((1, 2), dtype=np.uint)))
+            inf.run(dataset, net)
 
 class TestInferenceResult:
     def test_init(self):

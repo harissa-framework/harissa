@@ -36,7 +36,7 @@ class Inference(ABC):
             return
 
     @abstractmethod
-    def run(self, data: Dataset) -> Result:
+    def run(self, data: Dataset, param: NetworkParameter) -> Result:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
              'implement this function (run) and not use it.')
