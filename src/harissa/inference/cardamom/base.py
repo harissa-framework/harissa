@@ -410,7 +410,7 @@ class Cardamom(Inference):
             
             self._use_numba = use_numba
 
-    def run(self, data: Dataset) -> Inference.Result:
+    def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
         """
         Fit a network parameter to the data.
         Return the list of successive objective function values.
@@ -458,8 +458,6 @@ class Cardamom(Inference):
 
         # if self.verbose:
         #     print('number genes of interest', np.sum(mask))
-          
-        param = NetworkParameter(n_genes_stim - 1)
         # for attr in ['a', 'd', 's', 'basal', 'interaction']:
         #     getattr(param, attr).mask[..., ~mask] = True
 
@@ -472,7 +470,11 @@ class Cardamom(Inference):
             self.p
         )
 
-        param.a[:] = a
+        param.burst_frequency_min[:] = a[0] * param.degradation_rna
+        param.burst_frequency_max[:] = a[1] * param.degradation_rna
+        param.burst_size_inv[:] = a[2]
+        param.creation_rna[:] = param.degradation_rna * param.rna_scale()
+        param.creation_protein[:] = param.degradation_protein * param.protein_scale()
         param.basal[:] = basal
         param.interaction[:] = inter
 
