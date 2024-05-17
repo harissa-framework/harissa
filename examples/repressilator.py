@@ -16,9 +16,10 @@ param.basal[3] = 5
 param.interaction[1,2] = -10
 param.interaction[2,3] = -10
 param.interaction[3,1] = -10
-scale = param.burst_size_inv / param.burst_frequency_max
-param.creation_rna[:] = param.degradation_rna * scale 
-param.creation_protein[:] = param.degradation_protein * scale
+param.burst_frequency_min[:] = 0.0 * param.degradation_rna
+param.burst_frequency_max[:] = 2.0 * param.degradation_rna
+param.creation_rna[:] = param.degradation_rna * param.rna_scale() 
+param.creation_protein[:] = param.degradation_protein * param.protein_scale()
 
 # Time points
 time = np.linspace(0,100,1000)
@@ -28,7 +29,9 @@ sim = model.simulate(time)
 
 # Simulation of the ODE model (slow-fast limit)
 model.simulation = ApproxODE()
-sim_ode = model.simulate(time, P0=[0,0,0.1,0.2])
+M0=[0,0,0,0]
+P0=[1,0,0.1,0.2]
+sim_ode = model.simulate(time, initial_state=np.array([M0, P0]))
 
 # Figure
 fig = plt.figure(figsize=(10,6))
@@ -48,8 +51,8 @@ ax = plt.subplot(gs[1,0])
 ax.set_title(f'Protein levels ($d_1 = {param.degradation_protein.mean()}$)')
 ax.set_xlim(sim.time_points[0], sim.time_points[-1])
 ax.set_ylim(0, np.max([1.2*np.max(sim.protein_levels), 1]))
-for i in range(3):
-    ax.plot(sim.time_points, sim.protein_levels[:, i], label=f'$P_{{{i+1}}}$')
+for i in range(1, 4):
+    ax.plot(sim.time_points, sim.protein_levels[:, i], label=f'$P_{{{i}}}$')
 ax.legend(loc='upper left', ncol=4, borderaxespad=0, frameon=False)
 
 # Plot protein levels (ODE model)
@@ -57,10 +60,10 @@ ax = plt.subplot(gs[2,0])
 ax.set_title(r'Protein levels - ODE model ($d_0/d_1\to\infty$)')
 ax.set_xlim(sim_ode.time_points[0], sim_ode.time_points[-1])
 ax.set_ylim(0, 1)
-for i in range(3):
+for i in range(1, 4):
     ax.plot(sim_ode.time_points, 
             sim_ode.protein_levels[:,i], 
-            label=f'$P_{{{i+1}}}$')
+            label=f'$P_{{{i}}}$')
 ax.legend(loc='upper left', ncol=4, borderaxespad=0, frameon=False)    
 
 

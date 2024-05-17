@@ -20,7 +20,12 @@ import harissa.utils.cli.convert as cli_convert
 # ====================================================
 def _excepthook(exc_type, exc_value, exc_traceback):
     """Show minimal traceback for exceptions."""
-    traceback.print_exception(exc_value, limit=1)
+    traceback.print_exception(
+        exc_type, 
+        value=exc_value,
+        tb=exc_traceback, 
+        limit=1
+    )
 sys.excepthook = _excepthook
 
 def main():

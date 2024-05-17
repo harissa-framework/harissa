@@ -1,9 +1,8 @@
 # Basic 4-gene network with stimulus and feedback loop
 import numpy as np
 import matplotlib.pyplot as plt
-from harissa import NetworkModel, NetworkParameter
+from harissa import NetworkModel, NetworkParameter, Dataset
 from harissa.plot import build_pos, plot_network
-from harissa.utils.npz_io import load_dataset
 
 #### Simulate scRNA-seq data ####
 
@@ -37,16 +36,17 @@ param.interaction[3,4] = 10
 param.interaction[4,1] = -10
 param.interaction[2,2] = 10
 param.interaction[3,3] = 10
-scale = param.burst_size_inv / param.burst_frequency_max
-param.creation_rna[:] = param.degradation_rna * scale 
-param.creation_protein[:] = param.degradation_protein * scale
+param.burst_frequency_min[:] = 0.0 * param.degradation_rna
+param.burst_frequency_max[:] = 2.0 * param.degradation_rna
+param.creation_rna[:] = param.degradation_rna * param.rna_scale() 
+param.creation_protein[:] = param.degradation_protein * param.protein_scale()
 model = NetworkModel(param)
 
 # Generate data
 for k in range(C):
     print(f'* Cell {k+1} (t = {time[k]})')
-    sim = model.simulate(time[k], burn_in=5)
-    data[k,1:] = np.random.poisson(sim.rna_levels[0])
+    sim = model.simulate(time[k], initial_state=model.burn_in(5))
+    data[k,1:] = np.random.poisson(sim.rna_levels[0, 1:])
 
 # Save data in basic format
 np.savetxt('network4_data.txt', data, fmt='%d', delimiter='\t')
@@ -90,10 +90,12 @@ fig.savefig('network4_graph.pdf', bbox_inches='tight')
 #### Perform network inference ####
 
 # Load the data
-x = load_dataset('network4_data.txt')
+x = Dataset.load_txt('network4_data.txt')
 
 # Calibrate the model
-model = NetworkModel()
+model = NetworkModel(G)
+model.parameter.degradation_rna[:] = param.degradation_rna
+model.parameter.degradation_protein[:] = param.degradation_protein
 model.fit(x)
 
 # Export interaction matrix
