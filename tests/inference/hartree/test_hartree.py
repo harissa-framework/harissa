@@ -133,8 +133,6 @@ class TestHartree:
         with pytest.raises(RuntimeError):
             inf.run(dataset_one, net)
 
-        assert True
-
 
 def test_save_extra_txt(tmp_path, dataset):
     inf = base.Hartree(use_numba=False)

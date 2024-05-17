@@ -38,60 +38,71 @@ def dataset_one():
     ], dtype=np.uint)
     return Dataset(time_points, count_matrix)
 
-class TestHartree:
+class TestCardamom:
     def test_use_numba_default(self, reload_base):
         inf = base.Cardamom()
         assert inf.use_numba
         assert 'numba' in sys.modules
-        assert base._core_optim_jit is not None
-        assert inf._core_optim is base._core_optim_jit
+        assert base._numba_functions[True] is not None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[True].items():
+            assert vars(base)[name] is f
 
     def test_use_numba_False(self, reload_base):
         inf = base.Cardamom(use_numba=False)
         assert 'numba' not in sys.modules
         assert not inf.use_numba
-        assert base._core_optim_jit is None
-        assert inf._core_optim is base.core_optim
+        assert base._numba_functions[True] is None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[False].items():
+            assert vars(base)[name] is f
 
     def test_use_numba_True(self, reload_base):
         inf = base.Cardamom(use_numba=True)
         assert inf.use_numba
         assert 'numba' in sys.modules
-        assert base._core_optim_jit is not None
-        assert inf._core_optim is base._core_optim_jit
+        assert base._numba_functions[True] is not None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[True].items():
+            assert vars(base)[name] is f
 
     def test_use_numba_False_True_False(self, reload_base):
         inf = base.Cardamom(use_numba=False)
         assert not inf.use_numba
         assert 'numba' not in sys.modules
-        assert base._core_optim_jit is None
-        assert inf._core_optim is base.core_optim
+        assert base._numba_functions[True] is None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[False].items():
+            assert vars(base)[name] is f
 
 
         inf.use_numba = True
 
         assert inf.use_numba
         assert 'numba' in sys.modules
-        assert base._core_optim_jit is not None
-        assert inf._core_optim is base._core_optim_jit
+        assert base._numba_functions[True] is not None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[True].items():
+            assert vars(base)[name] is f
 
         inf.use_numba = False
 
         assert not inf.use_numba
         assert 'numba' in sys.modules
-        assert base._core_optim_jit is not None
-        assert inf._core_optim is base.core_optim
+        assert base._numba_functions[True] is not None
+        assert base._numba_functions[False] is not None
+        for name, f in base._numba_functions[False].items():
+            assert vars(base)[name] is f
 
     def test_run_with_numba(self, dataset):
+        n_genes_stim = dataset.count_matrix.shape[1]
         from numba.core import config
         for disable_jit in [1, 0]:
             config.DISABLE_JIT = disable_jit
             reload(base)
 
             inf = base.Cardamom(verbose=True, use_numba=True)
-            res = inf.run(dataset)
-
-            n_genes_stim = dataset.count_matrix.shape[1]
+            res = inf.run(dataset, NetworkParameter(n_genes_stim - 1))
 
             # assert isinstance(res, base.Cardamom.Result)
             assert isinstance(res, Inference.Result)
@@ -103,9 +114,9 @@ class TestHartree:
 
     def test_run_without_numba(self, dataset):
         inf = base.Cardamom(verbose=True, use_numba=False)
-        res = inf.run(dataset)
-
         n_genes_stim = dataset.count_matrix.shape[1]
+
+        res = inf.run(dataset, NetworkParameter(n_genes_stim - 1))
 
         # assert isinstance(res, base.Cardamom.Result)
         assert isinstance(res, Inference.Result)
@@ -117,10 +128,9 @@ class TestHartree:
 
     def test_dataset_one(self, dataset_one):
         inf = base.Cardamom(use_numba=False)
-
-        inf.run(dataset_one)
-
-        assert True
+        net = NetworkParameter(dataset_one.count_matrix.shape[1] - 1)
+        with pytest.raises(RuntimeError):
+            inf.run(dataset_one, net)
 
 
 # def test_save_extra_txt(tmp_path, dataset):
