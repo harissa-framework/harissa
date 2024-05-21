@@ -498,4 +498,7 @@ class Cardamom(Inference):
         if self.verbose:
             print('TOT', param.interaction, param.basal)
 
+        basal_t = {t:v for t,v in zip(times_unique, basal_t)}
+        inter_t = {t:v for t,v in zip(times_unique, inter_t)}
+
         return self.Result(param, variations, basal_t, inter_t, data_bool)
