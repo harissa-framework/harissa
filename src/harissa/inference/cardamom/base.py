@@ -1,13 +1,14 @@
 """
 Main class for network inference
 """
+from pathlib import Path
+from typing import Dict, Union
 import numpy as np
 from scipy.optimize import minimize
 from scipy.special import expit
 
-from harissa.core.parameter import NetworkParameter
-from harissa.core.inference import Inference
-from harissa.core.dataset import Dataset
+from harissa.core import NetworkParameter, Dataset, Inference
+from harissa.utils import save_npz, save_dir
 from harissa.inference.hartree.base import infer_kinetics
 from harissa.inference.cardamom.utils import (
     core_basins_binary, 
@@ -345,6 +346,43 @@ _numba_functions = {
 }
 
 class Cardamom(Inference):
+
+    class Result(Inference.Result):
+        def __init__(self, 
+            parameter: NetworkParameter,
+            variations: np.ndarray,
+            basal_time: Dict[float, np.ndarray],
+            interaction_time: Dict[float, np.ndarray],
+            data_bool: np.ndarray
+        ) -> None:
+            super().__init__(
+                parameter, 
+                variations=variations, 
+                basal_time=basal_time,
+                interaction_time=interaction_time,
+                data_bool=data_bool
+            )
+
+        def save_extra_txt(self, path: Union[str, Path]):
+            path = Path(path) / 'extra'
+            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
+            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
+
+            save_dir(path / 'basal_time', basal_time)
+            save_dir(path / 'interaction_time', inter_time)
+            np.savetxt(path / 'variations.txt', self.variations)
+            np.savetxt(path / 'data_bool.txt', self.data_bool)
+        
+        def save_extra(self, path: Union[str, Path]):
+            path = str(path) + '_extra'
+            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
+            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
+            
+            save_npz(path + '_basal_time', basal_time)
+            save_npz(path + '_interaction_time', inter_time)
+            save_npz(path + '_variations', {'variations': self.variations})
+            save_npz(path + '_data_bool', {'data_bool': self.data_bool})
+
     def __init__(self, 
         threshold: float = 1e-3,
         pseudo_l1_coeff: float = 5e-3, # sl
@@ -458,10 +496,4 @@ class Cardamom(Inference):
         if self.verbose:
             print('TOT', param.interaction, param.basal)
 
-        return Inference.Result(
-            param, 
-            variations=variations, 
-            basal_t=basal_t,
-            interaction_t=inter_t,
-            data_bool=data_bool
-        )
+        return self.Result(param, variations, basal_t, inter_t, data_bool)
