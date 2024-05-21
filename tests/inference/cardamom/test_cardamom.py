@@ -1,6 +1,6 @@
 import pytest
 import sys
-# from pathlib import Path
+from pathlib import Path
 import numpy as np
 from harissa.core import NetworkParameter, Dataset, Inference
 import harissa.inference.cardamom.base as base
@@ -133,36 +133,38 @@ class TestCardamom:
             inf.run(dataset_one, net)
 
 
-# def test_save_extra_txt(tmp_path, dataset):
-#     inf = base.Cardamom(use_numba=False)
-#     res = inf.run(dataset)
+def test_save_extra_txt(tmp_path, dataset):
+    inf = base.Cardamom(use_numba=False)
+    net = NetworkParameter(dataset.count_matrix.shape[1] - 1)
+    res = inf.run(dataset, net)
 
-#     path = tmp_path / 'foo'
+    path = tmp_path / 'foo'
 
-#     res.save_txt(path, True)
-#     assert path.is_dir()
+    res.save_txt(path, True)
+    assert path.is_dir()
 
-#     path = path / 'extra'
-#     assert path.is_dir()
+    path = path / 'extra'
+    assert path.is_dir()
 
-#     for extra, ext in zip(
-#         ['basal_time', 'interaction_time', 'y'], 
-#         [None, None, '.txt']
-#         ):
-#         if ext is not None:
-#             assert (path / extra).with_suffix(ext).is_file()
-#         else:
-#             assert (path / extra).is_dir()
+    for extra, ext in zip(
+        ['basal_time', 'interaction_time', 'variations', 'data_bool'], 
+        [None, None, '.txt', '.txt']
+        ):
+        if ext is not None:
+            assert (path / extra).with_suffix(ext).is_file()
+        else:
+            assert (path / extra).is_dir()
 
 
-# def test_save_extra(tmp_path, dataset):
-#     inf = base.Cardamom(use_numba=False)
-#     res = inf.run(dataset)
+def test_save_extra(tmp_path, dataset):
+    inf = base.Cardamom(use_numba=False)
+    net = NetworkParameter(dataset.count_matrix.shape[1] - 1)
+    res = inf.run(dataset, net)
 
-#     path = tmp_path / 'foo'
+    path = tmp_path / 'foo'
 
-#     res.save(path, True)
+    res.save(path, True)
 
-#     assert path.with_suffix('.npz').is_file()
-#     for extra in ['basal_time', 'interaction_time', 'y']:
-#         assert Path(f'{path}_extra_{extra}').with_suffix('.npz').is_file()
+    assert path.with_suffix('.npz').is_file()
+    for extra in ['basal_time', 'interaction_time', 'variations', 'data_bool']:
+        assert Path(f'{path}_extra_{extra}').with_suffix('.npz').is_file()
