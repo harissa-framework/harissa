@@ -7,14 +7,16 @@ import numpy as np
 from scipy.optimize import minimize
 from scipy.special import expit
 
-from harissa.core import NetworkParameter, Dataset, Inference
-from harissa.utils import save_npz, save_dir
+from harissa.core.parameter import NetworkParameter
+from harissa.core.inference import Inference
+from harissa.core.dataset import Dataset
 from harissa.inference.hartree.base import infer_kinetics
 from harissa.inference.cardamom.utils import (
     core_basins_binary, 
     # estim_gamma_poisson,
     # build_cnt
 )
+from harissa.utils.npz_io import save_npz, save_dir
 
 # np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
