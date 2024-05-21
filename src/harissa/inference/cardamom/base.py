@@ -347,8 +347,8 @@ _numba_functions = {
 class Cardamom(Inference):
     def __init__(self, 
         threshold: float = 1e-3,
-        pseudo_l1_coeff = 5e-3, # sl
-        penalization = 0.4, # p
+        pseudo_l1_coeff: float = 5e-3, # sl
+        penalization: float = 0.4, # p
         tolerance: float = 1e-5,
         max_iteration: int = 1000,
         verbose: bool = False,
