@@ -10,6 +10,35 @@ from scipy.stats import ks_2samp as ks
 
 from harissa.core.dataset import Dataset
 
+def plot_average_traj(
+    data: Dataset, 
+    path: Optional[str]=None, 
+    times_unique=None
+):
+    if times_unique is None:
+        times_unique = np.unique(data.time_points)
+    T = np.size(times_unique)
+    C, G = data.count_matrix.shape
+    # Average for each time point
+    traj = np.zeros((T,G-1))
+    for k, t in enumerate(times_unique):
+        traj[k] = np.mean(data.count_matrix[data.time_points==t, 1:], axis=0)
+    # Draw trajectory and export figure
+    fig = plt.figure(figsize=(8,2))
+    labels = [rf'$\langle M_{g} \rangle$' for g in range(1,G)]
+    ax = fig.add_subplot()
+    ax.plot(times_unique, traj, label=labels)
+    ax.set_xlim(times_unique[0], times_unique[-1])
+    ax.set_ylim(0, 1.2*np.max(traj))
+    ax.set_xticks(times_unique)
+    ax.set_title(f'Bulk-average trajectory ({int(C/T)} cells per time point)')
+    ax.legend(loc='upper left', ncol=G, borderaxespad=0, frameon=False)
+    
+    if path is None:
+        fig.show(warn=False)
+    else:
+        fig.savefig(path)
+
 def plot_data_distrib(dataset_ref: Dataset, 
                       dataset_sim: Dataset, 
                       path: str,
