@@ -2,8 +2,8 @@ import numpy as np
 from pathlib import Path
 import argparse as ap
 
-from harissa import NetworkModel
-from harissa.inference import default_inference, Hartree
+from harissa import NetworkModel, NetworkParameter
+from harissa.inference import default_inference, Hartree, Cardamom
 from harissa.plot import build_pos, plot_network
 from harissa.core import Dataset
 
@@ -21,16 +21,37 @@ def create_hartree(args):
         options['use_numba'] = args.use_numba
     return Hartree(**options)
 
-# TODO
 def create_cardamom(args):
-    ...
+    options = {'verbose' : args.verbose}
+    if args.threshold is not None:
+        options['threshold'] = args.threshold
+    if args.pseudo_l1_coeff is not None:
+        options['pseudo_l1_coeff'] = args.pseudo_l1_coeff
+    if args.penalization is not None:
+        options['penalization'] = args.penalization
+    if args.tolerance is not None:
+        options['tolerance'] = args.tolerance
+    if args.max_iteration is not None:
+        options['max_iteration'] = args.max_iteration
+    if args.use_numba is not None:
+        options['use_numba'] = args.use_numba
+
+    return Cardamom(**options)
         
 def infer(args):
     model = NetworkModel(inference=args.create_inference(args))
-    if args.dataset_path.suffix == '.npz':
+    npz_suffix = '.npz'
+    if args.dataset_path.suffix == npz_suffix:
         dataset = Dataset.load(args.dataset_path) 
     else:
-        dataset = Dataset.load_txt(args.dataset_path) 
+        dataset = Dataset.load_txt(args.dataset_path)
+
+    if args.network_path is not None:
+        model.parameter = (
+            NetworkParameter.load(args.network_path) 
+            if args.network_path.suffix == npz_suffix
+            else NetworkParameter.load_txt(args.network_path) 
+        )
     
     res = model.fit(dataset)
 
@@ -73,7 +94,8 @@ def add_subcommand(main_subparsers):
         formatter_class=ap.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('dataset_path', type=Path, help="path to data file")
+    parser.add_argument('dataset_path', type=Path, help='path to data file')
+    parser.add_argument('-n', '--network_path', type=Path, help='path to network file')
     add_export_options(parser, True)
     parser.add_argument(
         '--cut-off',
@@ -94,6 +116,7 @@ def add_subcommand(main_subparsers):
         required= False
     )
     hartree_parser = subparsers.add_parser('hartree')
+    cardamom_parser = subparsers.add_parser('cardamom')
 
     # Hartree parser
     hartree_parser.add_argument('-p', '--penalization', type=float)
@@ -103,3 +126,14 @@ def add_subcommand(main_subparsers):
     hartree_parser.add_argument('--use-numba', action='store_true')
     hartree_parser.add_argument('--no-use-numba',action='store_false',dest='use_numba')
     hartree_parser.set_defaults(create_inference=create_hartree)
+
+    # Cardamom parser
+    cardamom_parser.add_argument('--threshold', type=float)
+    cardamom_parser.add_argument('-l', '--pseudo-l1-coeff', type=float)
+    cardamom_parser.add_argument('-p', '--penalization', type=float)
+    cardamom_parser.add_argument('-t', '--tolerance', type=float)
+    cardamom_parser.add_argument('-n', '--max-iteration', type=int)
+    cardamom_parser.add_argument('-v', '--verbose', action='store_true')
+    cardamom_parser.add_argument('--use-numba', action='store_true')
+    cardamom_parser.add_argument('--no-use-numba',action='store_false',dest='use_numba')
+    cardamom_parser.set_defaults(create_inference=create_cardamom)

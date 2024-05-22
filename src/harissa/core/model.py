@@ -249,7 +249,7 @@ class NetworkModel:
     def simulate_dataset(self,
             time_points: np.ndarray, 
             n_cells: Union[int, List[int], Tuple[int], np.ndarray],
-            burn_in_duration: float = 5.0 
+            burn_in_duration: float = 5.0
         ) -> Dataset:
         """
         Generate a dataset
@@ -292,9 +292,6 @@ class NetworkModel:
             raise ValueError('n_cells must contains only positive elements.')
         
         tot_cells = np.sum(n_cells)
-        print('Time points: ' + ', '.join([f'{t:.3f}' for t in time_points]))
-        print('Cells per time point: ' + ', '.join([f'{c}' for c in n_cells]))
-        print(f'Total cells: {tot_cells}')
 
         cells_time = np.empty(tot_cells)
         count_matrix = np.empty((tot_cells, self.n_genes_stim), dtype=np.uint)
