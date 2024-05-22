@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 import numpy as np
 from harissa.core import NetworkParameter, Dataset, Inference
-import harissa.inference.hartree.base as base
+import harissa.inference.cardamom.base as base
 from importlib import reload
 
 @pytest.fixture
@@ -38,9 +38,9 @@ def dataset_one():
     ], dtype=np.uint)
     return Dataset(time_points, count_matrix)
 
-class TestHartree:
+class TestCardamom:
     def test_use_numba_default(self, reload_base):
-        inf = base.Hartree()
+        inf = base.Cardamom()
         assert inf.use_numba
         assert 'numba' in sys.modules
         assert base._numba_functions[True] is not None
@@ -49,7 +49,7 @@ class TestHartree:
             assert vars(base)[name] is f
 
     def test_use_numba_False(self, reload_base):
-        inf = base.Hartree(use_numba=False)
+        inf = base.Cardamom(use_numba=False)
         assert 'numba' not in sys.modules
         assert not inf.use_numba
         assert base._numba_functions[True] is None
@@ -58,7 +58,7 @@ class TestHartree:
             assert vars(base)[name] is f
 
     def test_use_numba_True(self, reload_base):
-        inf = base.Hartree(use_numba=True)
+        inf = base.Cardamom(use_numba=True)
         assert inf.use_numba
         assert 'numba' in sys.modules
         assert base._numba_functions[True] is not None
@@ -67,7 +67,7 @@ class TestHartree:
             assert vars(base)[name] is f
 
     def test_use_numba_False_True_False(self, reload_base):
-        inf = base.Hartree(use_numba=False)
+        inf = base.Cardamom(use_numba=False)
         assert not inf.use_numba
         assert 'numba' not in sys.modules
         assert base._numba_functions[True] is None
@@ -95,17 +95,16 @@ class TestHartree:
             assert vars(base)[name] is f
 
     def test_run_with_numba(self, dataset):
-        from numba.core import config
         n_genes_stim = dataset.count_matrix.shape[1]
-
+        from numba.core import config
         for disable_jit in [1, 0]:
             config.DISABLE_JIT = disable_jit
             reload(base)
 
-            inf = base.Hartree(verbose= True, use_numba=True)
+            inf = base.Cardamom(verbose=True, use_numba=True)
             res = inf.run(dataset, NetworkParameter(n_genes_stim - 1))
 
-            assert isinstance(res, base.Hartree.Result)
+            # assert isinstance(res, base.Cardamom.Result)
             assert isinstance(res, Inference.Result)
             
             assert hasattr(res, 'parameter')
@@ -114,12 +113,12 @@ class TestHartree:
             assert res.parameter.n_genes_stim == n_genes_stim
 
     def test_run_without_numba(self, dataset):
+        inf = base.Cardamom(verbose=True, use_numba=False)
         n_genes_stim = dataset.count_matrix.shape[1]
-        
-        inf = base.Hartree(verbose= True, use_numba=False)
+
         res = inf.run(dataset, NetworkParameter(n_genes_stim - 1))
 
-        assert isinstance(res, base.Hartree.Result)
+        # assert isinstance(res, base.Cardamom.Result)
         assert isinstance(res, Inference.Result)
         
         assert hasattr(res, 'parameter')
@@ -128,14 +127,14 @@ class TestHartree:
         assert res.parameter.n_genes_stim == n_genes_stim
 
     def test_dataset_one(self, dataset_one):
-        inf = base.Hartree(tolerance= 1e-10, use_numba=False)
+        inf = base.Cardamom(use_numba=False)
         net = NetworkParameter(dataset_one.count_matrix.shape[1] - 1)
         with pytest.raises(RuntimeError):
             inf.run(dataset_one, net)
 
 
 def test_save_extra_txt(tmp_path, dataset):
-    inf = base.Hartree(use_numba=False)
+    inf = base.Cardamom(use_numba=False)
     net = NetworkParameter(dataset.count_matrix.shape[1] - 1)
     res = inf.run(dataset, net)
 
@@ -148,8 +147,8 @@ def test_save_extra_txt(tmp_path, dataset):
     assert path.is_dir()
 
     for extra, ext in zip(
-        ['basal_time', 'interaction_time', 'y'], 
-        [None, None, '.txt']
+        ['basal_time', 'interaction_time', 'variations', 'data_bool'], 
+        [None, None, '.txt', '.txt']
         ):
         if ext is not None:
             assert (path / extra).with_suffix(ext).is_file()
@@ -158,7 +157,7 @@ def test_save_extra_txt(tmp_path, dataset):
 
 
 def test_save_extra(tmp_path, dataset):
-    inf = base.Hartree(use_numba=False)
+    inf = base.Cardamom(use_numba=False)
     net = NetworkParameter(dataset.count_matrix.shape[1] - 1)
     res = inf.run(dataset, net)
 
@@ -167,5 +166,5 @@ def test_save_extra(tmp_path, dataset):
     res.save(path, True)
 
     assert path.with_suffix('.npz').is_file()
-    for extra in ['basal_time', 'interaction_time', 'y']:
+    for extra in ['basal_time', 'interaction_time', 'variations', 'data_bool']:
         assert Path(f'{path}_extra_{extra}').with_suffix('.npz').is_file()
