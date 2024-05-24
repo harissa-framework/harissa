@@ -35,8 +35,17 @@ class Inference(ABC):
         def save_extra(self, path):
             return
 
+    @property
+    @abstractmethod    
+    def directed(self) -> bool:
+        raise NotImplementedError(
+            f'{self.__class__.__name__} must only ' 
+             'implement this function (run) and not use it.'
+        )
+
     @abstractmethod
     def run(self, data: Dataset, param: NetworkParameter) -> Result:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
-             'implement this function (run) and not use it.')
+             'implement this function (run) and not use it.'
+        )

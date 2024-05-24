@@ -339,6 +339,8 @@ class Hartree(Inference):
             self._use_numba = use_numba
             
 
+    def directed(self) -> bool:
+        return True
 
     def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
         """
