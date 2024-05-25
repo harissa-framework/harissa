@@ -13,6 +13,7 @@ def _create_test_group(cls):
         def test_instance(self):
             inf = cls()
             assert hasattr(inf, 'run')
+            assert hasattr(inf, 'directed')
 
         def test_run_output(self):
             inf = cls()

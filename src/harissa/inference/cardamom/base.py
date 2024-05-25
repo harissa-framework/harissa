@@ -425,6 +425,10 @@ class Cardamom(Inference):
             
             self._use_numba = use_numba
 
+    @property
+    def directed(self) -> bool:
+        return True
+    
     def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
         """
         Fit a network parameter to the data.
