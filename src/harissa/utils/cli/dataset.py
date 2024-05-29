@@ -42,15 +42,12 @@ def simulate_dataset(args):
 
     try:
         from alive_progress import alive_it
-        from alive_progress.animations.spinners import bouncing_spinner_factory
     except ImportError:
         cell_iterator = range(dataset.time_points.size)
     else:
         cell_iterator = alive_it(
             range(dataset.time_points.size),
-            title='Processing cells',
-            spinner=bouncing_spinner_factory('🌶', 6, hide=False),
-            receipt=False
+            title='Processing cells'
         )
     
     for cell_index in cell_iterator:
