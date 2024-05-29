@@ -2,13 +2,13 @@ import pytest
 import numpy as np
 from harissa.core import Inference, Dataset, NetworkParameter
 
-class InferenceMissingRun(Inference):
-    def __init__(self):
-        ...
+class InferenceMissing(Inference):
+    pass
 
-class InferenceSuperRun(Inference):
-    def __init__(self):
-        ...
+class InferenceSuper(Inference):
+    @property
+    def directed(self):
+        return super().directed
 
     def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
         return super().run(data, param)
@@ -21,15 +21,24 @@ class TestInference:
 
     def test_inference_missing_run(self):
         with pytest.raises(TypeError):
-            InferenceMissingRun()
+            InferenceMissing()
+    
+    def test_inference_missing_directed(self):
+        with pytest.raises(TypeError):
+            InferenceMissing()
         
     def test_inference_super_run(self):
-        inf = InferenceSuperRun()
+        inf = InferenceSuper()
         net = NetworkParameter(1)
         dataset = Dataset(np.empty(1), np.empty((1, 2), dtype=np.uint))
 
         with pytest.raises(NotImplementedError):
             inf.run(dataset, net)
+
+    def test_inference_super_directed(self):
+        inf = InferenceSuper()
+        with pytest.raises(NotImplementedError):
+            inf.directed
 
 class TestInferenceResult:
     def test_init(self):

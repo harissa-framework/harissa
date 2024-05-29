@@ -14,6 +14,7 @@ import harissa.utils.cli.trajectory as cli_trajectory
 import harissa.utils.cli.dataset as cli_dataset
 import harissa.utils.cli.visualize as cli_visualize
 import harissa.utils.cli.convert as cli_convert
+import harissa.utils.cli.template as cli_template
 
 # Handle exceptions with user-friendly traceback:
 # this may be moved later to specific end-user scripts
@@ -54,6 +55,7 @@ def main():
     cli_dataset.add_subcommand(subparsers)
     cli_visualize.add_subcommand(subparsers)
     cli_convert.add_subcommand(subparsers)
+    cli_template.add_subcommand(subparsers)
 
     # parse sys.argv and run the command before exiting
     args = parser.parse_args()
