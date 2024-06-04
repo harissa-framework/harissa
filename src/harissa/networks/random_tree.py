@@ -33,8 +33,11 @@ def random_tree(
     
     # Generate the network
     tree = random_spanning_tree(weight)
+    
     basal = np.zeros(G)
     inter = np.zeros((G, G))
+    gene_names = np.array(['', *[str(i) for i in range(1, G)]])
+
     basal[1:] = -5
     for i, targets in enumerate(tree):
         for j in targets:
@@ -44,7 +47,7 @@ def random_tree(
         for i in range(1, n_genes+1):
             inter[i, i] = 5
 
-    param = NetworkParameter(n_genes)
+    param = NetworkParameter(n_genes, gene_names)
     param.basal[:] = basal
     param.interaction[:] = inter
     

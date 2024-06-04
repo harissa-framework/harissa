@@ -24,6 +24,8 @@ def bn8():
     param.interaction[7, 8] = 10
     param.interaction[6, 8] = -10
 
+    param.genes_names = np.array(['', '1', '2', '3', '4', '5', '6', '7', '8'])
+
     param.layout = np.array([
         [-1.        , -0.75552351],
         [-0.60455711, -0.45673961],

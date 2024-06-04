@@ -13,6 +13,8 @@ def cn5():
     param.interaction[4, 5] = 10
     param.interaction[5, 1] = -10
 
+    param.genes_names = np.array(['', '1', '2', '3', '4', '5'])
+
     param.layout = np.array([
         [-1.        , -0.7402784 ],
         [-0.37545312, -0.27792309],
