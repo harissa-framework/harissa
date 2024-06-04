@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gs
 
 from harissa.core import NetworkParameter, Inference
-from harissa.plot import build_pos, plot_network
+from harissa.plot.plot_network import build_pos, plot_network
 
 def _plot_decorator(plot_func):
     @wraps(plot_func)
