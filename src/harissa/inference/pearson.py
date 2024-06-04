@@ -20,7 +20,7 @@ class Pearson(Inference):
                 score[i, j] = stats.pearsonr(
                     dataset.count_matrix[:, i],
                     dataset.count_matrix[:, j]
-                )[0]
+                ).statistic
 
         param.interaction[:] = score
 
