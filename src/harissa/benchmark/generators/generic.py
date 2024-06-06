@@ -1,37 +1,39 @@
 from typing import (
     Dict, 
-    List, 
-    Generic, 
+    List,
+    Tuple, 
     TypeVar, 
     Union, 
     Optional
 )
 
+from collections.abc import Iterator, Iterable
+
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from shutil import make_archive, unpack_archive
+from tempfile import TemporaryDirectory, mkdtemp
+from shutil import make_archive, unpack_archive, rmtree
 from alive_progress import alive_bar
 
-T = TypeVar('T')
-
-class GenericGenerator(Generic[T]):
+K = TypeVar('K', str, Tuple[Union[str, int],...])
+V = TypeVar('V')
+class GenericGenerator(Iterable[Tuple[K, V]]):
     def __init__(self,
         sub_directory_name: str, 
         include: Optional[List[str]] = None,
         exclude: Optional[List[str]] = None,
-        path: Optional[Union[str, Path]] = None
+        path: Optional[Union[str, Path]] = None,
+        verbose: bool = False
     ) -> None:
-        self._items : Optional[Dict[str, T]] = None
         self.sub_directory_name = sub_directory_name
 
         self.include = include or ['**']
         self.exclude = exclude or []
         
-        if path is not None:
-            self.load(path)
+        self.path = path
+        self.verbose = verbose
 
 
-    def match(self, path: Optional[Union[str, Path]], suffix: str = ''):
+    def match(self, path: Union[str, Path], suffix: str = ''):
         path = Path(path)
 
         return (
@@ -39,7 +41,7 @@ class GenericGenerator(Generic[T]):
             and all([not path.match(f'{p}{suffix}') for p in self.exclude])
         )
     
-    def match_rec(self, path: Optional[Union[str, Path]]):
+    def match_rec(self, path: Union[str, Path]):
         def add_paths(p:Optional[Path], acc: List[Path]):
             if p is not None:
                 if p.is_dir():
@@ -50,48 +52,48 @@ class GenericGenerator(Generic[T]):
             
             return acc
             
-        return add_paths(Path(path), [])
+        return add_paths(Path(path) / self.sub_directory_name, [])
     
-    @property
-    def items(self) -> Dict[str, T]:
-        self.generate()
-        return self._items
-
-    def load(self, path: Union[str, Path]) -> None:        
-        def __load(p : Path):
-            p = p / self.sub_directory_name
-            if not p.is_dir():
-                raise ValueError(f'{p} must be an existing directory.')
+    def as_dict(self) -> Dict[K, V]:
+        return dict(iter(self))
+    
+    def _sub_dir(self, path: Path) -> Path:
+        p = path / self.sub_directory_name
+        if not p.is_dir():
+            raise ValueError(f'{p} must be an existing directory.')
         
-            try:
-                self._load(p)
-            except BaseException as e:
-                self._items = None
-                raise e
-            
-        path = Path(path)
-        if path.suffix != '':
-            with TemporaryDirectory() as tmp_dir:
-                unpack_archive(path, tmp_dir)
-                __load(Path(tmp_dir))
-        else:
-            __load(path)
+        return p
     
-    def generate(self, force_generation: bool = False) -> None:
-        if self._items is None or force_generation:
-            try:
-                self._generate()
-            except BaseException as e:
-                self._items = None
-                raise e
+    def _check_path(self) -> Path:
+        self.path = Path(self.path)
+        if self.path.suffix != '':
+            path = mkdtemp()
+            unpack_archive(self.path, path)
+        else:    
+            path = self.path
+
+        sub_dir = path / self.sub_directory_name
+        if not sub_dir.is_dir():
+            raise ValueError(f'{sub_dir.name} is missing from {path}.')
+        
+        return path
+    
+    def remove_tmp_dir(self, tmp_dir):
+        if self.path != tmp_dir:
+            print(f'deleting tmp_dir {tmp_dir}')
+            rmtree(tmp_dir)
+    
+    def __iter__(self) -> Iterator[Tuple[K, V]]:
+        if self.path is not None:    
+            return self._load(self._check_path())
+        else:
+            return self._generate()
 
 
     def save(self, 
         path: Union[str, Path], 
         archive_format: Optional[str] = None
     ) -> Path:
-        self.generate()
-
         path = Path(path).with_suffix('')
         if archive_format is not None:
             with TemporaryDirectory() as tmp_dir:
@@ -110,11 +112,38 @@ class GenericGenerator(Generic[T]):
 
         return path.absolute()
     
-    def _load(self, path: Path) -> None:
+    def __len__(self) -> int:
+        count = 0
+        for _ in self.keys():
+            count += 1
+
+        return count
+    
+    def keys(self) -> Iterator[K]:
+        if self.path is not None:
+            self.path = Path(self.path)
+            if self.path.suffix != '':
+                path = mkdtemp()
+                unpack_archive(self.path, path)
+            else:    
+                path = self.path
+            
+            sub_dir = path / self.sub_directory_name
+            if not sub_dir.is_dir():
+                raise ValueError(f'{sub_dir.name} is missing from {path}.')
+        else:
+            path = None
+
+        return self._keys(path)
+    
+    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         raise NotImplementedError
     
-    def _generate(self) -> None:
+    def _generate(self) -> Iterator[Tuple[K, V]]:
         raise NotImplementedError
 
     def _save(self, path: Path) -> None:
+        raise NotImplementedError
+    
+    def _keys(self, path: Optional[Path]) -> Iterator[K]:
         raise NotImplementedError

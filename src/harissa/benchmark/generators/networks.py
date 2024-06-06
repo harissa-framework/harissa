@@ -1,16 +1,21 @@
 from typing import (
     Dict, 
     List,
+    Tuple,
     Callable, 
     Union, 
-    Optional
+    Optional,
+    TypeAlias
 )
+
+from collections.abc import Iterator
 
 from pathlib import Path
 from harissa.core import NetworkParameter
 from harissa.benchmark.generators.generic import GenericGenerator
-from alive_progress import alive_bar
+from harissa.utils.progress_bar import alive_bar
 from functools import wraps
+from shutil import rmtree
 
 from harissa.plot import build_pos
 import harissa.networks as networks
@@ -69,21 +74,24 @@ def tree(n_genes):
 
     return net
 
-class NetworksGenerator(GenericGenerator[NetworkParameter]):
+K: TypeAlias = str
+V: TypeAlias = NetworkParameter
+class NetworksGenerator(GenericGenerator[K, V]):
 
-    _networks : Dict[str, Callable[[], NetworkParameter]] = {}
+    _networks : Dict[str, Union[V, Callable[[], V]]] = {}
 
     def __init__(self,
         include: Optional[List[str]] = None, 
         exclude: Optional[List[str]] = None,
-        path: Optional[Union[str, Path]] = None
+        path: Optional[Union[str, Path]] = None,
+        verbose: bool = False
     ) -> None:
-        super().__init__('networks', include, exclude, path)
+        super().__init__('networks', include, exclude, path, verbose)
 
     @classmethod
     def register(cls, 
         name: str, 
-        network: Union[NetworkParameter, Callable[[], NetworkParameter]]
+        network: Union[V, Callable[[], V]]
     ) -> None:
         if isinstance(network, (NetworkParameter, Callable)):
             if name not in cls._networks:
@@ -107,54 +115,75 @@ class NetworksGenerator(GenericGenerator[NetworkParameter]):
     @classmethod
     def unregister_all(cls) -> None:
         cls._networks = {}
-    
-    # Alias
-    @property
-    def networks(self) -> Dict[str, NetworkParameter]:
-        return self.items
 
     @classmethod
     def available_networks(cls) -> List[str]:
         return list(cls._networks.keys())
+    
 
-    def _load(self, path: Path) -> None:
-        self._items = {}
-        
+    def _keys(self, path) -> Iterator[K]:
+        if path is not None:
+            for p in self.match_rec(path):
+                key = str(
+                    p
+                    .relative_to(path / self.sub_directory_name)
+                    .with_suffix('')
+                )
+                yield key
+            self.remove_tmp_dir(path)
+        else:
+            for key in self._networks.keys():
+                if self.match(key):
+                    yield key
+
+    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         paths = self.match_rec(path)
-
-        with alive_bar(len(paths), title='Loading Networks parameters') as bar:
+        with alive_bar(
+            len(paths), 
+            title='Loading Networks parameters',
+            disable=not self.verbose
+        ) as bar:
             for p in paths:
                 bar.text(f'Loading {p.absolute()}')
-                name = str(p.relative_to(path).with_suffix(''))
-                self._items[name] = NetworkParameter.load(p)
+                name = str(
+                    p
+                    .relative_to(path / self.sub_directory_name)
+                    .with_suffix('')
+                )
+                network = NetworkParameter.load(p)
                 bar()
+                yield name, network
         
-    def _generate(self) -> None:
-        self._items = {}
+        self.remove_tmp_dir(path)
+        
+    def _generate(self) -> Iterator[Tuple[K, V]]:
         networks = {
             k:n for k,n  in self._networks.items() 
             if self.match(k) 
         }
-        with alive_bar(len(networks), title='Generating networks') as bar:
+        with alive_bar(
+            len(networks), 
+            title='Generating networks',
+            disable=not self.verbose
+        ) as bar:
             for name, network in networks.items():
                 if isinstance(network, Callable):
                     network = network()
-                if isinstance(network, NetworkParameter):
-                    self._items[name] = network
-                else:
+                if not isinstance(network, NetworkParameter):
                     raise RuntimeError((f'{network} is not a callable'
                                         ' that returns a NetworkParameter.'))
                 bar()
+                yield name, network
         
     def _save(self, path: Path) -> None:
-        with alive_bar(len(self.networks)) as bar:
-            for name, network in self.networks.items():
-                if network.layout is None:
-                    network.layout = build_pos(network.interaction)
-                network.save(path / name)
-            bar()
+        for name, network in self:
+            if network.layout is None:
+                network.layout = build_pos(network.interaction)
+            network.save(path / name)
 
 NetworksGenerator.register_defaults()
 
 if __name__ == '__main__':
     print(NetworksGenerator.available_networks())
+    for name, network in NetworksGenerator():
+        print(name, network)

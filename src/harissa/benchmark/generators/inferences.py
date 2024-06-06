@@ -4,12 +4,13 @@ from typing import (
     Tuple, 
     Callable, 
     Union, 
-    Optional
+    Optional,
+    TypeAlias
 )
+from collections.abc import Iterator
 
 from dataclasses import dataclass
 from pathlib import Path
-from alive_progress import alive_bar
 from dill import loads, dumps
 
 import matplotlib.colors
@@ -18,6 +19,7 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib
 
+from harissa.utils.progress_bar import alive_bar
 from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.core import Inference
 from harissa.inference import Hartree, Cardamom, Pearson
@@ -28,7 +30,9 @@ class InferenceInfo:
     inference: Union[Inference, Callable[[], Inference]]
     colors: npt.NDArray
 
-class InferencesGenerator(GenericGenerator[Tuple[Inference, np.array]]):
+K: TypeAlias = str
+V: TypeAlias = Tuple[Inference, npt.NDArray]
+class InferencesGenerator(GenericGenerator[K, V]):
     _inferences : Dict[str, InferenceInfo] = {}
     color_map: matplotlib.colors.Colormap = matplotlib.pyplot.get_cmap('tab20')
 
@@ -83,16 +87,36 @@ class InferencesGenerator(GenericGenerator[Tuple[Inference, np.array]]):
     def getInferenceInfo(cls, name: str) -> InferenceInfo:
         return cls._inferences[name]
     
-    def _load(self, path: Path) -> None:
-        self._items = {}
+    def _keys(self, path) -> Iterator[K]:
+        if path is not None:
+            paths = self.match_rec(path)
+            for p in paths:
+                key = str(
+                    p
+                    .relative_to(path / self.sub_directory_name)
+                    .with_suffix('')
+                )
+                yield key
+            self.remove_tmp_dir(path)
+        else:
+            for key in self._networks.keys():
+                if self.match(key):
+                    yield key
+    
+    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         paths = self.match_rec(path)
         with alive_bar(
             len(paths),
-            title='Loading inferences info'
+            title='Loading inferences info',
+            disable=self.verbose
         ) as bar:
             for p in paths:
                 bar.text(f'{p.absolute()}')
-                name = str(p.relative_to(path).with_suffix(''))
+                name = str(
+                    p
+                    .relative_to(path / self.sub_directory_name)
+                    .with_suffix('')
+                )
                 with np.load(p) as data:
 
                     info = InferenceInfo(
@@ -103,22 +127,27 @@ class InferencesGenerator(GenericGenerator[Tuple[Inference, np.array]]):
                     if isinstance(info.inference, Inference):
                         if name not in self._inferences:
                             self.register(name, info)
-                        self._items[name] = (info.inference, info.colors)
                     else:
                         raise RuntimeError(
                             f'{info.inference} is not an Inference object.'
                         )
                 
                 bar()
+                yield name, (info.inference, info.colors)
+
+        self.remove_tmp_dir(path)
 
 
-    def _generate(self) -> None:
-        self._items = {}
+    def _generate(self) -> Iterator[Tuple[K, V]]:
         inferences = {
             k:i for k,i in self._inferences.items()
             if self.match(k)
         }
-        with alive_bar(len(inferences), title='Generating inferences') as bar:
+        with alive_bar(
+            len(inferences), 
+            title='Generating inferences',
+            disable=self.verbose
+        ) as bar:
             for name, inf_info in inferences.items():
                 bar.text(f'{name}')
                 if isinstance(inf_info.inference, Inference):
@@ -126,30 +155,27 @@ class InferencesGenerator(GenericGenerator[Tuple[Inference, np.array]]):
                 else:
                     inf = inf_info.inference()
                 
-                if isinstance(inf, Inference):
-                    self._items[name] = (inf, self._inferences[name].colors)
-                else:
+                if not isinstance(inf, Inference):
                     raise RuntimeError(
                         (f'{inf_info.inference} is not a callable'
                         ' that returns a Inference sub class.')
                     )
                 bar()
+                yield name, (inf, self._inferences[name].colors)
     
     def _save(self, path: Path) -> None:
-        with alive_bar(
-            len(self.inferences), 
-            title='Saving Inferences Info'
-        ) as bar:
-            for inf_name, (inf, colors) in self.inferences.items():
-                output = (path / inf_name).with_suffix('.npz')
-                bar.text(f'{output.absolute()}')
-                np.savez_compressed(
-                    output,
-                    inference=np.array(dumps(inf)),
-                    colors=colors
-                )
+        for inf_name, (inf, colors) in self:
+            output = (path / inf_name).with_suffix('.npz')
+            print(f'{output.absolute()}')
+            np.savez_compressed(
+                output,
+                inference=np.array(dumps(inf)),
+                colors=colors
+            )
 
 InferencesGenerator.register_defaults()
 
 if __name__ == '__main__':
     print(InferencesGenerator.available_inferences())
+    for name, (inf, colors) in InferencesGenerator():
+        print(name, inf, colors)
