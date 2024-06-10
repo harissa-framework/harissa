@@ -15,41 +15,11 @@ import matplotlib.gridspec as gs
 from harissa.core import NetworkParameter, Inference
 from harissa.plot.plot_network import build_pos, plot_network
 
-def _plot_decorator(plot_func):
-    @wraps(plot_func)
-    def wrapper(self,
-        scores: Dict[str, ScoreInfo],
-        ax: Optional[plt.Axes] = None,
-        path: Optional[Union[str, Path]] = None
-    ) -> None:
-        show_plot = path is None and ax is None
-        if ax is None:
-            fig = plt.figure(figsize=(5,5), dpi=100)
-            ax = fig.add_subplot()
-
-        plot_func(self, scores, ax)
-
-        if path is not None:
-            plt.savefig(
-                path, 
-                bbox_inches='tight'
-            )
-        elif show_plot:
-            plt.show()
-
-    return wrapper
-
 class DirectedPlotter:
     def __init__(self,
-        inferences: Dict[str, Tuple[Inference, np.array]], 
         network: Optional[NetworkParameter] = None, 
         alpha_curve_std: float = 0.2
     ) -> None:
-        self.colors = {
-            name:colors 
-            for name, (inf, colors) in inferences.items() 
-            if self._accept_inference(inf)
-        }
         self._truth = None
         if network is None:
             self._network = network
@@ -127,48 +97,45 @@ class DirectedPlotter:
         x, y = self.roc(score)
         return auc(x, y) 
     
-    @_plot_decorator
-    def plot_roc_curves(self, 
-        scores: Dict[str, ScoreInfo],
+    def plot_roc_curves(self,
         ax: plt.Axes
-    ) -> None:
+    ):
         """
         Plot mutiple ROC curves (see function `roc`).
         """
-        
-        self._plot_curves(scores, self.roc, ax)
-        ax.plot(
-            [0,1], 
-            [0,1], 
-            color='lightgray',
-            ls='--',
-            label='Random (0.50)'
-        )
-        # ax.set_xlim(0,1)
-        # ax.set_ylim(0)
-        ax.set_xlabel('False positive rate')
-        ax.set_ylabel('True positive rate')
-        ax.legend(loc='lower right')
+        y_start, y_end = 0.0, 1.0
+        try:
+            yield from self._plot_curves(ax, self.roc, y_start, y_end)
+        finally:
+            ax.plot(
+                [y_start, y_end], 
+                [y_start, y_end], 
+                color='lightgray',
+                ls='--',
+                label='Random (0.50)'
+            )
+            ax.set_xlabel('False positive rate')
+            ax.set_ylabel('True positive rate')
+            ax.legend(loc='lower right')
+            # ax.set_xlim(0,1)
+            # ax.set_ylim(0)
 
-    @_plot_decorator
-    def plot_roc_boxes(self,
-        scores: Dict[str, ScoreInfo],
-        ax: plt.Axes                   
-    ) -> None:
-
-        self._plot_boxes_auc(scores, self.auroc, ax)
-        left, right = ax.get_xlim()
-        ax.plot(
-            [left, right], 
-            [0.5,0.5], 
-            color='lightgray', 
-            ls='--' 
-            # label=f'Random ({b:.2f})'
-        )
-        
-        ax.set_xlim(left, right)
-        ax.set_ylim(0,1)
-        ax.set_ylabel('AUROC', fontsize=6)
+    def plot_roc_boxes(self, ax: plt.Axes):
+        try:
+            yield from self._plot_boxes_auc(ax, self.auroc)
+        finally:
+            left, right = ax.get_xlim()
+            ax.plot(
+                [left, right], 
+                [0.5,0.5], 
+                color='lightgray', 
+                ls='--' 
+                # label=f'Random ({b:.2f})'
+            )
+            
+            ax.set_xlim(left, right)
+            # ax.set_ylim(0,1)
+            ax.set_ylabel('AUROC')
 
     def pr(self,
         score: npt.NDArray[np.float_]
@@ -195,69 +162,72 @@ class DirectedPlotter:
         x, y = self.pr(score)
         return auc(x,y)
 
-    @_plot_decorator
-    def plot_pr_curves(self,
-        scores: Dict[str, ScoreInfo],
-        ax: plt.Axes
-    ) -> None:
+    def plot_pr_curves(self, ax: plt.Axes):
         """
         Plot multiple PR curves (see function `pr`).
         """
-        self._plot_curves(scores, self.pr, ax)
-        b = np.mean(self.truth)
-        ax.plot(
-            [0,1], 
-            [b,b], 
-            color='lightgray', 
-            ls='--', 
-            label=f'Random ({b:.2f})'
-        )
-        
-        ax.set_xlim(0,1)
-        ax.set_ylim(0)
-        ax.set_xlabel('Recall')
-        ax.set_ylabel('Precision')
-        ax.legend(loc='lower right')
+        try:
+            yield from self._plot_curves(ax, self.pr, 1.0)
+        finally:
+            b = np.mean(self.truth)
+            ax.plot(
+                [0,1], 
+                [b,b], 
+                color='lightgray', 
+                ls='--', 
+                label=f'Random ({b:.2f})'
+            )
+            
+            # ax.set_xlim(0,1)
+            # ax.set_ylim(0,1)
+            ax.set_xlabel('Recall')
+            ax.set_ylabel('Precision')
+            ax.legend(loc='lower right')
 
-    @_plot_decorator
-    def plot_pr_boxes(self,
-        scores: Dict[str, ScoreInfo],
-        ax: plt.Axes                   
-    ) -> None:
-
-        self._plot_boxes_auc(scores, self.aupr, ax)
-        b = np.mean(self.truth)
-        left, right = ax.get_xlim()
-        ax.plot(
-            [left, right], 
-            [b,b], 
-            color='lightgray', 
-            ls='--' 
-            # label=f'Random ({b:.2f})'
-        )
-        
-        ax.set_xlim(left, right)
-        ax.set_ylim(0,1)
-        ax.set_ylabel('AUPR', fontsize=6)
-
+    def plot_pr_boxes(self, ax: plt.Axes):
+        try:
+            yield from self._plot_boxes_auc(ax, self.aupr)
+        finally:
+            b = np.mean(self.truth)
+            left, right = ax.get_xlim()
+            ax.plot(
+                [left, right], 
+                [b,b], 
+                color='lightgray', 
+                ls='--' 
+                # label=f'Random ({b:.2f})'
+            )
+            
+            ax.set_xlim(left, right)
+            # ax.set_ylim(0,1)
+            ax.set_ylabel('AUPR')
 
     # https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc_crossval.html
-    def _plot_curves(self, scores, curve_fn, ax):
-        for inf, score_info in scores.items():
-            if inf in self.colors:
-                x = np.linspace(0, 1, 1000)
-                ys = np.empty((score_info.results.size, x.size))
-                for i, result in enumerate(score_info.results.flat):
-                    curve = curve_fn(result.parameter.interaction)
-                    interpolated_y = np.interp(x, *curve)
-                    interpolated_y[0] = 0.0
+    def _plot_curves(self, ax, curve_fn, y_start, y_end=None):
+        ys_per_inf = {}
+        x = np.linspace(0, 1, 1000)
+        try:
+            while True:
+                params = yield 
+                if params is not None:
+                    inf_name, inference, result = params
+                    if self._accept_inference(inference):
+                        curve = curve_fn(result.parameter.interaction)
+                        y = np.interp(x, *curve)
+                        y[0] = y_start
 
-                    ys[i] = interpolated_y
-                
+                        if inf_name not in ys_per_inf:
+                            ys_per_inf[inf_name] = ([], inference.colors)
+
+                        ys_per_inf[inf_name][0].append(y)
+                yield
+        finally:
+            for inf, (ys, colors) in ys_per_inf.items():
+                ys = np.array(ys)
                 y = np.mean(ys, axis=0)
-                y[-1] = 1.0
+                if y_end is not None:
+                    y[-1] = y_end
                 std_y = np.std(ys, axis=0)
-                colors = self.colors[inf]
                 ax.plot(
                     x, 
                     y,
@@ -272,22 +242,29 @@ class DirectedPlotter:
                     alpha=self.alpha_curve_std
                 )
 
-    def _plot_boxes_auc(self, scores, auc_fn, ax):
-        inferences_order = []
-        for i, (inf, score_info) in enumerate(scores.items()):
-            if inf in self.colors:
-                inferences_order.append(inf)
-                aucs = np.empty(score_info.results.size)
-                for j, result in enumerate(score_info.results.flat):
-                    aucs[j] = auc_fn(result.parameter.interaction)
-                
+    def _plot_boxes_auc(self, ax, auc_fn):
+        aucs_per_inf = {}
+        try:
+            while True:
+                params = yield
+                if params is not None:
+                    inf_name, inference, result = params
+                    if self._accept_inference(inference):
+                        auc = auc_fn(result.parameter.interaction)
+
+                        if inf_name not in aucs_per_inf:
+                            aucs_per_inf[inf_name] = ([], inference.colors)
+
+                        aucs_per_inf[inf_name][0].append(auc)
+                yield
+        finally:
+            for i, (aucs, colors) in enumerate(aucs_per_inf.values()):
                 box = ax.boxplot(
-                    [aucs], 
+                    [np.array(aucs)], 
                     positions=[i+0.5], 
                     patch_artist= True,
                     widths= [.25]
                 )
-                colors = self.colors[inf]
 
                 w = 0.8
                 for item in ['boxes', 'whiskers', 'fliers', 'medians', 'caps']:
@@ -300,18 +277,22 @@ class DirectedPlotter:
                     markerfacecolor=colors[1],
                     markeredgewidth=w
                 )
-        ax.set_xticklabels(inferences_order)
-        w = 0.7
-        ax.tick_params(direction='out', length=3, width=w)
-        ax.tick_params(axis='x', pad=2, labelsize=5.5)
-        ax.tick_params(axis='y', pad=0.5, labelsize=5.5)
-        for x in ['top','bottom','left','right']:
-            ax.spines[x].set_linewidth(w)
+
+            ax.set_xticklabels(list(aucs_per_inf.keys()))
+            # w = 0.7
+            # ax.tick_params(direction='out', length=3, width=w)
+            # ax.tick_params(axis='x', pad=2, labelsize=5.5)
+            # ax.tick_params(axis='y', pad=0.5, labelsize=5.5)
+            # for x in ['top','bottom','left','right']:
+            #     ax.spines[x].set_linewidth(w)
 
 
 class UnDirectedPlotter(DirectedPlotter):
-    def __init__(self, network: NetworkParameter) -> None:
-        super().__init__(network)
+    def __init__(self, 
+        network: Optional[NetworkParameter] = None,
+        alpha_curve_std: float = 0.2
+        ) -> None:
+        super().__init__(network, alpha_curve_std)
 
     def _prepare_score(self, 
         matrix: npt.NDArray[np.float_]
@@ -327,34 +308,34 @@ class UnDirectedPlotter(DirectedPlotter):
     
 
 
-def _plot_all(networks, inferences, scores, Plotter, show_networks):
-    nb_networks = len(networks)
+def plot_benchmark(benchmark, show_networks=False):
+    plotters_per_networks = {
+        net_name:(DirectedPlotter(), UnDirectedPlotter())
+        for net_name in benchmark.networks.keys()
+    }
+    nb_networks = len(plotters_per_networks)
     nb_colum = 4 + show_networks
     scale = 5
-    fig = plt.figure(figsize=(scale*nb_colum, scale*len(networks)))
-    grid = gs.GridSpec(nb_networks, nb_colum)
-    plotter = Plotter(inferences)
+    figs = [
+        plt.figure(figsize=(18, 9)),
+        plt.figure(figsize=(scale*nb_colum, scale*nb_networks)),
+        plt.figure(figsize=(scale*nb_colum, scale*nb_networks))
+    ]
 
-    for i, (net_name, network) in enumerate(networks.items()):
-        plotter.network = network
-        axs = []
-        if show_networks:
-            axs.append(fig.add_subplot(grid[i, 0]))
-            plotter.plot_network(axes=axs[0], scale=scale*2.1)
-            
-        axs= axs+[fig.add_subplot(grid[i, show_networks+j]) for j in range(4)]
-
-            
-        sc = scores[net_name]
-        plotter.plot_roc_curves(sc, axs[show_networks+0])
-        plotter.plot_roc_boxes(sc, axs[show_networks+1])
-        plotter.plot_pr_curves(sc, axs[show_networks+2])
-        plotter.plot_pr_boxes(sc, axs[show_networks+3])
-
-        axs[0].text(
+    grid = gs.GridSpec(2, 4)
+    plotters = [
+        DirectedPlotter(), 
+        UnDirectedPlotter()
+    ]
+    for i, (plotter, title) in enumerate(
+        zip(plotters, ['directed', 'undirected'])
+    ):
+        plotter.axs = [figs[0].add_subplot(grid[i, j]) for j in range(0,4)]
+        plotter.plots = None
+        plotter.axs[0].text(
             -0.095, 
             0.875, 
-            net_name, 
+            title, 
             bbox={
                 'boxstyle':'round,pad=0.2',
                 'fc':'none',
@@ -362,31 +343,92 @@ def _plot_all(networks, inferences, scores, Plotter, show_networks):
                 'lw':0.8
             },
             fontsize=9,
-            transform=axs[0].transAxes,
+            transform=plotter.axs[0].transAxes,
             ha='right'
         )
-        
 
-        if i < nb_networks - 1:
-            for ax in axs:
+    for k in range(1, 3):
+        fig = figs[k]
+        grid = gs.GridSpec(nb_networks, nb_colum)
+        for i, network_name in enumerate(plotters_per_networks):
+            # prepare axes
+            axs = [fig.add_subplot(grid[i, j]) for j in range(nb_colum)]
+            axs[0].text(
+                -0.095, 
+                0.875, 
+                network_name, 
+                bbox={
+                    'boxstyle':'round,pad=0.2',
+                    'fc':'none',
+                    'ec':'lightgray',
+                    'lw':0.8
+                },
+                fontsize=9,
+                transform=axs[0].transAxes,
+                ha='right'
+            )
+            
+            plotter = plotters_per_networks[network_name][k-1]
+            plotter.axs = axs
+            plotter.plots = None
+    
+    for key, value in benchmark:
+        network_name, inf_name = key[0], key[1]
+        result = value[0]
+        params = (inf_name, benchmark.model.inference, result)
+
+        for plotter in plotters:
+            plotter.network = benchmark.model.parameter
+            if plotter.plots is None:
+                plotter.plots = [
+                    plotter.plot_roc_curves(plotter.axs[0]),
+                    plotter.plot_roc_boxes(plotter.axs[1]),
+                    plotter.plot_pr_curves(plotter.axs[2]),
+                    plotter.plot_pr_boxes(plotter.axs[3])
+                ]
+            
+            for plot in plotter.plots:
+                next(plot)
+                plot.send(params)
+
+        for plotter in plotters_per_networks[network_name]:
+            plotter.network = benchmark.model.parameter    
+            if plotter.plots is None:
+                if show_networks:
+                    plotter.plot_network(axes=plotter.axs[0], scale=0.5)
+                plotter.plots = [
+                    plotter.plot_roc_curves(plotter.axs[show_networks+0]),
+                    plotter.plot_roc_boxes(plotter.axs[show_networks+1]),
+                    plotter.plot_pr_curves(plotter.axs[show_networks+2]),
+                    plotter.plot_pr_boxes(plotter.axs[show_networks+3])
+                ]
+            
+            for plot in plotter.plots:
+                next(plot)
+                plot.send(params)
+
+    for i, plotter in enumerate(plotters):
+        for plot in plotter.plots:
+            plot.close()
+        
+        for j in range(1, 4):
+            plotter.axs[j].sharey(plotter.axs[0])
+        
+        if i < 1:
+            for ax in plotter.axs:
                 ax.set_xlabel('')
 
-    return fig
+    for i, plotters in enumerate(plotters_per_networks.values()):
+        for plotter in plotters:
+            for plot in plotter.plots:
+                plot.close()
+            
+            for j in range(show_networks + 1, nb_colum):
+                plotter.axs[j].sharey(plotter.axs[show_networks])
+                
+            if i < nb_networks - 1:
+                for ax in plotter.axs:
+                    ax.set_xlabel('')
+             
 
-def plot_all_directed(networks, inferences, scores, show_networks=True):
-    return _plot_all(
-        networks,
-        inferences, 
-        scores, 
-        DirectedPlotter, 
-        show_networks
-    )
-
-def plot_all_undirected(networks, inferences, scores, show_networks=True):
-    return _plot_all(
-        networks,
-        inferences, 
-        scores, 
-        UnDirectedPlotter, 
-        show_networks
-    )
+    return figs

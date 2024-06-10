@@ -10,11 +10,11 @@ from typing import (
 from collections.abc import Iterator, Iterable
 
 from pathlib import Path
-from tempfile import TemporaryDirectory, mkdtemp
+from tempfile import TemporaryDirectory
 from shutil import make_archive, unpack_archive, rmtree
 from alive_progress import alive_bar
 
-K = TypeVar('K', str, Tuple[Union[str, int],...])
+K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')
 class GenericGenerator(Iterable[Tuple[K, V]]):
     def __init__(self,
@@ -25,13 +25,72 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         verbose: bool = False
     ) -> None:
         self.sub_directory_name = sub_directory_name
-
-        self.include = include or ['**']
-        self.exclude = exclude or []
-        
-        self.path = path
         self.verbose = verbose
 
+        self._include = ['**']
+        self._exclude = []
+        
+        self.path = path
+
+        if include is not None:
+            self.include = include
+        if exclude is not None:
+            self.exclude = exclude
+
+    @property
+    def path(self) -> Optional[Path]:
+        return self._path
+    
+    @path.setter
+    def path(self, path: Optional[Union[str, Path]]):
+        if path is not None:
+            if not isinstance(path, (str, Path)):
+                raise TypeError('path must be an str or a Path.')
+            self.set_path(Path(path))
+        else:
+            self._path = None
+
+
+    def set_path(self, path: Path):
+        self._path = path
+
+    @property
+    def verbose(self) -> bool:
+        return self._verbose
+    
+    @verbose.setter
+    def verbose(self, verbose: bool):
+        if not isinstance(verbose, bool):
+            raise TypeError('verbose must be a boolean.')
+        self.set_verbose(verbose)
+
+    def set_verbose(self, verbose:bool):
+        self._verbose = verbose
+
+    @property
+    def include(self):
+        return self._include    
+    @include.setter
+    def include(self, include):
+        if not isinstance(include, list):
+            raise TypeError('include must be a list of str.')
+        self.set_include(include)
+
+    def set_include(self, include):
+        self._include = include
+
+    @property
+    def exclude(self):
+        return self._exclude
+    
+    @exclude.setter
+    def exclude(self, exclude):
+        if not isinstance(exclude, list):
+            raise TypeError('exclude must be a list of str.')
+        self.set_exclude(exclude)
+
+    def set_exclude(self, exclude):
+        self._exclude = exclude
 
     def match(self, path: Union[str, Path], suffix: str = ''):
         path = Path(path)
@@ -57,21 +116,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     def as_dict(self) -> Dict[K, V]:
         return dict(iter(self))
     
-    def _sub_dir(self, path: Path) -> Path:
-        p = path / self.sub_directory_name
-        if not p.is_dir():
-            raise ValueError(f'{p} must be an existing directory.')
-        
-        return p
-    
-    def _check_path(self) -> Path:
-        self.path = Path(self.path)
-        if self.path.suffix != '':
-            path = mkdtemp()
-            unpack_archive(self.path, path)
-        else:    
-            path = self.path
-
+    def _check_path(self, path) -> Path:
         sub_dir = path / self.sub_directory_name
         if not sub_dir.is_dir():
             raise ValueError(f'{sub_dir.name} is missing from {path}.')
@@ -84,11 +129,26 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             rmtree(tmp_dir)
     
     def __iter__(self) -> Iterator[Tuple[K, V]]:
-        if self.path is not None:    
-            return self._load(self._check_path())
+        if self.path is not None: 
+            if self.path.suffix != '':
+                with TemporaryDirectory() as tmp_dir:
+                    unpack_archive(self.path, tmp_dir)
+                    yield from self._load(self._check_path(tmp_dir))
+            else:
+                yield from self._load(self._check_path(self.path))
         else:
-            return self._generate()
-
+            yield from self._generate()
+        
+    def keys(self) -> Iterator[K]:
+        if self.path is not None:
+            if self.path.suffix != '':
+                with TemporaryDirectory() as tmp_dir:
+                    unpack_archive(self.path, tmp_dir)
+                    yield from self._load_keys(self._check_path(tmp_dir))
+            else:
+                yield from self._load_keys(self._check_path(self.path)) 
+        else:
+            yield from self._generate_keys()
 
     def save(self, 
         path: Union[str, Path], 
@@ -119,31 +179,17 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
 
         return count
     
-    def keys(self) -> Iterator[K]:
-        if self.path is not None:
-            self.path = Path(self.path)
-            if self.path.suffix != '':
-                path = mkdtemp()
-                unpack_archive(self.path, path)
-            else:    
-                path = self.path
-            
-            sub_dir = path / self.sub_directory_name
-            if not sub_dir.is_dir():
-                raise ValueError(f'{sub_dir.name} is missing from {path}.')
-        else:
-            path = None
-
-        return self._keys(path)
+    def _load_keys(self, path: Path) -> Iterator[K]:
+        raise NotImplementedError
     
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         raise NotImplementedError
     
+    def _generate_keys(self) -> Iterator[K]:
+        raise NotImplementedError
+
     def _generate(self) -> Iterator[Tuple[K, V]]:
         raise NotImplementedError
 
     def _save(self, path: Path) -> None:
-        raise NotImplementedError
-    
-    def _keys(self, path: Optional[Path]) -> Iterator[K]:
         raise NotImplementedError

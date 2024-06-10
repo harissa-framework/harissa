@@ -1,168 +1,217 @@
 from typing import (
-    Dict,
+    List,
+    Tuple,
     Union, 
-    Optional
+    Optional,
+    TypeAlias
 )
+from collections.abc import Iterator
 
 from pathlib import Path
 from time import perf_counter
-from dataclasses import dataclass, asdict
+from dill import loads
 
 import numpy as np
-import numpy.typing as npt
 
 from alive_progress import alive_bar
 
-from harissa.core import NetworkModel, Inference
+from harissa.core import NetworkModel, NetworkParameter, Inference
 from harissa.benchmark.generators import (
     GenericGenerator,
     DatasetsGenerator,
     InferencesGenerator
 )
 
-from harissa.plot import build_pos
-from harissa.plot.plot_benchmark import plot_all_directed, plot_all_undirected
+from harissa.plot.plot_benchmark import plot_benchmark
 
-@dataclass
-class ScoreInfo:
-    results: npt.NDArray[Inference.Result]
-    runtimes: npt.NDArray[np.float_]
-
-class Benchmark(GenericGenerator[Dict[str, ScoreInfo]]):
+K : TypeAlias = Tuple[str, str, str, str]
+V : TypeAlias = Tuple[Inference.Result, float]
+class Benchmark(GenericGenerator[K, V]):
     def __init__(self,
-        datasets_generator: Optional[DatasetsGenerator] = None,
-        inferences_generator: Optional[InferencesGenerator] = None,
+        datasets: Optional[DatasetsGenerator] = None,
+        inferences: Optional[InferencesGenerator] = None,
         n_scores: int = 1, 
-        path: Optional[Union[str, Path]] = None
+        path: Optional[Union[str, Path]] = None,
+        include: Optional[List[str]] = None,
+        exclude: Optional[List[str]] = None,
+        verbose: bool = True
     ) -> None:
-        super().__init__('scores', path=path)
-        self.generators = [
-            datasets_generator or DatasetsGenerator(path=path),
-            inferences_generator or InferencesGenerator(path=path)
-        ]
-
+        self.datasets = datasets or DatasetsGenerator()
+        self.inferences = inferences or InferencesGenerator()
         self.model = NetworkModel()
         self.n_scores = n_scores
+        super().__init__('scores', include, exclude, path, verbose)
 
+    def set_path(self, path: Path):
+        super().set_path(path)
+        self.datasets.path = path
+        self.inferences.path = path
+
+    def set_verbose(self, verbose: bool):
+        super().set_verbose(verbose)
+        self.datasets.verbose = verbose
+        self.inferences.verbose = verbose
+
+    def set_include(self, include):
+        super().set_include(include)
+        for _ in self.keys():
+            pass
+    
+    def set_exclude(self, exclude):
+        super().set_exclude(exclude)
+        for _ in self.keys():
+            pass
 
     # Alias
-    @property  
-    def scores(self):
-        return self.items
-    
     @property
     def networks(self):
-        return self.generators[0].networks_generator.networks
-    
-    @property
-    def datasets(self):
-        return self.generators[0].datasets
-    
-    @property
-    def inferences(self):
-        return self.generators[1].inferences
+        return self.datasets.networks
 
-    def _load(self, path: Path) -> None:
-        self._items = {}
-        paths = self.match_rec(path)
-        with alive_bar(len(paths), title='Loading scores') as bar:
-            for p in paths:
-                inf_name = p.stem
-                for part in p.parts[-2::-1]:
-                    if inf_name in InferencesGenerator.available_inferences():
-                        break
-                    inf_name = str(Path(part) / inf_name)
-                
-                network_name = str(Path().joinpath(
-                    *p.relative_to(path).parts[:-len(Path(inf_name).parts)]
-                ))
-                
-                if network_name not in self._items:
-                    self._items[network_name] = {}                
+    def _load_keys(self, path: Path) -> Iterator[K]:
+        self.datasets.path = path
+        self.inferences.path = path
 
-                with np.load(p, allow_pickle=True) as data:
-                    self._items[network_name][inf_name] = ScoreInfo(**data)
+        yield from self._generate_keys()
+
+        self.datasets.path = self.path
+        self.inferences.path = self.path
+
+        self.remove_tmp_dir(path)
+
+    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
+        scores_keys = list(self._load_keys(path))
+
+        with alive_bar(len(scores_keys), title='Loading scores') as bar:
+            for key in scores_keys:
+                self.model.parameter = NetworkParameter.load(
+                    path / self.networks.sub_directory_name / f'{key[0]}.npz'
+                )
+
+                with np.load(
+                    path / self.inferences.sub_directory_name / f'{key[1]}.npz'
+                ) as data:
+                    inf = loads(data['inference'].item())
+
+                self.model.inference = inf
+
+                result_path = path.joinpath(self.sub_directory_name, *key)
+                result = inf.Result.load(
+                    result_path / 'result.npz', 
+                    load_extra=True
+                )
+                runtime = np.load(result_path / 'runtime.npy')
 
                 bar()
+                yield key, (result, runtime)
 
-    def _generate(self) -> None:
-        self._items = {}
+    def _generate_keys(self) -> Iterator[K]:
+        self.datasets.verbose = False
+        self.inferences.verbose = False
+
+        datasets_included = []
+        inferences_included = []
+
+        for network_name, data_name in self.datasets.keys():
+            for inf_name in self.inferences.keys():
+                for i in range(self.n_scores):
+                    key = (network_name, inf_name, data_name, f'r{i+1}')
+                    if self.match(Path().joinpath(*key)):
+                        dataset_key = str(Path(network_name) / data_name)
+                        if dataset_key not in datasets_included:
+                            datasets_included.append(dataset_key)
+                        if inf_name not in inferences_included:
+                            inferences_included.append(inf_name)
+                        
+                        yield key
+
+        self.datasets.verbose = self.verbose
+        self.datasets.include = datasets_included
+        self.inferences.verbose = self.verbose
+        self.inferences.include = inferences_included
+
+    def _generate(self) -> Iterator[K, V]:
+        
+        self.datasets.verbose = False
+        self.inferences.verbose = False
+
         with alive_bar(
-            self.n_scores
-            * len(self.inferences) 
-            * int(np.sum([d.size for d in self.datasets.values()])),
-            title='Generating scores'
+            len(self),
+            title='Generating scores',
+            disable=not self.verbose
         ) as bar:
-            for net_name, datasets in self.datasets.items():
-                self._items[net_name] = {}
-                for inf_name, (inference, _) in self.inferences.items():
-                    n_dataset = datasets.size
-                    runtime= np.zeros((n_dataset, self.n_scores))
-                    results= np.empty((n_dataset, self.n_scores), dtype=object)
-                    # results = [None] * n_scores
-                    self.model.parameter = self.networks[net_name]
+            for (network_name, data_name), dataset in self.datasets:
+                self.model.parameter = self.datasets.model.parameter
+                for inf_name, inference in self.inferences:
                     self.model.inference = inference
-                    for i in range(n_dataset):
-                        for j in range(self.n_scores):
-                            text = f'Score {net_name}-{inf_name}-{i+1}'
-                            if self.n_scores > 1:
-                                text += f'-{j+1}'
-                            bar.text(text)
-                            start = perf_counter()
-                            results[i, j] = self.model.fit(datasets[i])
-                            runtime[i, j] = perf_counter() - start
-                            bar()
-
-                    self._items[net_name][inf_name] = ScoreInfo(
-                        results, 
-                        runtime
-                    )
+                    for i in range(self.n_scores):
+                        key = (network_name, inf_name, data_name, f'r{i+1}')
+                        key_str = '-'.join(key[:-1])
+                        if self.n_scores > 1:
+                            key_str += f'-{key[-1]}'
+                        
+                        bar.text(f'Score {key_str}')
+                        start = perf_counter()
+                        result = self.model.fit(dataset)
+                        runtime = perf_counter() - start
+                        bar()
+                        yield key, (result, runtime)
+        
+        self.datasets.verbose = self.verbose
+        self.inferences.verbose = self.verbose
     
     def _save(self, path: Path) -> None:
-        for generator in self.generators:
-            generator.save(path.parent)
-        
-        with alive_bar(
-            int(np.sum([
-                len(infos)
-                for infos in self.scores.values()
-            ])),
-            title='Saving Scores'
-        ) as bar:
-            for network, inferences_scores in self.scores.items():
-                network_path = path / network
-                for inference, score_info  in inferences_scores.items():
-                    output = network_path / inference
-                    output.parent.mkdir(parents=True, exist_ok=True)
-                    bar.text(f'{output.with_suffix(".npz").absolute()}')
+        parent_path = path.parent
 
-                    np.savez_compressed(output, **asdict(score_info))
-                    bar()
+        self.datasets.save(parent_path)
+        self.datasets.verbose = False
+        self.inferences.save(parent_path)
+        self.inferences.verbose = False
+
+        if self.path is None:
+            self.datasets.path = parent_path
+            self.inferences.path = parent_path
+        
+        for (network_name, inf_name, d, r), (result, runtime) in self:
+            output = path.joinpath(network_name, inf_name, d, r)
+            output.mkdir(parents=True, exist_ok=True)
+            result.save(output / 'result', True)
+            np.save(output / 'runtime.npy', np.array([runtime]))
+
+        self.datasets.verbose = self.verbose
+        self.datasets.path = self.path
+        self.inferences.verbose = self.verbose
+        self.inferences.path = self.path
 
     def reports(self, show_networks=False):
-        for network in self.networks.values():
-            if network.layout is None:
-                network.layout = build_pos(network.interaction)
+        return plot_benchmark(self, show_networks)
 
-        return [
-            plot_all_directed(
-                self.networks,
-                self.inferences, 
-                self.scores, 
-                show_networks
-            ), 
-            plot_all_undirected(
-                self.networks,
-                self.inferences, 
-                self.scores, 
-                show_networks
-            )
-        ]
-
-    def save_reports(self, path: Union[str, Path]) -> Path:
+    def save_reports(self,
+        path: Union[str, Path], 
+        show_networks=False
+    ) -> Path:
         path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
         for fname, fig in zip(
-            ['directed.pdf', 'undirected.pdf'], self.reports()
+            [
+                'general.pdf', 
+                'directed.pdf', 
+                'undirected.pdf'
+            ], 
+             self.reports(show_networks)
         ):
             fig.savefig(path / fname)
         return path
+    
+
+if __name__ == '__main__':
+    # gen = Benchmark(verbose=True)
+    # gen.datasets.path = 'test_benchmark'
+    # gen.save('test_benchmark')
+    
+    gen = Benchmark(
+        path='test_benchmark',
+        exclude=['Trees*/*/*/*'], 
+        verbose=True
+    )
+    print(gen.save_reports('test_reports', True))
+    

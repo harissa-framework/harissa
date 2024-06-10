@@ -15,7 +15,6 @@ from harissa.core import NetworkParameter
 from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.utils.progress_bar import alive_bar
 from functools import wraps
-from shutil import rmtree
 
 from harissa.plot import build_pos
 import harissa.networks as networks
@@ -119,22 +118,15 @@ class NetworksGenerator(GenericGenerator[K, V]):
     @classmethod
     def available_networks(cls) -> List[str]:
         return list(cls._networks.keys())
-    
 
-    def _keys(self, path) -> Iterator[K]:
-        if path is not None:
-            for p in self.match_rec(path):
-                key = str(
-                    p
-                    .relative_to(path / self.sub_directory_name)
-                    .with_suffix('')
-                )
-                yield key
-            self.remove_tmp_dir(path)
-        else:
-            for key in self._networks.keys():
-                if self.match(key):
-                    yield key
+    def _load_keys(self, path: Path) -> Iterator[K]:
+        for p in self.match_rec(path):
+            key = str(
+                p
+                .relative_to(path / self.sub_directory_name)
+                .with_suffix('')
+            )
+            yield key
 
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         paths = self.match_rec(path)
@@ -153,8 +145,11 @@ class NetworksGenerator(GenericGenerator[K, V]):
                 network = NetworkParameter.load(p)
                 bar()
                 yield name, network
-        
-        self.remove_tmp_dir(path)
+
+    def _generate_keys(self) -> Iterator[K]:
+        for key in self._networks.keys():
+            if self.match(key):
+                yield key
         
     def _generate(self) -> Iterator[Tuple[K, V]]:
         networks = {
