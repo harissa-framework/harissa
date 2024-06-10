@@ -365,6 +365,55 @@ class Cardamom(Inference):
                 data_bool=data_bool
             )
 
+        @classmethod
+        def load_txt(cls, path: Union[str, Path], load_extra: bool = False):
+            if load_extra:
+                path_extra = Path(path) / 'extra'
+                return cls(
+                    NetworkParameter.load_txt(path),
+                    np.loadtxt(path_extra / 'variations.txt'), 
+                    {
+                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        for f in (path_extra / 'basal_time').iterdir()
+                    }, 
+                    {
+                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        for f in (path_extra / 'interaction_time').iterdir()
+                    }, 
+                    np.loadtxt(path_extra / 'data_bool.txt')
+                )
+            else:
+                return super().load_txt(path)
+            
+        @classmethod
+        def load(cls, path: Union[str, Path], load_extra: bool = False):
+            if load_extra:
+                param = NetworkParameter.load(path)
+                path = f'{Path(path).with_suffix("")}_extra'
+                basal_time = {}
+                inter_time = {}
+
+                with np.load(path + '_basal_time.npz') as data:
+                    for k, v in dict(data).items():
+                        basal_time[float(k.split('_')[1])] = v
+                with np.load(path + '_interaction_time.npz') as data:
+                    for k, v in dict(data).items():
+                        inter_time[float(k.split('_')[1])] = v
+                with np.load(path + '_variations.npz') as data:
+                    variations = data['variations']
+                with np.load(path + '_data_bool.npz') as data:
+                    data_bool = data['data_bool']
+                
+                return cls(
+                    param, 
+                    variations, 
+                    basal_time, 
+                    inter_time, 
+                    data_bool
+                )
+            else:
+                return super().load(path)
+
         def save_extra_txt(self, path: Union[str, Path]):
             path = Path(path) / 'extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
@@ -376,7 +425,7 @@ class Cardamom(Inference):
             np.savetxt(path / 'data_bool.txt', self.data_bool)
         
         def save_extra(self, path: Union[str, Path]):
-            path = str(path) + '_extra'
+            path = f'{Path(path).with_suffix("")}_extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
             inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
             
