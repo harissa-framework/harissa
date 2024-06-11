@@ -133,7 +133,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             if self.path.suffix != '':
                 with TemporaryDirectory() as tmp_dir:
                     unpack_archive(self.path, tmp_dir)
-                    yield from self._load(self._check_path(tmp_dir))
+                    yield from self._load(self._check_path(Path(tmp_dir)))
             else:
                 yield from self._load(self._check_path(self.path))
         else:
@@ -144,7 +144,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             if self.path.suffix != '':
                 with TemporaryDirectory() as tmp_dir:
                     unpack_archive(self.path, tmp_dir)
-                    yield from self._load_keys(self._check_path(tmp_dir))
+                    yield from self._load_keys(self._check_path(Path(tmp_dir)))
             else:
                 yield from self._load_keys(self._check_path(self.path)) 
         else:
