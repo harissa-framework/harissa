@@ -15,7 +15,7 @@ import numpy as np
 
 from alive_progress import alive_bar
 
-from harissa.core import NetworkModel, NetworkParameter, Inference
+from harissa.core import NetworkModel, NetworkParameter, Inference, Dataset
 from harissa.benchmark.generators import (
     GenericGenerator,
     DatasetsGenerator,
@@ -25,19 +25,23 @@ from harissa.benchmark.generators import (
 from harissa.plot.plot_benchmark import plot_benchmark
 
 K : TypeAlias = Tuple[str, str, str, str]
-V : TypeAlias = Tuple[Inference.Result, float]
+V : TypeAlias = Tuple[
+    NetworkParameter, 
+    Inference, 
+    Dataset, 
+    Inference.Result, 
+    float
+]
 class Benchmark(GenericGenerator[K, V]):
     def __init__(self,
-        datasets: Optional[DatasetsGenerator] = None,
-        inferences: Optional[InferencesGenerator] = None,
         n_scores: int = 1, 
         path: Optional[Union[str, Path]] = None,
         include: Optional[List[str]] = None,
         exclude: Optional[List[str]] = None,
         verbose: bool = True
     ) -> None:
-        self.datasets = datasets or DatasetsGenerator()
-        self.inferences = inferences or InferencesGenerator()
+        self.datasets = DatasetsGenerator()
+        self.inferences = InferencesGenerator()
         self.model = NetworkModel()
         self.n_scores = n_scores
         super().__init__('scores', include, exclude, path, verbose)
@@ -83,7 +87,7 @@ class Benchmark(GenericGenerator[K, V]):
 
         with alive_bar(len(scores_keys), title='Loading scores') as bar:
             for key in scores_keys:
-                self.model.parameter = NetworkParameter.load(
+                network = NetworkParameter.load(
                     path / self.networks.sub_directory_name / f'{key[0]}.npz'
                 )
 
@@ -92,7 +96,13 @@ class Benchmark(GenericGenerator[K, V]):
                 ) as data:
                     inf = loads(data['inference'].item())
 
-                self.model.inference = inf
+                dataset = Dataset.load(
+                    path.joinpath(
+                        self.datasets.sub_directory_name, 
+                        key[0], 
+                        f'{key[2]}.npz'
+                    )
+                )
 
                 result_path = path.joinpath(self.sub_directory_name, *key)
                 result = inf.Result.load(
@@ -102,12 +112,9 @@ class Benchmark(GenericGenerator[K, V]):
                 runtime = np.load(result_path / 'runtime.npy')
 
                 bar()
-                yield key, (result, runtime)
+                yield key, (network, inf, dataset, result, runtime)
 
     def _generate_keys(self) -> Iterator[K]:
-        self.datasets.verbose = False
-        self.inferences.verbose = False
-
         datasets_included = []
         inferences_included = []
 
@@ -124,9 +131,7 @@ class Benchmark(GenericGenerator[K, V]):
                         
                         yield key
 
-        self.datasets.verbose = self.verbose
         self.datasets.include = datasets_included
-        self.inferences.verbose = self.verbose
         self.inferences.include = inferences_included
 
     def _generate(self) -> Iterator[K, V]:
@@ -139,10 +144,10 @@ class Benchmark(GenericGenerator[K, V]):
             title='Generating scores',
             disable=not self.verbose
         ) as bar:
-            for (network_name, data_name), dataset in self.datasets:
-                self.model.parameter = self.datasets.model.parameter
-                for inf_name, inference in self.inferences:
-                    self.model.inference = inference
+            for (network_name, data_name), (network, dataset) in self.datasets:
+                self.model.parameter = network
+                for inf_name, inf in self.inferences:
+                    self.model.inference = inf
                     for i in range(self.n_scores):
                         key = (network_name, inf_name, data_name, f'r{i+1}')
                         key_str = '-'.join(key[:-1])
@@ -154,7 +159,7 @@ class Benchmark(GenericGenerator[K, V]):
                         result = self.model.fit(dataset)
                         runtime = perf_counter() - start
                         bar()
-                        yield key, (result, runtime)
+                        yield key, (network, inf, dataset, result, runtime)
         
         self.datasets.verbose = self.verbose
         self.inferences.verbose = self.verbose
@@ -171,7 +176,7 @@ class Benchmark(GenericGenerator[K, V]):
             self.datasets.path = parent_path
             self.inferences.path = parent_path
         
-        for (network_name, inf_name, d, r), (result, runtime) in self:
+        for (network_name, inf_name, d, r), (*_, result, runtime) in self:
             output = path.joinpath(network_name, inf_name, d, r)
             output.mkdir(parents=True, exist_ok=True)
             result.save(output / 'result', True)
@@ -204,14 +209,14 @@ class Benchmark(GenericGenerator[K, V]):
     
 
 if __name__ == '__main__':
-    # gen = Benchmark(verbose=True)
-    # gen.datasets.path = 'test_benchmark'
-    # gen.save('test_benchmark')
+    gen = Benchmark(verbose=True)
+    gen.save('test_benchmark')
     
     gen = Benchmark(
         path='test_benchmark',
         exclude=['Trees*/*/*/*'], 
         verbose=True
     )
+    print(gen.save('test_benchmark2'))
     print(gen.save_reports('test_reports', True))
     

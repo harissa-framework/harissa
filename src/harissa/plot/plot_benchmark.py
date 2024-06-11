@@ -374,11 +374,11 @@ def plot_benchmark(benchmark, show_networks=False):
     
     for key, value in benchmark:
         network_name, inf_name = key[0], key[1]
-        result = value[0]
-        params = (inf_name, benchmark.model.inference, result)
+        network, inf, result = value[0], value[1], value[3]
+        params = (inf_name, inf, result)
 
         for plotter in plotters:
-            plotter.network = benchmark.model.parameter
+            plotter.network = network
             if plotter.plots is None:
                 plotter.plots = [
                     plotter.plot_roc_curves(plotter.axs[0]),
@@ -392,7 +392,7 @@ def plot_benchmark(benchmark, show_networks=False):
                 plot.send(params)
 
         for plotter in plotters_per_networks[network_name]:
-            plotter.network = benchmark.model.parameter    
+            plotter.network = network    
             if plotter.plots is None:
                 if show_networks:
                     plotter.plot_network(axes=plotter.axs[0], scale=0.5)
@@ -430,5 +430,4 @@ def plot_benchmark(benchmark, show_networks=False):
                 for ax in plotter.axs:
                     ax.set_xlabel('')
              
-
     return figs

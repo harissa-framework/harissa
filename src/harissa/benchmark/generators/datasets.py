@@ -20,10 +20,10 @@ from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.benchmark.generators.networks import NetworksGenerator
 
 K: TypeAlias = Tuple[str, str]
-V: TypeAlias = Dataset
+V: TypeAlias = Tuple[NetworkParameter, Dataset]
+
 class DatasetsGenerator(GenericGenerator[K, V]):
-    def __init__(self, 
-        networks: Optional[NetworksGenerator] = None,
+    def __init__(self,
         time_points : npt.NDArray[np.float_] = np.array([
             0, 6, 12, 24, 36, 48, 60, 72, 84, 96
         ], dtype=float),
@@ -35,7 +35,7 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         path: Optional[Union[str, Path]] = None,
         verbose: bool = False
     ) -> None:
-        self.networks = networks or NetworksGenerator()
+        self.networks = NetworksGenerator()
     
         self.model = NetworkModel(
             simulation=BurstyPDMP(use_numba=True)
@@ -70,8 +70,7 @@ class DatasetsGenerator(GenericGenerator[K, V]):
     def _load_keys(self, path: Path) -> Iterator[K]:
         self.networks.path = path
         network_included = []
-        for network_name, network in self.networks:
-            self.model.parameter = network
+        for network_name in self.networks.keys():
             dataset_dir = path / self.sub_directory_name / network_name
             for dataset_path in dataset_dir.iterdir():
                 dataset_name = dataset_path.stem
@@ -94,14 +93,14 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         ) as bar:
             for network_name, dataset_name in self._load_keys(path):
                 bar.text(f'Loading {network_name} - {dataset_name}')
-                self.model.parameter = NetworkParameter.load(
+                network = NetworkParameter.load(
                     path/self.networks.sub_directory_name/f'{network_name}.npz'
                 )
                 dataset = Dataset.load(
                     path/self.sub_directory_name/network_name/f'{dataset_name}.npz' 
                 )
                 bar()
-                yield (network_name, dataset_name), dataset
+                yield (network_name, dataset_name), (network, dataset)
 
     def _generate_keys(self) -> Iterator[K]:
         network_included = []
@@ -142,7 +141,7 @@ class DatasetsGenerator(GenericGenerator[K, V]):
                         **self.simulate_dataset_parameters
                     )
                     bar()
-                    yield (network_name, dataset_name), dataset
+                    yield (network_name, dataset_name), (network, dataset)
 
         self.networks.verbose = self.verbose
     
@@ -153,7 +152,7 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         if self.path is None:
             self.networks.path = parent_path
 
-        for (network_name, dataset_name) , dataset in self:
+        for (network_name, dataset_name) , (_, dataset) in self:
             output = path / network_name / f'{dataset_name}.npz'
             output.parent.mkdir(parents=True, exist_ok=True)
             dataset.save(output)
