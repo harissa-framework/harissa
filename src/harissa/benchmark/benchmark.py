@@ -177,7 +177,7 @@ class Benchmark(GenericGenerator[K, V]):
         ) as bar:
             for (n_name, d_name), (network, dataset) in self.datasets.items():
                 self.model.parameter = network
-                for inf_name, inf in self.inferences:
+                for inf_name, inf in self.inferences.items():
                     self.model.inference = inf
                     for i in range(self.n_scores):
                         key = (n_name, inf_name, d_name, f'r{i+1}')
@@ -206,7 +206,7 @@ class Benchmark(GenericGenerator[K, V]):
         ) as bar:
             for (n_name, d_name), (network, dataset) in self.datasets.items():
                 self.model.parameter = network
-                for inf_name, inf in self.inferences:
+                for inf_name, inf in self.inferences.items():
                     self.model.inference = inf
                     for i in range(self.n_scores):
                         key = (n_name, inf_name, d_name, f'r{i+1}')
