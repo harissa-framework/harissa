@@ -146,6 +146,20 @@ class NetworksGenerator(GenericGenerator[K, V]):
                 bar()
                 yield name, network
 
+    def _load_values(self, path: Path) -> Iterator[V]:
+        paths = self.match_rec(path)
+        with alive_bar(
+            len(paths), 
+            title='Loading Networks parameters',
+            disable=not self.verbose
+        ) as bar:
+            for p in paths:
+                bar.text(f'Loading {p.absolute()}')
+                network = NetworkParameter.load(p)
+                bar()
+                yield network
+        
+
     def _generate_keys(self) -> Iterator[K]:
         for key in self._networks.keys():
             if self.match(key):
@@ -162,6 +176,7 @@ class NetworksGenerator(GenericGenerator[K, V]):
             disable=not self.verbose
         ) as bar:
             for name, network in networks.items():
+                bar.text(name)
                 if isinstance(network, Callable):
                     network = network()
                 if not isinstance(network, NetworkParameter):
@@ -169,9 +184,29 @@ class NetworksGenerator(GenericGenerator[K, V]):
                                         ' that returns a NetworkParameter.'))
                 bar()
                 yield name, network
+    
+    def _generate_values(self) -> Iterator[V]:
+        networks = {
+            k:n for k,n in self._networks.items() 
+            if self.match(k) 
+        }
+        with alive_bar(
+            len(networks), 
+            title='Generating networks',
+            disable=not self.verbose
+        ) as bar:
+            for name, network in networks.items():
+                bar.text(name)
+                if isinstance(network, Callable):
+                    network = network()
+                if not isinstance(network, NetworkParameter):
+                    raise RuntimeError((f'{network} is not a callable'
+                                        ' that returns a NetworkParameter.'))
+                bar()
+                yield network
         
     def _save(self, path: Path) -> None:
-        for name, network in self:
+        for name, network in self.items():
             if network.layout is None:
                 network.layout = build_pos(network.interaction)
             network.save(path / name)

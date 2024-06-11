@@ -128,16 +128,8 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             print(f'deleting tmp_dir {tmp_dir}')
             rmtree(tmp_dir)
     
-    def __iter__(self) -> Iterator[Tuple[K, V]]:
-        if self.path is not None: 
-            if self.path.suffix != '':
-                with TemporaryDirectory() as tmp_dir:
-                    unpack_archive(self.path, tmp_dir)
-                    yield from self._load(self._check_path(Path(tmp_dir)))
-            else:
-                yield from self._load(self._check_path(self.path))
-        else:
-            yield from self._generate()
+    def __iter__(self) -> Iterator[K]:
+        yield from self.keys()
         
     def keys(self) -> Iterator[K]:
         if self.path is not None:
@@ -149,6 +141,30 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
                 yield from self._load_keys(self._check_path(self.path)) 
         else:
             yield from self._generate_keys()
+
+    def items(self) -> Iterator[Tuple[K, V]]:
+        if self.path is not None: 
+            if self.path.suffix != '':
+                with TemporaryDirectory() as tmp_dir:
+                    unpack_archive(self.path, tmp_dir)
+                    yield from self._load(self._check_path(Path(tmp_dir)))
+            else:
+                yield from self._load(self._check_path(self.path))
+        else:
+            yield from self._generate()
+
+    def values(self) -> Iterator[V]:
+        if self.path is not None: 
+            if self.path.suffix != '':
+                with TemporaryDirectory() as tmp_dir:
+                    unpack_archive(self.path, tmp_dir)
+                    yield from self._load_values(
+                        self._check_path(Path(tmp_dir))
+                    )
+            else:
+                yield from self._load_values(self._check_path(self.path))
+        else:
+            yield from self._generate_values()
 
     def save(self, 
         path: Union[str, Path], 
@@ -185,10 +201,16 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
         raise NotImplementedError
     
+    def _load_values(self, path: Path) -> Iterator[V]:
+        raise NotImplementedError
+    
     def _generate_keys(self) -> Iterator[K]:
         raise NotImplementedError
 
     def _generate(self) -> Iterator[Tuple[K, V]]:
+        raise NotImplementedError
+    
+    def _generate_values(self) -> Iterator[V]:
         raise NotImplementedError
 
     def _save(self, path: Path) -> None:

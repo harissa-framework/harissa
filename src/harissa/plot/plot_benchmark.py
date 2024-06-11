@@ -372,7 +372,7 @@ def plot_benchmark(benchmark, show_networks=False):
             plotter.axs = axs
             plotter.plots = None
     
-    for key, value in benchmark:
+    for key, value in benchmark.items():
         network_name, inf_name = key[0], key[1]
         network, inf, result = value[0], value[1], value[3]
         params = (inf_name, inf, result)
