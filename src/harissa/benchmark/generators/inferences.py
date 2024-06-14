@@ -109,6 +109,17 @@ class InferencesGenerator(GenericGenerator[K, V]):
         )
         return BenchmarkInf()
     
+    def _load_value(self, path: Path, key: K) -> V:
+        inference_path = path / self.sub_directory_name / f'{key}.npz'
+        with np.load(inference_path) as data:
+            inf = loads(data['inference'].item())
+            if not isinstance(inf, Inference):
+                raise RuntimeError(
+                    f'{inf} is not an Inference object.'
+                )
+        
+        return inf
+    
     def _load_keys(self, path: Path) -> Iterator[K]:
         paths = self.match_rec(path)
         for p in paths:
@@ -120,47 +131,61 @@ class InferencesGenerator(GenericGenerator[K, V]):
             yield key
     
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        paths = self.match_rec(path)
+        keys = list(self._load_keys(path))
         with alive_bar(
-            len(paths),
+            len(keys),
             title='Loading inferences info',
             disable=not self.verbose
         ) as bar:
-            for p in paths:
-                bar.text(f'{p.absolute()}')
-                name = str(
-                    p
-                    .relative_to(path / self.sub_directory_name)
-                    .with_suffix('')
-                )
-                with np.load(p) as data:
-                    inf = loads(data['inference'].item())
-                    if not isinstance(inf, Inference):
-                        raise RuntimeError(
-                            f'{inf} is not an Inference object.'
-                        )
-                
+            for key in keys:
+                bar.text(key)
+                value = self._load_value(path, key)
                 bar()
-                yield name, inf
+                yield key, value
 
     def _load_values(self, path: Path) -> Iterator[V]:
-        paths = self.match_rec(path)
+        keys = list(self._load_keys(path))
         with alive_bar(
-            len(paths),
+            len(keys),
             title='Loading inferences info',
             disable=not self.verbose
         ) as bar:
-            for p in paths:
-                bar.text(f'{p.absolute()}')
-                with np.load(p) as data:
-                    inf = loads(data['inference'].item())
-                    if not isinstance(inf, Inference):
-                        raise RuntimeError(
-                            f'{inf} is not an Inference object.'
-                        )
-                
+            for key in keys:
+                bar.text(key)
+                value = self._load_value(path, key)
                 bar()
-                yield inf
+                yield value
+
+    def _generate_value(self, key: K) -> V:
+        inf_info = self._inferences[key]
+        if isinstance(inf_info.inference, Inference):
+            inf = inf_info.inference
+        else:
+            inf = inf_info.inference()
+        
+        if not isinstance(inf, Inference):
+            raise RuntimeError(
+                (f'{inf_info.inference} is not an Inference subclass.')
+            )
+        
+        # create a wrapper around inference method that is also an Inference
+        BenchmarkInf = type(
+            f'{type(inf).__name__}',
+            (type(inf),),
+            {
+                '__init__': lambda s: None,
+                'inference': inf,
+                'colors': self._inferences[key].colors,
+                'directed': property(
+                    lambda cls: cls.inference.directed
+                ),
+                'run': lambda cls, data, param: cls.inference.run(
+                    data, 
+                    param
+                )
+            }
+        )
+        return BenchmarkInf()
 
     def _generate_keys(self) -> Iterator[K]:
         for key in self._inferences.keys():
@@ -168,54 +193,30 @@ class InferencesGenerator(GenericGenerator[K, V]):
                 yield key
 
     def _generate(self) -> Iterator[Tuple[K, V]]:
-        inferences = {
-            k:i for k,i in self._inferences.items()
-            if self.match(k)
-        }
+        keys = list(self._generate_keys())
         with alive_bar(
-            len(inferences), 
+            len(keys), 
             title='Generating inferences',
             disable=not self.verbose
         ) as bar:
-            for name, inf_info in inferences.items():
-                bar.text(name)
-                if isinstance(inf_info.inference, Inference):
-                    inf = inf_info.inference
-                else:
-                    inf = inf_info.inference()
-                
-                if not isinstance(inf, Inference):
-                    raise RuntimeError(
-                        (f'{inf_info.inference} is not an Inference subclass.')
-                    )
-                benchmark_inf = self._create_benchmark_inference(name, inf)
+            for key in keys:
+                bar.text(key)
+                value = self._generate_value(key)
                 bar()
-                yield name, benchmark_inf
+                yield key, value
 
     def _generate_values(self) -> Iterator[V]:
-        inferences = {
-            k:i for k,i in self._inferences.items()
-            if self.match(k)
-        }
+        keys = list(self._generate_keys())
         with alive_bar(
-            len(inferences), 
+            len(keys), 
             title='Generating inferences',
             disable=not self.verbose
         ) as bar:
-            for name, inf_info in inferences.items():
-                bar.text(name)
-                if isinstance(inf_info.inference, Inference):
-                    inf = inf_info.inference
-                else:
-                    inf = inf_info.inference()
-                
-                if not isinstance(inf, Inference):
-                    raise RuntimeError(
-                        (f'{inf_info.inference} is not an Inference subclass.')
-                    )
-                benchmark_inf = self._create_benchmark_inference(name, inf)
+            for key in keys:
+                bar.text(key)
+                value = self._generate_value(key)
                 bar()
-                yield benchmark_inf
+                yield value
     
     def _save(self, path: Path) -> None:
         for inf_name, inf in self.items():
@@ -229,5 +230,5 @@ InferencesGenerator.register_defaults()
 
 if __name__ == '__main__':
     print(InferencesGenerator.available_inferences())
-    for name, inf in InferencesGenerator():
+    for name, inf in InferencesGenerator(verbose=True).items():
         print(name, inf, inf.colors)

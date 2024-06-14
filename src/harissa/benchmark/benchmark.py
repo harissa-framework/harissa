@@ -9,7 +9,6 @@ from collections.abc import Iterator
 
 from pathlib import Path
 from time import perf_counter
-from dill import loads
 
 import numpy as np
 
@@ -40,12 +39,27 @@ class Benchmark(GenericGenerator[K, V]):
         exclude: Optional[List[str]] = None,
         verbose: bool = True
     ) -> None:
-        self.datasets = DatasetsGenerator()
-        self.inferences = InferencesGenerator()
+        self._generators = [
+           DatasetsGenerator(),
+           InferencesGenerator() 
+        ]
         self.model = NetworkModel()
         self.n_scores = n_scores
         super().__init__('scores', include, exclude, path, verbose)
 
+    # Aliases
+    @property
+    def datasets(self):
+        return self._generators[0]
+    
+    @property
+    def inferences(self):
+        return self._generators[1]
+    
+    @property
+    def networks(self):
+        return self.datasets.networks
+    
     def set_path(self, path: Path):
         super().set_path(path)
         self.datasets.path = path
@@ -65,86 +79,85 @@ class Benchmark(GenericGenerator[K, V]):
         super().set_exclude(exclude)
         for _ in self.keys():
             pass
+    
+    def _load_value(self, path: Path, key: K) -> V:
+        network , dataset = self.datasets[(key[0], key[2])]
+        inf = self.inferences[key[1]]
 
-    # Alias
-    @property
-    def networks(self):
-        return self.datasets.networks
+        result_path = path.joinpath(self.sub_directory_name, *key)
+        result = inf.Result.load(
+            result_path / 'result.npz', 
+            load_extra=True
+        )
+        runtime = np.load(result_path / 'runtime.npy')
+
+        return network, inf, dataset, result, runtime
 
     def _load_keys(self, path: Path) -> Iterator[K]:
-        self.datasets.path = path
-        self.inferences.path = path
-
+        for generator in self._generators:
+            generator.path = path
+        
         yield from self._generate_keys()
 
-        self.datasets.path = self.path
-        self.inferences.path = self.path
-
-        self.remove_tmp_dir(path)
+        for generator in self._generators:
+            generator.path = self.path
 
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        scores_keys = list(self._load_keys(path))
+        
+        keys = list(self._load_keys(path))
 
-        with alive_bar(len(scores_keys), title='Loading scores') as bar:
-            for key in scores_keys:
-                network = NetworkParameter.load(
-                    path / self.networks.sub_directory_name / f'{key[0]}.npz'
-                )
+        for generator in self._generators:
+            generator.path = path
+            generator.verbose = False
 
-                with np.load(
-                    path / self.inferences.sub_directory_name / f'{key[1]}.npz'
-                ) as data:
-                    inf = loads(data['inference'].item())
-
-                dataset = Dataset.load(
-                    path.joinpath(
-                        self.datasets.sub_directory_name, 
-                        key[0], 
-                        f'{key[2]}.npz'
-                    )
-                )
-
-                result_path = path.joinpath(self.sub_directory_name, *key)
-                result = inf.Result.load(
-                    result_path / 'result.npz', 
-                    load_extra=True
-                )
-                runtime = np.load(result_path / 'runtime.npy')
-
+        with alive_bar(
+            len(keys), 
+            title='Loading scores', 
+            disable=not self.verbose
+        ) as bar:
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._load_value(path, key)
                 bar()
-                yield key, (network, inf, dataset, result, runtime)
+                yield key, value
+
+        for generator in self._generators:
+            generator.path = self.path
+            generator.verbose = self.verbose
     
     def _load_values(self, path: Path) -> Iterator[V]:
-        scores_keys = list(self._load_keys(path))
+        for generator in self._generators:
+            generator.path = path
+            generator.verbose = False
 
-        with alive_bar(len(scores_keys), title='Loading scores') as bar:
-            for key in scores_keys:
-                network = NetworkParameter.load(
-                    path / self.networks.sub_directory_name / f'{key[0]}.npz'
-                )
-
-                with np.load(
-                    path / self.inferences.sub_directory_name / f'{key[1]}.npz'
-                ) as data:
-                    inf = loads(data['inference'].item())
-
-                dataset = Dataset.load(
-                    path.joinpath(
-                        self.datasets.sub_directory_name, 
-                        key[0], 
-                        f'{key[2]}.npz'
-                    )
-                )
-
-                result_path = path.joinpath(self.sub_directory_name, *key)
-                result = inf.Result.load(
-                    result_path / 'result.npz', 
-                    load_extra=True
-                )
-                runtime = np.load(result_path / 'runtime.npy')
-
+        keys = list(self._load_keys(path))
+        with alive_bar(
+            len(keys), 
+            title='Loading scores',
+            disable=not self.verbose
+        ) as bar:
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._load_value(path, key)
                 bar()
-                yield network, inf, dataset, result, runtime
+                yield value
+
+        for generator in self._generators:
+            generator.path = self.path
+            generator.verbose = self.verbose
+
+    def _generate_value(self, key: K) -> V:
+        network, dataset = self.datasets[(key[0], key[2])]
+        inf = self.inferences[key[1]]
+        
+        self.model.parameter = network
+        self.model.inference = inf
+        
+        start = perf_counter()
+        result = self.model.fit(dataset)
+        runtime = perf_counter() - start
+            
+        return network, inf, dataset, result, runtime
 
     def _generate_keys(self) -> Iterator[K]:
         datasets_included = []
@@ -167,70 +180,50 @@ class Benchmark(GenericGenerator[K, V]):
         self.inferences.include = inferences_included
 
     def _generate(self) -> Iterator[K, V]:
-        self.datasets.verbose = False
-        self.inferences.verbose = False
+        keys = list(self._generate_keys())
+
+        for generator in self._generators:
+            generator.verbose = False
 
         with alive_bar(
-            len(self),
+            len(keys),
             title='Generating scores',
             disable=not self.verbose
         ) as bar:
-            for (n_name, d_name), (network, dataset) in self.datasets.items():
-                self.model.parameter = network
-                for inf_name, inf in self.inferences.items():
-                    self.model.inference = inf
-                    for i in range(self.n_scores):
-                        key = (n_name, inf_name, d_name, f'r{i+1}')
-                        key_str = '-'.join(key[:-1])
-                        if self.n_scores > 1:
-                            key_str += f'-{key[-1]}'
-                        
-                        bar.text(f'Score {key_str}')
-                        start = perf_counter()
-                        result = self.model.fit(dataset)
-                        runtime = perf_counter() - start
-                        bar()
-                        yield key, (network, inf, dataset, result, runtime)
-        
-        self.datasets.verbose = self.verbose
-        self.inferences.verbose = self.verbose
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._generate_value(key)
+                bar()
+                yield key, value
 
-    def _generate_values(self) -> Iterator[V]:   
-        self.datasets.verbose = False
-        self.inferences.verbose = False
+        for generator in self._generators:
+            generator.verbose = self.verbose
 
+    def _generate_values(self) -> Iterator[V]:
+        keys = list(self._generate_keys())
+
+        for generator in self._generators:
+            generator.verbose = False
         with alive_bar(
-            len(self),
+            len(keys),
             title='Generating scores',
             disable=not self.verbose
         ) as bar:
-            for (n_name, d_name), (network, dataset) in self.datasets.items():
-                self.model.parameter = network
-                for inf_name, inf in self.inferences.items():
-                    self.model.inference = inf
-                    for i in range(self.n_scores):
-                        key = (n_name, inf_name, d_name, f'r{i+1}')
-                        key_str = '-'.join(key[:-1])
-                        if self.n_scores > 1:
-                            key_str += f'-{key[-1]}'
-                        
-                        bar.text(f'Score {key_str}')
-                        start = perf_counter()
-                        result = self.model.fit(dataset)
-                        runtime = perf_counter() - start
-                        bar()
-                        yield network, inf, dataset, result, runtime
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._generate_value(key)
+                bar()
+                yield value
         
-        self.datasets.verbose = self.verbose
-        self.inferences.verbose = self.verbose
+        for generator in self._generators:
+            generator.verbose = self.verbose
     
     def _save(self, path: Path) -> None:
         parent_path = path.parent
 
-        self.datasets.save(parent_path)
-        self.datasets.verbose = False
-        self.inferences.save(parent_path)
-        self.inferences.verbose = False
+        for generator in self._generators:
+            generator.save(parent_path)
+            generator.verbose = False
 
         if self.path is None:
             self.datasets.path = parent_path
@@ -242,10 +235,10 @@ class Benchmark(GenericGenerator[K, V]):
             result.save(output / 'result', True)
             np.save(output / 'runtime.npy', np.array([runtime]))
 
-        self.datasets.verbose = self.verbose
-        self.datasets.path = self.path
-        self.inferences.verbose = self.verbose
-        self.inferences.path = self.path
+        for generator in self._generators:
+            if self.path is None:
+                generator.path = None
+            generator.verbose = self.verbose
 
     def reports(self, show_networks=False):
         return plot_benchmark(self, show_networks)
@@ -269,14 +262,14 @@ class Benchmark(GenericGenerator[K, V]):
     
 
 if __name__ == '__main__':
-    # gen = Benchmark(verbose=True)
-    # gen.save('test_benchmark')
+    benchmark = Benchmark()
+    benchmark.datasets.path = 'test_benchmark'
+    benchmark.datasets.include = ['BN8/*']
+    benchmark.save('test_benchmark')
     
-    gen = Benchmark(
-        path='test_benchmark',
-        exclude=['Trees*/*/*/*'], 
-        verbose=True
-    )
-    print(gen.save('test_benchmark2'))
-    print(gen.save_reports('test_reports', True))
+    benchmark = Benchmark()
+    benchmark.path='test_benchmark'
+    benchmark.include = ['BN8/*/*/*']
+    print(benchmark.save('test_benchmark2'))
+    print(benchmark.save_reports('test_reports'))
     

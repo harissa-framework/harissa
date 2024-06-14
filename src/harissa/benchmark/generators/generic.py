@@ -11,7 +11,7 @@ from collections.abc import Iterator, Iterable
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from shutil import make_archive, unpack_archive, rmtree
+from shutil import make_archive, unpack_archive
 from alive_progress import alive_bar
 
 K = TypeVar('K', str, Tuple[str,...])
@@ -123,10 +123,19 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         
         return path
     
-    def remove_tmp_dir(self, tmp_dir):
-        if self.path != tmp_dir:
-            print(f'deleting tmp_dir {tmp_dir}')
-            rmtree(tmp_dir)
+    def __getitem__(self, key: K) -> V:
+        if self.path is not None:
+            if self.path.suffix != '':
+                with TemporaryDirectory() as tmp_dir:
+                    unpack_archive(self.path, tmp_dir)
+                    return self._load_value(
+                        self._check_path(Path(tmp_dir)),
+                        key
+                    )
+            else:
+                return self._load_value(self._check_path(self.path), key) 
+        else:
+            return self._generate_value(key)
     
     def __iter__(self) -> Iterator[K]:
         yield from self.keys()
@@ -194,6 +203,12 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             count += 1
 
         return count
+    
+    def _load_value(self, path: Path, key: K) -> V:
+        raise NotImplementedError
+    
+    def _generate_value(self, key: K) -> V:
+        raise NotImplementedError
     
     def _load_keys(self, path: Path) -> Iterator[K]:
         raise NotImplementedError

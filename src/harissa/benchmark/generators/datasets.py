@@ -67,8 +67,14 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         for _ in self.keys():
             pass
 
+    def _load_value(self, path: Path, key: K) -> V:
+        network = self.networks[key[0]]
+        dataset = Dataset.load(
+            path / self.sub_directory_name / key[0] / f'{key[1]}.npz' 
+        )
+        return network, dataset
+
     def _load_keys(self, path: Path) -> Iterator[K]:
-        self.networks.path = path
         network_included = []
         for network_name in self.networks.keys():
             dataset_dir = path / self.sub_directory_name / network_name
@@ -79,50 +85,57 @@ class DatasetsGenerator(GenericGenerator[K, V]):
                         network_included.append(network_name)
                     yield network_name, dataset_name
     
-        self.networks.path = self.path
         self.networks.include = network_included
 
     def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        tot = 0
-        for _ in self._load_keys(path):
-            tot += 1
-
+        keys = list(self._load_keys(path))
+        self.networks.path = path
+        self.networks.verbose = False
+        
         with alive_bar(
-            tot,
+            len(keys),
             title='Loading datasets',
             disable=not self.verbose
         ) as bar:
-            for network_name, dataset_name in self._load_keys(path):
-                bar.text(f'Loading {network_name} - {dataset_name}')
-                network = NetworkParameter.load(
-                    path/self.networks.sub_directory_name/f'{network_name}.npz'
-                )
-                dataset = Dataset.load(
-                    path/self.sub_directory_name/network_name/f'{dataset_name}.npz' 
-                )
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._load_value(path, key)
                 bar()
-                yield (network_name, dataset_name), (network, dataset)
+                yield key, value
+
+        self.networks.path = self.path
+        self.networks.verbose = self.verbose
+
 
     def _load_values(self, path: Path) -> Iterator[V]:
-        tot = 0
-        for _ in self._load_keys(path):
-            tot += 1
+        keys = list(self._load_keys(path))
+        self.networks.path = path
+        self.networks.verbose = False
 
         with alive_bar(
-            tot,
+            len(keys),
             title='Loading datasets',
             disable=not self.verbose
         ) as bar:
-            for network_name, dataset_name in self._load_keys(path):
-                bar.text(f'Loading {network_name} - {dataset_name}')
-                network = NetworkParameter.load(
-                    path/self.networks.sub_directory_name/f'{network_name}.npz'
-                )
-                dataset = Dataset.load(
-                    path/self.sub_directory_name/network_name/f'{dataset_name}.npz' 
-                )
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._load_value(path, key)
                 bar()
-                yield network, dataset
+                yield value
+
+        self.networks.path = self.path
+        self.networks.verbose = self.verbose
+        
+
+    def _generate_value(self, key: K) -> V:
+        network = self.networks[key[0]]
+        self.model.parameter = network
+        
+        dataset = self.model.simulate_dataset(
+            **self.simulate_dataset_parameters
+        )
+        
+        return network, dataset
 
     def _generate_keys(self) -> Iterator[K]:
         network_included = []
@@ -142,54 +155,36 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         self.networks.include = network_included
 
     def _generate(self) -> Iterator[Tuple[K, V]]:
-        datasets_per_network = {}
-        for n, d in self._generate_keys():
-            if n not in datasets_per_network:
-                datasets_per_network[n] = [d]
-            else:
-                datasets_per_network[n].append(d)
         self.networks.verbose = False
-        
+
+        keys = list(self._generate_keys())        
         with alive_bar(
-            int(np.sum([len(d) for d in datasets_per_network.values()])),
+            len(keys),
             title='Generating datasets',
             disable=not self.verbose
         ) as bar:
-            for network_name, network in self.networks.items():
-                self.model.parameter = network
-                for dataset_name in datasets_per_network[network_name]:
-                    bar.text(f'Generating {network_name} - {dataset_name}')
-                    dataset = self.model.simulate_dataset(
-                        **self.simulate_dataset_parameters
-                    )
-                    bar()
-                    yield (network_name, dataset_name), (network, dataset)
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._generate_value(key)
+                bar()
+                yield key, value
 
         self.networks.verbose = self.verbose
 
     def _generate_values(self) -> Iterator[V]:
-        datasets_per_network = {}
-        for n, d in self._generate_keys():
-            if n not in datasets_per_network:
-                datasets_per_network[n] = [d]
-            else:
-                datasets_per_network[n].append(d)
         self.networks.verbose = False
-        
+
+        keys = list(self._generate_keys())        
         with alive_bar(
-            int(np.sum([len(d) for d in datasets_per_network.values()])),
+            len(keys),
             title='Generating datasets',
             disable=not self.verbose
         ) as bar:
-            for network_name, network in self.networks.items():
-                self.model.parameter = network
-                for dataset_name in datasets_per_network[network_name]:
-                    bar.text(f'Generating {network_name} - {dataset_name}')
-                    dataset = self.model.simulate_dataset(
-                        **self.simulate_dataset_parameters
-                    )
-                    bar()
-                    yield  network, dataset
+            for key in keys:
+                bar.text(' - '.join(key))
+                value = self._generate_value(key)
+                bar()
+                yield value
 
         self.networks.verbose = self.verbose
     
@@ -205,8 +200,10 @@ class DatasetsGenerator(GenericGenerator[K, V]):
             output.parent.mkdir(parents=True, exist_ok=True)
             dataset.save(output)
 
+
         self.networks.verbose = self.verbose
-        self.networks.path = path
+        if self.path is None:
+            self.networks.path = None
     
 if __name__ == '__main__':
     n_datasets = {'BN8': 2, 'CN5': 5, 'FN4': 10, 'FN8': 1}
