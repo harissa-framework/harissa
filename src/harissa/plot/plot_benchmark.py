@@ -68,10 +68,10 @@ class DirectedPlotter:
     
     def plot_network(self, **kwargs):
         if self.network is not None:
-            layout = (
-                self.network.layout if self.network.layout is not None else
-                build_pos(self.network.interaction)
-            )
+            if self.network.layout is None:
+                layout = build_pos(self.network.interaction)
+            else:
+                layout = self.network.layout
 
             plot_network(self.network.interaction, layout, **kwargs)
 
@@ -297,7 +297,7 @@ class UnDirectedPlotter(DirectedPlotter):
     def _prepare_score(self, 
         matrix: npt.NDArray[np.float_]
     ) -> npt.NDArray[np.float_]:
-        abs_matrix = np.abs(matrix)
+        abs_matrix = np.abs(matrix.filled(0.0))
         # remove lower triangle
         mask = ~np.tri(*abs_matrix.shape, dtype=bool)
 
