@@ -122,42 +122,7 @@ class NetworksGenerator(GenericGenerator[K, V]):
     def _load_value(self, path: Path, key: K) -> V:
         network_path = path / self.sub_directory_name / f'{key}.npz'
         return NetworkParameter.load(network_path)
-        
-    def _load_keys(self, path: Path) -> Iterator[K]:
-        for p in self.match_rec(path):
-            key = str(
-                p
-                .relative_to(path / self.sub_directory_name)
-                .with_suffix('')
-            )
-            yield key
-
-    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        keys = list(self._load_keys(path))
-        with alive_bar(
-            len(keys), 
-            title='Loading Networks parameters',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._load_value(path, key)
-                bar()
-                yield key, value
-
-    def _load_values(self, path: Path) -> Iterator[V]:
-        keys = list(self._load_keys(path))
-        with alive_bar(
-            len(keys), 
-            title='Loading Networks parameters',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._load_value(path, key)
-                bar()
-                yield value
-        
+    
     def _generate_value(self, key):
         network = self._networks[key]
         if isinstance(network, Callable):
@@ -171,33 +136,7 @@ class NetworksGenerator(GenericGenerator[K, V]):
         for key in self._networks.keys():
             if self.match(key):
                 yield key
-        
-    def _generate(self) -> Iterator[Tuple[K, V]]:
-        keys = list(self._generate_keys())
-        with alive_bar(
-            len(keys), 
-            title='Generating networks',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._generate_value(key)
-                bar()
-                yield key, value
-    
-    def _generate_values(self) -> Iterator[V]:
-        keys = list(self._generate_keys())
-        with alive_bar(
-            len(keys), 
-            title='Generating networks',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                network = self._generate_value(key)
-                bar()
-                yield network
-        
+            
     def _save(self, path: Path) -> None:
         for name, network in self.items():
             if network.layout is None:
@@ -209,7 +148,7 @@ NetworksGenerator.register_defaults()
 if __name__ == '__main__':
     an = NetworksGenerator.available_networks()
     print(an)
-    gen = NetworksGenerator(verbose=True)
+    gen = NetworksGenerator(path='test_benchmark', include=['BN8', 'FN4'])
     for name, network in gen.items():
         print(name, network)
 

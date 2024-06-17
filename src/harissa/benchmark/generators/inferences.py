@@ -87,28 +87,6 @@ class InferencesGenerator(GenericGenerator[K, V]):
     def getInferenceInfo(cls, name: str) -> InferenceInfo:
         return cls._inferences[name]
     
-    def _create_benchmark_inference(self, 
-            name: str, 
-            inference:Inference
-        ) -> Inference:
-        BenchmarkInf = type(
-            f'{type(inference).__name__}',
-            (type(inference),),
-            {
-                '__init__': lambda s: None,
-                'inference': inference,
-                'colors': self._inferences[name].colors,
-                'directed': property(
-                    lambda cls: cls.inference.directed
-                ),
-                'run': lambda cls, data, param: cls.inference.run(
-                    data, 
-                    param
-                )
-            }
-        )
-        return BenchmarkInf()
-    
     def _load_value(self, path: Path, key: K) -> V:
         inference_path = path / self.sub_directory_name / f'{key}.npz'
         with np.load(inference_path) as data:
@@ -119,42 +97,6 @@ class InferencesGenerator(GenericGenerator[K, V]):
                 )
         
         return inf
-    
-    def _load_keys(self, path: Path) -> Iterator[K]:
-        paths = self.match_rec(path)
-        for p in paths:
-            key = str(
-                p
-                .relative_to(path / self.sub_directory_name)
-                .with_suffix('')
-            )
-            yield key
-    
-    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        keys = list(self._load_keys(path))
-        with alive_bar(
-            len(keys),
-            title='Loading inferences info',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._load_value(path, key)
-                bar()
-                yield key, value
-
-    def _load_values(self, path: Path) -> Iterator[V]:
-        keys = list(self._load_keys(path))
-        with alive_bar(
-            len(keys),
-            title='Loading inferences info',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._load_value(path, key)
-                bar()
-                yield value
 
     def _generate_value(self, key: K) -> V:
         inf_info = self._inferences[key]
@@ -191,32 +133,6 @@ class InferencesGenerator(GenericGenerator[K, V]):
         for key in self._inferences.keys():
             if self.match(key):
                 yield key
-
-    def _generate(self) -> Iterator[Tuple[K, V]]:
-        keys = list(self._generate_keys())
-        with alive_bar(
-            len(keys), 
-            title='Generating inferences',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._generate_value(key)
-                bar()
-                yield key, value
-
-    def _generate_values(self) -> Iterator[V]:
-        keys = list(self._generate_keys())
-        with alive_bar(
-            len(keys), 
-            title='Generating inferences',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(key)
-                value = self._generate_value(key)
-                bar()
-                yield value
     
     def _save(self, path: Path) -> None:
         for inf_name, inf in self.items():

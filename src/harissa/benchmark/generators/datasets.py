@@ -80,52 +80,12 @@ class DatasetsGenerator(GenericGenerator[K, V]):
             dataset_dir = path / self.sub_directory_name / network_name
             for dataset_path in dataset_dir.iterdir():
                 dataset_name = dataset_path.stem
-                if self.match(Path(network_name) / dataset_name):
+                if self.match((network_name, dataset_name)):
                     if network_name not in network_included:
                         network_included.append(network_name)
                     yield network_name, dataset_name
     
         self.networks.include = network_included
-
-    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        keys = list(self._load_keys(path))
-        self.networks.path = path
-        self.networks.verbose = False
-        
-        with alive_bar(
-            len(keys),
-            title='Loading datasets',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._load_value(path, key)
-                bar()
-                yield key, value
-
-        self.networks.path = self.path
-        self.networks.verbose = self.verbose
-
-
-    def _load_values(self, path: Path) -> Iterator[V]:
-        keys = list(self._load_keys(path))
-        self.networks.path = path
-        self.networks.verbose = False
-
-        with alive_bar(
-            len(keys),
-            title='Loading datasets',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._load_value(path, key)
-                bar()
-                yield value
-
-        self.networks.path = self.path
-        self.networks.verbose = self.verbose
-        
 
     def _generate_value(self, key: K) -> V:
         network = self.networks[key[0]]
@@ -147,63 +107,36 @@ class DatasetsGenerator(GenericGenerator[K, V]):
                 
             for i in range(n_datasets):
                 dataset_name = f'd{i+1}'
-                if self.match(Path(network_name) / dataset_name):
+                if self.match((network_name, dataset_name)):
                     if network_name not in network_included:
                         network_included.append(network_name)
                     yield network_name, dataset_name
 
         self.networks.include = network_included
 
-    def _generate(self) -> Iterator[Tuple[K, V]]:
+    def _pre_generate(self):
         self.networks.verbose = False
-
-        keys = list(self._generate_keys())        
-        with alive_bar(
-            len(keys),
-            title='Generating datasets',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._generate_value(key)
-                bar()
-                yield key, value
-
-        self.networks.verbose = self.verbose
-
-    def _generate_values(self) -> Iterator[V]:
-        self.networks.verbose = False
-
-        keys = list(self._generate_keys())        
-        with alive_bar(
-            len(keys),
-            title='Generating datasets',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._generate_value(key)
-                bar()
-                yield value
-
-        self.networks.verbose = self.verbose
     
-    def _save(self, path: Path) -> None:
-        parent_path = path.parent
-        self.networks.save(parent_path)
+    def _post_generate(self):
+        self.networks.verbose = self.verbose
+
+
+    def _pre_save(self, path: Path):
+        self.networks.save(path)
         self.networks.verbose = False
         if self.path is None:
-            self.networks.path = parent_path
-
+            self.networks.path = path
+    
+    def _post_save(self):
+        self.networks.verbose = self.verbose
+        if self.path is None:
+            self.networks.path = None
+    
+    def _save(self, path: Path) -> None:
         for (network_name, dataset_name) , (_, dataset) in self.items():
             output = path / network_name / f'{dataset_name}.npz'
             output.parent.mkdir(parents=True, exist_ok=True)
             dataset.save(output)
-
-
-        self.networks.verbose = self.verbose
-        if self.path is None:
-            self.networks.path = None
     
 if __name__ == '__main__':
     n_datasets = {'BN8': 2, 'CN5': 5, 'FN4': 10, 'FN8': 1}
@@ -215,7 +148,7 @@ if __name__ == '__main__':
     gen.save('test_datasets')
 
     gen = DatasetsGenerator(
-        exclude=['FN4/d3', 'FN4/d7'],
+        exclude=[('FN4','d3'), ('FN4', 'd7')],
         path='test_datasets',
         verbose= True
     )

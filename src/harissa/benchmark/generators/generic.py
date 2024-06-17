@@ -4,7 +4,8 @@ from typing import (
     Tuple, 
     TypeVar, 
     Union, 
-    Optional
+    Optional,
+    Callable
 )
 
 from collections.abc import Iterator, Iterable
@@ -92,26 +93,18 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     def set_exclude(self, exclude):
         self._exclude = exclude
 
-    def match(self, path: Union[str, Path], suffix: str = ''):
-        path = Path(path)
+    def match(self, key: K):
+        def to_str(k: K) -> str:
+            return k if isinstance(k, str) else str(Path().joinpath(*k))
+
+        path = Path(to_str(key))
+        include = map(to_str, self.include)
+        exclude = map(to_str, self.exclude)
 
         return (
-            any([path.match(f'{p}{suffix}') for p in self.include]) 
-            and all([not path.match(f'{p}{suffix}') for p in self.exclude])
+            any([path.match(pattern) for pattern in include]) 
+            and all([not path.match(pattern) for pattern in exclude])
         )
-    
-    def match_rec(self, path: Union[str, Path]):
-        def add_paths(p:Optional[Path], acc: List[Path]):
-            if p is not None:
-                if p.is_dir():
-                    for sub_p in p.iterdir():
-                        acc = add_paths(sub_p, acc)
-                elif self.match(p.relative_to(path), '.npz'):
-                    acc = add_paths(None, acc + [p])
-            
-            return acc
-            
-        return add_paths(Path(path) / self.sub_directory_name, [])
     
     def as_dict(self) -> Dict[K, V]:
         return dict(iter(self))
@@ -124,56 +117,93 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         return path
     
     def __getitem__(self, key: K) -> V:
-        if self.path is not None:
-            if self.path.suffix != '':
-                with TemporaryDirectory() as tmp_dir:
-                    unpack_archive(self.path, tmp_dir)
-                    return self._load_value(
-                        self._check_path(Path(tmp_dir)),
-                        key
-                    )
+        if self.match(key):
+            if self.path is not None:
+                if self.path.suffix != '':
+                    with TemporaryDirectory() as tmp_dir:
+                        unpack_archive(self.path, tmp_dir)
+                        return self._load_value(
+                            self._check_path(Path(tmp_dir)),
+                            key
+                        )
+                else:
+                    return self._load_value(self._check_path(self.path), key) 
             else:
-                return self._load_value(self._check_path(self.path), key) 
+                return self._generate_value(key)
         else:
-            return self._generate_value(key)
+            raise KeyError
     
     def __iter__(self) -> Iterator[K]:
         yield from self.keys()
-        
+    
+    def __len__(self) -> int:
+        count = 0
+        for _ in self.keys():
+            count += 1
+
+        return count
+
     def keys(self) -> Iterator[K]:
-        if self.path is not None:
-            if self.path.suffix != '':
-                with TemporaryDirectory() as tmp_dir:
-                    unpack_archive(self.path, tmp_dir)
-                    yield from self._load_keys(self._check_path(Path(tmp_dir)))
-            else:
-                yield from self._load_keys(self._check_path(self.path)) 
-        else:
-            yield from self._generate_keys()
+        yield from self._generate(None)
 
     def items(self) -> Iterator[Tuple[K, V]]:
-        if self.path is not None: 
-            if self.path.suffix != '':
-                with TemporaryDirectory() as tmp_dir:
-                    unpack_archive(self.path, tmp_dir)
-                    yield from self._load(self._check_path(Path(tmp_dir)))
-            else:
-                yield from self._load(self._check_path(self.path))
-        else:
-            yield from self._generate()
+        yield from self._generate(lambda key, value: (key, value))
 
     def values(self) -> Iterator[V]:
-        if self.path is not None: 
+        yield from self._generate(lambda key, value: value)
+
+    def _generate(self, 
+        projection_fn: Optional[Callable[[K, V], Union[K, Tuple[K, V]]]]
+    ) -> Union[Iterator[K], Iterator[K, V], Iterator[V]]:
+        generate_keys_only = projection_fn is None
+        if not generate_keys_only:
+            def yield_projected_items(value_fn, title, keys):
+                self._pre_generate()
+                with alive_bar(
+                    len(keys), 
+                    title=title, 
+                    disable=not self.verbose
+                ) as bar:
+                    for key in keys:
+                        bar.text(' - '.join(key))
+                        value = value_fn(key)
+                        bar()
+                        yield projection_fn(key, value)
+                self._post_generate()
+
+        if self.path is not None:
+            title = f'Loading {self.sub_directory_name}'
             if self.path.suffix != '':
                 with TemporaryDirectory() as tmp_dir:
                     unpack_archive(self.path, tmp_dir)
-                    yield from self._load_values(
-                        self._check_path(Path(tmp_dir))
-                    )
+                    tmp_path = self._check_path(Path(tmp_dir))
+                    if generate_keys_only:
+                        yield from self._load_keys(tmp_path)
+                    else:
+                        yield from yield_projected_items(
+                            lambda key: self._load_value(tmp_path, key),
+                            title,
+                            list(self._load_keys(tmp_path))
+                        )
             else:
-                yield from self._load_values(self._check_path(self.path))
+                path = self._check_path(self.path)
+                if generate_keys_only:
+                    yield from self._load_keys(path)
+                else:
+                    yield from yield_projected_items(
+                        lambda key: self._load_value(path, key),
+                        title,
+                        list(self._load_keys(path))
+                    )
         else:
-            yield from self._generate_values()
+            if generate_keys_only:
+                yield from self._generate_keys()
+            else:
+                yield from yield_projected_items(
+                    self._generate_value,
+                    f'Generating {self.sub_directory_name}',
+                    list(self._generate_keys())
+                )
 
     def save(self, 
         path: Union[str, Path], 
@@ -182,7 +212,10 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         path = Path(path).with_suffix('')
         if archive_format is not None:
             with TemporaryDirectory() as tmp_dir:
-                self._save(Path(tmp_dir) / self.sub_directory_name)
+                tmp_path = Path(tmp_dir)
+                self._pre_save(tmp_path)
+                self._save(tmp_path / self.sub_directory_name)
+                self._post_save()
                 with alive_bar(
                     title='Archiving', 
                     monitor=False, 
@@ -193,17 +226,24 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         else:
             output = path / self.sub_directory_name
             output.mkdir(parents=True, exist_ok=True)
+            self._pre_save(path)
             self._save(output)
+            self._post_save()
 
         return path.absolute()
     
-    def __len__(self) -> int:
-        count = 0
-        for _ in self.keys():
-            count += 1
+    def _pre_save(self, path: Path):
+        pass
 
-        return count
+    def _post_save(self):
+        pass 
     
+    def _pre_generate(self):
+        pass
+
+    def _post_generate(self):
+        pass
+
     def _load_value(self, path: Path, key: K) -> V:
         raise NotImplementedError
     
@@ -211,21 +251,19 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         raise NotImplementedError
     
     def _load_keys(self, path: Path) -> Iterator[K]:
-        raise NotImplementedError
-    
-    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        raise NotImplementedError
-    
-    def _load_values(self, path: Path) -> Iterator[V]:
-        raise NotImplementedError
+        root = path / self.sub_directory_name
+        def yield_rec(p: Path):
+            if p.is_dir():
+                for sub_p in p.iterdir():
+                    yield from yield_rec(sub_p)
+            else:
+                key = str(p.relative_to(root).with_suffix(''))
+                if self.match(key):
+                    yield key
+
+        yield from yield_rec(root)
     
     def _generate_keys(self) -> Iterator[K]:
-        raise NotImplementedError
-
-    def _generate(self) -> Iterator[Tuple[K, V]]:
-        raise NotImplementedError
-    
-    def _generate_values(self) -> Iterator[V]:
         raise NotImplementedError
 
     def _save(self, path: Path) -> None:

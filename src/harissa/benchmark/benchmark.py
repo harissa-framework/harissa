@@ -81,7 +81,7 @@ class Benchmark(GenericGenerator[K, V]):
             pass
     
     def _load_value(self, path: Path, key: K) -> V:
-        network , dataset = self.datasets[(key[0], key[2])]
+        network , dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
 
         result_path = path.joinpath(self.sub_directory_name, *key)
@@ -94,60 +94,29 @@ class Benchmark(GenericGenerator[K, V]):
         return network, inf, dataset, result, runtime
 
     def _load_keys(self, path: Path) -> Iterator[K]:
-        for generator in self._generators:
-            generator.path = path
-        
-        yield from self._generate_keys()
+        datasets_included = []
+        inferences_included = []
 
-        for generator in self._generators:
-            generator.path = self.path
+        root = path / self.sub_directory_name
 
-    def _load(self, path: Path) -> Iterator[Tuple[K, V]]:
-        
-        keys = list(self._load_keys(path))
+        for d_key in self.datasets.keys():
+            for inf_name in self.inferences.keys():
+                r_dir = root.joinpath(d_key[0], inf_name, d_key[1])
+                for r_path in r_dir.iterdir():
+                    key = (d_key[0], inf_name, d_key[1], r_path.stem)
+                    if self.match(key):
+                        if d_key not in datasets_included:
+                            datasets_included.append(d_key)
+                        if inf_name not in inferences_included:
+                            inferences_included.append(inf_name)
+                        
+                        yield key
 
-        for generator in self._generators:
-            generator.path = path
-            generator.verbose = False
-
-        with alive_bar(
-            len(keys), 
-            title='Loading scores', 
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._load_value(path, key)
-                bar()
-                yield key, value
-
-        for generator in self._generators:
-            generator.path = self.path
-            generator.verbose = self.verbose
-    
-    def _load_values(self, path: Path) -> Iterator[V]:
-        for generator in self._generators:
-            generator.path = path
-            generator.verbose = False
-
-        keys = list(self._load_keys(path))
-        with alive_bar(
-            len(keys), 
-            title='Loading scores',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._load_value(path, key)
-                bar()
-                yield value
-
-        for generator in self._generators:
-            generator.path = self.path
-            generator.verbose = self.verbose
+        self.datasets.include = datasets_included
+        self.inferences.include = inferences_included
 
     def _generate_value(self, key: K) -> V:
-        network, dataset = self.datasets[(key[0], key[2])]
+        network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
         
         self.model.parameter = network
@@ -163,12 +132,11 @@ class Benchmark(GenericGenerator[K, V]):
         datasets_included = []
         inferences_included = []
 
-        for network_name, data_name in self.datasets.keys():
+        for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
                 for i in range(self.n_scores):
-                    key = (network_name, inf_name, data_name, f'r{i+1}')
-                    if self.match(Path().joinpath(*key)):
-                        dataset_key = str(Path(network_name) / data_name)
+                    key = (dataset_key[0], inf_name, dataset_key[1], f'r{i+1}')
+                    if self.match(key):
                         if dataset_key not in datasets_included:
                             datasets_included.append(dataset_key)
                         if inf_name not in inferences_included:
@@ -179,66 +147,36 @@ class Benchmark(GenericGenerator[K, V]):
         self.datasets.include = datasets_included
         self.inferences.include = inferences_included
 
-    def _generate(self) -> Iterator[K, V]:
-        keys = list(self._generate_keys())
-
+    def _pre_generate(self):
         for generator in self._generators:
             generator.verbose = False
 
-        with alive_bar(
-            len(keys),
-            title='Generating scores',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._generate_value(key)
-                bar()
-                yield key, value
-
+    def _post_generate(self):
         for generator in self._generators:
             generator.verbose = self.verbose
 
-    def _generate_values(self) -> Iterator[V]:
-        keys = list(self._generate_keys())
-
+    def _pre_save(self, path):
         for generator in self._generators:
+            generator.save(path)
+            if self.path is None:
+                generator.path = path
             generator.verbose = False
-        with alive_bar(
-            len(keys),
-            title='Generating scores',
-            disable=not self.verbose
-        ) as bar:
-            for key in keys:
-                bar.text(' - '.join(key))
-                value = self._generate_value(key)
-                bar()
-                yield value
-        
+            
+    def _post_save(self):
         for generator in self._generators:
             generator.verbose = self.verbose
-    
+
     def _save(self, path: Path) -> None:
-        parent_path = path.parent
-
-        for generator in self._generators:
-            generator.save(parent_path)
-            generator.verbose = False
-
-        if self.path is None:
-            self.datasets.path = parent_path
-            self.inferences.path = parent_path
-        
         for (n, i, d, r), (*_, result, runtime) in self.items():
             output = path.joinpath(n, i, d, r)
             output.mkdir(parents=True, exist_ok=True)
             result.save(output / 'result', True)
             np.save(output / 'runtime.npy', np.array([runtime]))
 
-        for generator in self._generators:
-            if self.path is None:
-                generator.path = None
-            generator.verbose = self.verbose
+        if self.path is None:
+            self.path = path.parent
+
+        self.save_reports(path.parent / 'reports')
 
     def reports(self, show_networks=False):
         return plot_benchmark(self, show_networks)
@@ -264,12 +202,12 @@ class Benchmark(GenericGenerator[K, V]):
 if __name__ == '__main__':
     benchmark = Benchmark()
     benchmark.datasets.path = 'test_benchmark'
-    benchmark.datasets.include = ['BN8/*']
+    benchmark.datasets.include = [('BN8', '*')]
     benchmark.save('test_benchmark')
     
     benchmark = Benchmark()
     benchmark.path='test_benchmark'
-    benchmark.include = ['BN8/*/*/*']
+    benchmark.include = [('BN8', '*', '*', '*')]
     print(benchmark.save('test_benchmark2'))
     print(benchmark.save_reports('test_reports'))
     
