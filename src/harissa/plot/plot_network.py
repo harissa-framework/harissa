@@ -238,7 +238,7 @@ def plot_network(inter, pos, width=1., height=1., scale=1., names=None,
         ax.axis('off')
     else:
         ax = axes
-        fig = plt.gcf()
+        fig = ax.get_figure()
         size = fig.get_size_inches()
         w, h = size[0], size[1]
         if nodes is None: I, J = inter.nonzero()
@@ -246,8 +246,8 @@ def plot_network(inter, pos, width=1., height=1., scale=1., names=None,
     ax.axis('equal')
     ax.axis('off')
     ax_pos = ax.get_position()
-    plt.xlim([-w*ax_pos.width/2, w*ax_pos.width/2])
-    plt.ylim([-h*ax_pos.height/2, h*ax_pos.height/2])
+    ax.set_xlim([-w*ax_pos.width/2, w*ax_pos.width/2])
+    ax.set_ylim([-h*ax_pos.height/2, h*ax_pos.height/2])
     scale = scale * np.min([ax_pos.width,ax_pos.height])
     # Decide which genes to show
     v = set(range(G))
