@@ -115,12 +115,13 @@ class NetworkParameter:
         network_param = cls(data['basal'].size - 1)
 
         for key, value in data.items():
-            attr = getattr(network_param, key)
-            if attr is not None:
-                attr[:] = value[:]
-            else:
-                assert not cls.param_names[key].required
-                attr = value
+            if hasattr(network_param, key):
+                attr = getattr(network_param, key)
+                if attr is not None:
+                    attr[:] = value[:]
+                else:
+                    assert not cls.param_names[key].required
+                    setattr(network_param, key, value)
 
         return network_param
     
