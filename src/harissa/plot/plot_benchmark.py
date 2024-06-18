@@ -73,6 +73,9 @@ class DirectedPlotter:
             else:
                 layout = self.network.layout
 
+            if 'names' not in kwargs:
+                kwargs['names'] = self.network.genes_names
+
             plot_network(self.network.interaction, layout, **kwargs)
 
 
@@ -315,9 +318,9 @@ def plot_benchmark(benchmark, show_networks=False):
     }
     nb_networks = len(plotters_per_networks)
     nb_colum = 4 + show_networks
-    scale = 5
+    scale = 4
     figs = [
-        plt.figure(figsize=(18, 9)),
+        plt.figure(figsize=(16, 9)),
         plt.figure(figsize=(scale*nb_colum, scale*nb_networks)),
         plt.figure(figsize=(scale*nb_colum, scale*nb_networks))
     ]
@@ -395,7 +398,9 @@ def plot_benchmark(benchmark, show_networks=False):
             plotter.network = network    
             if plotter.plots is None:
                 if show_networks:
-                    plotter.plot_network(axes=plotter.axs[0], scale=0.5)
+                    ax_pos = plotter.axs[0].get_position()
+                    scale = 1.1 / np.min([ax_pos.width,ax_pos.height])
+                    plotter.plot_network(axes=plotter.axs[0], scale=scale)
                 plotter.plots = [
                     plotter.plot_roc_curves(plotter.axs[show_networks+0]),
                     plotter.plot_roc_boxes(plotter.axs[show_networks+1]),
