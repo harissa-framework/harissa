@@ -147,6 +147,14 @@ class Benchmark(GenericGenerator[K, V]):
         self.datasets.include = datasets_included
         self.inferences.include = inferences_included
 
+    def _pre_load(self, path: Path):
+        for generator in self._generators:
+            generator.path = path
+
+    def _post_load(self):
+        for generator in self._generators:
+            generator.path = self.path
+
     def _pre_generate(self):
         for generator in self._generators:
             generator.verbose = False
@@ -201,13 +209,13 @@ class Benchmark(GenericGenerator[K, V]):
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    benchmark.datasets.path = 'test_benchmark'
-    benchmark.datasets.include = [('BN8', '*')]
+    # benchmark.datasets.path = 'test_benchmark'
+    # benchmark.datasets.include = [('BN8', '*')]
     benchmark.save('test_benchmark')
     
     benchmark = Benchmark()
     benchmark.path='test_benchmark'
-    benchmark.include = [('BN8', '*', '*', '*')]
+    benchmark.networks.exclude = ['Trees*']
     print(benchmark.save('test_benchmark2'))
-    print(benchmark.save_reports('test_reports'))
+    print(benchmark.save_reports('test_reports', True))
     
