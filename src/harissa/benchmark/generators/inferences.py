@@ -19,20 +19,20 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib
 
-from harissa.utils.progress_bar import alive_bar
 from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.core import Inference
 from harissa.inference import Hartree, Cardamom, Pearson
 
-@dataclass
-class InferenceInfo:
-    inference: Union[Inference, Callable[[], Inference]]
-    colors: npt.NDArray
-
 K: TypeAlias = str
-V: TypeAlias = Inference
+V: TypeAlias = Tuple[Inference, npt.NDArray[np.float_]]
 class InferencesGenerator(GenericGenerator[K, V]):
-    _inferences : Dict[str, InferenceInfo] = {}
+    _inferences: Dict[
+        str,
+        Tuple[
+            Union[Inference, Callable[[], Inference]],
+            npt.NDArray[np.float_]
+        ]
+    ] = {}
     color_map: matplotlib.colors.Colormap = matplotlib.pyplot.get_cmap('tab20')
 
     def __init__(self,
@@ -44,31 +44,38 @@ class InferencesGenerator(GenericGenerator[K, V]):
         super().__init__('inferences', include, exclude, path, verbose)
 
     @classmethod
-    def register(cls, name: str, inference_info: InferenceInfo) -> None:
+    def register(cls, 
+        name: str, 
+        inference: Union[Inference, Callable[[], Inference]],
+        colors: npt.NDArray[np.float_]
+    ) -> None:
         if name not in cls._inferences:
-            if isinstance(inference_info.inference, (Inference, Callable)):
-                cls._inferences[name] = inference_info
+            if isinstance(inference, (Inference, Callable)):
+                cls._inferences[name] = (inference, colors)
             else:
                 raise TypeError(('inference_callable must be a callable '
                              'that returns a Inference sub class.'))
         else:
             raise ValueError((f'{name} is already taken. '
-                              f'Cannot register {inference_info}.'))
+                              f'Cannot register {inference}.'))
         
     @classmethod
     def register_defaults(cls) -> None:
-        cls.register('Hartree', InferenceInfo(
+        cls.register(
+            'Hartree', 
             Hartree,
             np.array([cls.color_map(6), cls.color_map(7)])
-        ))
-        cls.register('Cardamom', InferenceInfo(
+        )
+        cls.register(
+            'Cardamom',
             Cardamom, 
             np.array([cls.color_map(8), cls.color_map(9)])
-        ))
-        cls.register('Pearson', InferenceInfo(
+        )
+        cls.register(
+            'Pearson',
             Pearson,
             np.array([cls.color_map(14), cls.color_map(15)])
-        ))
+        )
 
     @classmethod
     def unregister_all(cls) -> None:
@@ -83,51 +90,35 @@ class InferencesGenerator(GenericGenerator[K, V]):
     def available_inferences(cls) -> List[str]:
         return list(cls._inferences.keys())
     
-    @classmethod
-    def getInferenceInfo(cls, name: str) -> InferenceInfo:
-        return cls._inferences[name]
+    # @classmethod
+    # def getInferenceInfo(cls, name: str) -> InferenceInfo:
+    #     return cls._inferences[name]
     
     def _load_value(self, path: Path, key: K) -> V:
         inference_path = path / self.sub_directory_name / f'{key}.npz'
         with np.load(inference_path) as data:
             inf = loads(data['inference'].item())
+            colors = data['colors']
             if not isinstance(inf, Inference):
                 raise RuntimeError(
                     f'{inf} is not an Inference object.'
                 )
         
-        return inf
+        return inf, colors
 
     def _generate_value(self, key: K) -> V:
-        inf_info = self._inferences[key]
-        if isinstance(inf_info.inference, Inference):
-            inf = inf_info.inference
+        inference, colors = self._inferences[key]
+        if isinstance(inference, Inference):
+            inf = inference
         else:
-            inf = inf_info.inference()
+            inf = inference()
         
         if not isinstance(inf, Inference):
             raise RuntimeError(
-                (f'{inf_info.inference} is not an Inference subclass.')
+                (f'{inference} is not an Inference subclass.')
             )
-        
-        # create a wrapper around inference method that is also an Inference
-        BenchmarkInf = type(
-            f'{type(inf).__name__}',
-            (type(inf),),
-            {
-                '__init__': lambda s: None,
-                'inference': inf,
-                'colors': self._inferences[key].colors,
-                'directed': property(
-                    lambda cls: cls.inference.directed
-                ),
-                'run': lambda cls, data, param: cls.inference.run(
-                    data, 
-                    param
-                )
-            }
-        )
-        return BenchmarkInf()
+
+        return inf, colors
 
     def _generate_keys(self) -> Iterator[K]:
         for key in self._inferences.keys():
@@ -135,16 +126,17 @@ class InferencesGenerator(GenericGenerator[K, V]):
                 yield key
     
     def _save(self, path: Path) -> None:
-        for inf_name, inf in self.items():
+        for inf_name, (inf, colors) in self.items():
             output = (path / inf_name).with_suffix('.npz')
             np.savez_compressed(
                 output,
-                inference=np.array(dumps(inf))
+                inference=np.array(dumps(inf)),
+                colors=colors
             )
 
 InferencesGenerator.register_defaults()
 
 if __name__ == '__main__':
     print(InferencesGenerator.available_inferences())
-    for name, inf in InferencesGenerator(verbose=True).items():
-        print(name, inf, inf.colors)
+    for name, (inf, colors) in InferencesGenerator(verbose=True).items():
+        print(name, inf, colors)

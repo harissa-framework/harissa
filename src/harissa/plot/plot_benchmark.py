@@ -213,14 +213,14 @@ class DirectedPlotter:
             while True:
                 params = yield 
                 if params is not None:
-                    inf_name, inference, result = params
+                    inf_name, (inference, colors), result = params
                     if self._accept_inference(inference):
                         curve = curve_fn(result.parameter.interaction)
                         y = np.interp(x, *curve)
                         y[0] = y_start
 
                         if inf_name not in ys_per_inf:
-                            ys_per_inf[inf_name] = ([], inference.colors)
+                            ys_per_inf[inf_name] = ([], colors)
 
                         ys_per_inf[inf_name][0].append(y)
                 yield
@@ -251,12 +251,12 @@ class DirectedPlotter:
             while True:
                 params = yield
                 if params is not None:
-                    inf_name, inference, result = params
+                    inf_name, (inference, colors), result = params
                     if self._accept_inference(inference):
                         auc = auc_fn(result.parameter.interaction)
 
                         if inf_name not in aucs_per_inf:
-                            aucs_per_inf[inf_name] = ([], inference.colors)
+                            aucs_per_inf[inf_name] = ([], colors)
 
                         aucs_per_inf[inf_name][0].append(auc)
                 yield

@@ -12,8 +12,6 @@ from time import perf_counter
 
 import numpy as np
 
-from alive_progress import alive_bar
-
 from harissa.core import NetworkModel, NetworkParameter, Inference, Dataset
 from harissa.benchmark.generators import (
     GenericGenerator,
@@ -85,7 +83,7 @@ class Benchmark(GenericGenerator[K, V]):
         inf = self.inferences[key[1]]
 
         result_path = path.joinpath(self.sub_directory_name, *key)
-        result = inf.Result.load(
+        result = inf[0].Result.load(
             result_path / 'result.npz', 
             load_extra=True
         )
@@ -120,7 +118,7 @@ class Benchmark(GenericGenerator[K, V]):
         inf = self.inferences[key[1]]
         
         self.model.parameter = network
-        self.model.inference = inf
+        self.model.inference = inf[0]
         
         start = perf_counter()
         result = self.model.fit(dataset)
@@ -166,7 +164,7 @@ class Benchmark(GenericGenerator[K, V]):
     def _pre_save(self, path):
         for generator in self._generators:
             generator.save(path)
-            if self.path is None:
+            if generator.path is None:
                 generator.path = path
             generator.verbose = False
             
@@ -209,8 +207,8 @@ class Benchmark(GenericGenerator[K, V]):
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    # benchmark.datasets.path = 'test_benchmark'
-    # benchmark.datasets.include = [('BN8', '*')]
+    benchmark.datasets.path = 'test_benchmark'
+    benchmark.datasets.include = [('BN8', '*')]
     benchmark.save('test_benchmark')
     
     benchmark = Benchmark()

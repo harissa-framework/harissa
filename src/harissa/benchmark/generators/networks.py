@@ -1,7 +1,6 @@
 from typing import (
     Dict, 
     List,
-    Tuple,
     Callable, 
     Union, 
     Optional,
@@ -13,7 +12,6 @@ from collections.abc import Iterator
 from pathlib import Path
 from harissa.core import NetworkParameter
 from harissa.benchmark.generators.generic import GenericGenerator
-from harissa.utils.progress_bar import alive_bar
 from functools import wraps
 
 from harissa.plot import build_pos

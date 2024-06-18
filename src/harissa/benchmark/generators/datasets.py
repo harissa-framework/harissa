@@ -12,7 +12,6 @@ from collections.abc import Iterator
 from pathlib import Path
 import numpy as np
 import numpy.typing as npt
-from harissa.utils.progress_bar import alive_bar
 
 from harissa.core import Dataset, NetworkModel, NetworkParameter
 from harissa.simulation import BurstyPDMP
