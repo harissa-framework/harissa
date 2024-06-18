@@ -177,6 +177,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
                 with TemporaryDirectory() as tmp_dir:
                     unpack_archive(self.path, tmp_dir)
                     tmp_path = self._check_path(Path(tmp_dir))
+                    self._pre_load(tmp_path)
                     if generate_keys_only:
                         yield from self._load_keys(tmp_path)
                     else:
@@ -185,8 +186,10 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
                             title,
                             list(self._load_keys(tmp_path))
                         )
+                    self._post_load()
             else:
                 path = self._check_path(self.path)
+                self._pre_load(path)
                 if generate_keys_only:
                     yield from self._load_keys(path)
                 else:
@@ -195,6 +198,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
                         title,
                         list(self._load_keys(path))
                     )
+                self._post_load()
         else:
             if generate_keys_only:
                 yield from self._generate_keys()
@@ -236,6 +240,12 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         pass
 
     def _post_save(self):
+        pass
+
+    def _pre_load(self, path: Path):
+        pass
+
+    def _post_load(self):
         pass 
     
     def _pre_generate(self):

@@ -114,6 +114,12 @@ class DatasetsGenerator(GenericGenerator[K, V]):
 
         self.networks.include = network_included
 
+    def _pre_load(self, path: Path):
+        self.networks.path = path
+
+    def _post_load(self):
+        self.networks.path = self.path
+
     def _pre_generate(self):
         self.networks.verbose = False
     
