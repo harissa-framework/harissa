@@ -87,7 +87,7 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ['harissa']
 branch = true
-omit = ['*/harissa/plot/*', '*/harissa/utils/cli/*']
+omit = ['*/harissa/plot/*', '*/harissa/utils/cli/*', '*/harissa/benchmark/*']
 
 [tool.coverage.report]
 fail_under = 80
