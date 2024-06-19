@@ -13,7 +13,7 @@ from collections.abc import Iterator, Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from shutil import make_archive, unpack_archive
-from alive_progress import alive_bar
+from harissa.utils.progress_bar import alive_bar
 
 K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')
