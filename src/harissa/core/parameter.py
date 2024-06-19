@@ -45,17 +45,17 @@ class NetworkParameter:
     """
 
     param_names : dict = {
-        'burst_frequency_min': ParamInfos(True, np.float_, 1),
-        'burst_frequency_max': ParamInfos(True, np.float_, 1),
-        'burst_size_inv': ParamInfos(True, np.float_, 1),
-        'creation_rna': ParamInfos(True, np.float_, 1),
-        'creation_protein': ParamInfos(True, np.float_, 1),
-        'degradation_rna': ParamInfos(True, np.float_, 1),
-        'degradation_protein': ParamInfos(True, np.float_, 1),
-        'basal': ParamInfos(True, np.float_, 1),
-        'interaction': ParamInfos(True, np.float_, 2),
+        'burst_frequency_min': ParamInfos(True, np.float64, 1),
+        'burst_frequency_max': ParamInfos(True, np.float64, 1),
+        'burst_size_inv': ParamInfos(True, np.float64, 1),
+        'creation_rna': ParamInfos(True, np.float64, 1),
+        'creation_protein': ParamInfos(True, np.float64, 1),
+        'degradation_rna': ParamInfos(True, np.float64, 1),
+        'degradation_protein': ParamInfos(True, np.float64, 1),
+        'basal': ParamInfos(True, np.float64, 1),
+        'interaction': ParamInfos(True, np.float64, 2),
         'genes_names': ParamInfos(False, np.str_, 1),
-        'layout': ParamInfos(False, np.float_, 2)
+        'layout': ParamInfos(False, np.float64, 2)
     }
 
     def __init__(self, n_genes, gene_names=None, layout=None):
@@ -329,7 +329,7 @@ def _check_layout(layout, n_genes_stim):
     if layout is not None:
         if (not isinstance(layout, np.ndarray) 
             or layout.ndim != 2 
-            or layout.dtype != np.float_):
+            or layout.dtype != np.float64):
             raise TypeError('layout must be a float 2D ndarray.')
         
         if layout.shape[0] != n_genes_stim:

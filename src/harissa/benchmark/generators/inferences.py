@@ -24,13 +24,13 @@ from harissa.core import Inference
 from harissa.inference import Hartree, Cardamom, Pearson
 
 K: TypeAlias = str
-V: TypeAlias = Tuple[Inference, npt.NDArray[np.float_]]
+V: TypeAlias = Tuple[Inference, npt.NDArray[np.float64]]
 class InferencesGenerator(GenericGenerator[K, V]):
     _inferences: Dict[
         str,
         Tuple[
             Union[Inference, Callable[[], Inference]],
-            npt.NDArray[np.float_]
+            npt.NDArray[np.float64]
         ]
     ] = {}
     color_map: matplotlib.colors.Colormap = matplotlib.pyplot.get_cmap('tab20')
@@ -47,7 +47,7 @@ class InferencesGenerator(GenericGenerator[K, V]):
     def register(cls, 
         name: str, 
         inference: Union[Inference, Callable[[], Inference]],
-        colors: npt.NDArray[np.float_]
+        colors: npt.NDArray[np.float64]
     ) -> None:
         if name not in cls._inferences:
             if isinstance(inference, (Inference, Callable)):

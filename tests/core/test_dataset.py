@@ -81,7 +81,7 @@ class TestInit():
     def test(self, time_points, count_matrix):
         data = Dataset(time_points, count_matrix)
 
-        assert data.time_points.dtype == np.float_
+        assert data.time_points.dtype == np.float64
         assert data.count_matrix.dtype == np.uint
 
         assert data.time_points.shape == time_points.shape
@@ -93,7 +93,7 @@ class TestInit():
         (None, None, None),
         (np.uint, np.uint, None),
         (np.uint, None, None),
-        (None, np.uint, np.float_)
+        (None, np.uint, np.float64)
     ])
     def test_wrong_type(self, times_type, count_matrix_type, gene_names_type):
         time_points = (np.zeros(1) if times_type is None else 

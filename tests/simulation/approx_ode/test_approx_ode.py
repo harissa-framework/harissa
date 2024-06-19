@@ -13,7 +13,7 @@ def reload_base():
 
 @pytest.fixture
 def time_points():
-    return np.arange(10, dtype=np.float_)
+    return np.arange(10, dtype=np.float64)
 
 @pytest.fixture
 def network_parameter():

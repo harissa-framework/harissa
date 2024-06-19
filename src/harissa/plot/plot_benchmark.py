@@ -42,12 +42,12 @@ class DirectedPlotter:
         self._truth = self._prepare_truth(network.interaction)
 
     @property
-    def truth(self) -> npt.NDArray[np.float_]:
+    def truth(self) -> npt.NDArray[np.float64]:
         return self._truth    
 
     def _prepare_score(self, 
-        matrix: npt.NDArray[np.float_]
-    ) -> npt.NDArray[np.float_]:
+        matrix: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         n = matrix.shape[0]
         # remove first column and the diagonal
         mask = ~np.hstack((
@@ -80,8 +80,8 @@ class DirectedPlotter:
 
 
     def roc(self, 
-        score: npt.NDArray[np.float_]
-    ) -> Tuple[npt.NDArray[np.float_], npt.NDArray[np.float_]]:
+        score: npt.NDArray[np.float64]
+    ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         """
         Compute a receiver operating characteristic (ROC) curve.
         Here score and inter are arrays of shape (G,G) where:
@@ -92,7 +92,7 @@ class DirectedPlotter:
         return x, y
 
     def auroc(self, 
-        score:npt.NDArray[np.float_]
+        score:npt.NDArray[np.float64]
     ) -> float:
         """
         Area under ROC curve (see function `roc`).
@@ -141,8 +141,8 @@ class DirectedPlotter:
             ax.set_ylabel('AUROC')
 
     def pr(self,
-        score: npt.NDArray[np.float_]
-    ) ->  Tuple[npt.NDArray[np.float_], npt.NDArray[np.float_]]:
+        score: npt.NDArray[np.float64]
+    ) ->  Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
         """
         Compute a precision recall (PR) curve.
         Here score and inter are arrays of shape (G,G) where:
@@ -157,7 +157,7 @@ class DirectedPlotter:
         return np.flip(x), np.flip(y)
 
     def aupr(self, 
-        score: npt.NDArray[np.float_]
+        score: npt.NDArray[np.float64]
     ) -> float:
         """
         Area under PR curve (see function `pr`).
@@ -298,8 +298,8 @@ class UnDirectedPlotter(DirectedPlotter):
         super().__init__(network, alpha_curve_std)
 
     def _prepare_score(self, 
-        matrix: npt.NDArray[np.float_]
-    ) -> npt.NDArray[np.float_]:
+        matrix: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]:
         abs_matrix = np.abs(matrix.filled(0.0))
         # remove lower triangle
         mask = ~np.tri(*abs_matrix.shape, dtype=bool)

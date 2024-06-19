@@ -61,7 +61,7 @@ def simulate_dataset(args):
             data_sim[cell_index, 1:] = np.random.poisson(
                 model.simulate(
                     cell_time,
-                    initial_state=np.vstack((M0, P0), dtype=np.float_)
+                    initial_state=np.vstack((M0, P0), dtype=np.float64)
                 ).rna_levels[0, 1:]
             )
 
