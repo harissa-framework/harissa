@@ -6,11 +6,14 @@ import harissa.networks
 
 def _create_test_fn(fn):
     def test():
-        n_genes = 3
-        network_param = fn(n_genes)
+        if fn.__name__ in ['cascade', 'random_tree']:
+            n_genes = 3
+            network_param = fn(n_genes)
+            assert network_param.n_genes == n_genes
+        else:
+            network_param = fn()
 
         assert isinstance(network_param, NetworkParameter)
-        assert network_param.n_genes == n_genes
 
     return (f'{test.__name__}_{fn.__name__}', test)
 

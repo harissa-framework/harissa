@@ -45,18 +45,20 @@ class NetworkParameter:
     """
 
     param_names : dict = {
-        'burst_frequency_min': ParamInfos(True, np.float_, 1),
-        'burst_frequency_max': ParamInfos(True, np.float_, 1),
-        'burst_size_inv': ParamInfos(True, np.float_, 1),
-        'creation_rna': ParamInfos(True, np.float_, 1),
-        'creation_protein': ParamInfos(True, np.float_, 1),
-        'degradation_rna': ParamInfos(True, np.float_, 1),
-        'degradation_protein': ParamInfos(True, np.float_, 1),
-        'basal': ParamInfos(True, np.float_, 1),
-        'interaction': ParamInfos(True, np.float_, 2)
+        'burst_frequency_min': ParamInfos(True, np.float64, 1),
+        'burst_frequency_max': ParamInfos(True, np.float64, 1),
+        'burst_size_inv': ParamInfos(True, np.float64, 1),
+        'creation_rna': ParamInfos(True, np.float64, 1),
+        'creation_protein': ParamInfos(True, np.float64, 1),
+        'degradation_rna': ParamInfos(True, np.float64, 1),
+        'degradation_protein': ParamInfos(True, np.float64, 1),
+        'basal': ParamInfos(True, np.float64, 1),
+        'interaction': ParamInfos(True, np.float64, 2),
+        'genes_names': ParamInfos(False, np.str_, 1),
+        'layout': ParamInfos(False, np.float64, 2)
     }
 
-    def __init__(self, n_genes):
+    def __init__(self, n_genes, gene_names=None, layout=None):
         # Number of genes
         self._n_genes = _check_n_genes(n_genes)
         # Genes plus stimulus
@@ -78,6 +80,9 @@ class NetworkParameter:
         self._creation[0] = self._degradation[0] * self.rna_scale()
         self._creation[1] = self._degradation[1] * self.protein_scale()
 
+        self._genes_names = _check_genes_names(gene_names, G)
+        self._layout = _check_layout(layout, G)
+
     def __eq__(self, other):
         if isinstance(other, NetworkParameter):
             test = [other._n_genes == self._n_genes]
@@ -95,7 +100,12 @@ class NetworkParameter:
         network_param = cls(data['basal'].size - 1)
 
         for key, value in data.items():
-            getattr(network_param, key)[:] = value[:]
+            attr = getattr(network_param, key)
+            if attr is not None:
+                attr[:] = value[:]
+            else:
+                assert not cls.param_names[key].required
+                attr = value
 
         return network_param
 
@@ -105,41 +115,30 @@ class NetworkParameter:
         network_param = cls(data['basal'].size - 1)
 
         for key, value in data.items():
-            getattr(network_param, key)[:] = value[:]
+            if hasattr(network_param, key):
+                attr = getattr(network_param, key)
+                if attr is not None:
+                    attr[:] = value[:]
+                else:
+                    assert not cls.param_names[key].required
+                    setattr(network_param, key, value)
 
         return network_param
     
+    def as_dict(self):
+        param_dict = {}
+        for attr_name, attr_info in self.param_names.items():
+            attr_array = getattr(self, attr_name)
+            if attr_info.required or attr_array is not None:
+                param_dict[attr_name] = attr_array
+
+        return param_dict
+        
     def save_txt(self, path: Union[str, Path]) -> Path:
-        return save_dir(
-            path, 
-            {
-                'burst_frequency_min': self.burst_frequency_min,
-                'burst_frequency_max': self.burst_frequency_max,
-                'burst_size_inv': self.burst_size_inv,
-                'creation_rna': self.creation_rna,
-                'creation_protein': self.creation_protein,
-                'degradation_rna': self.degradation_rna,
-                'degradation_protein': self.degradation_protein,
-                'basal': self.basal,
-                'interaction': self.interaction 
-            }
-        )
+        return save_dir(path, self.as_dict())
 
     def save(self, path: Union[str, Path]) -> Path:
-        return save_npz(
-            path, 
-            {
-                'burst_frequency_min': self.burst_frequency_min,
-                'burst_frequency_max': self.burst_frequency_max,
-                'burst_size_inv': self.burst_size_inv,
-                'creation_rna': self.creation_rna,
-                'creation_protein': self.creation_protein,
-                'degradation_rna': self.degradation_rna,
-                'degradation_protein': self.degradation_protein,
-                'basal': self.basal,
-                'interaction': self.interaction 
-            }
-        )
+        return save_npz(path, self.as_dict())
 
 
     # Network size properties
@@ -154,6 +153,22 @@ class NetworkParameter:
     def n_genes_stim(self):
         """Number of genes in the network model, including stimulus."""
         return self._n_genes + 1
+    
+    @property
+    def genes_names(self):
+        return self._genes_names
+    
+    @genes_names.setter
+    def genes_names(self, gene_names):
+        self._genes_names = _check_genes_names(gene_names, self.n_genes_stim)
+
+    @property
+    def layout(self):
+        return self._layout
+    
+    @layout.setter
+    def layout(self, layout):
+        self._layout = _check_layout(layout, self.n_genes_stim)
 
     # Parameter properties
     # ====================
@@ -293,6 +308,45 @@ def _check_n_genes(arg):
             raise ValueError('n_genes must be strictly positive.')
     raise TypeError((f'n_genes of type {type(arg).__name__} '
                      'must be an integer.'))
+
+def _check_genes_names(gene_names, n_genes_stim):
+    if gene_names is not None:
+        if (not isinstance(gene_names, np.ndarray) 
+            or gene_names.ndim != 1
+            or gene_names.dtype.type is not np.str_):
+            raise TypeError('gene_names must be a str 1D ndarray.')
+        
+        if gene_names.size != n_genes_stim:
+            raise TypeError(
+                'genes_names size must be equal to the number of genes' 
+                ' (including the stimulus)' 
+                f'({gene_names.size} != {n_genes_stim})'
+            )
+        
+    return gene_names
+
+def _check_layout(layout, n_genes_stim):
+    if layout is not None:
+        if (not isinstance(layout, np.ndarray) 
+            or layout.ndim != 2 
+            or layout.dtype != np.float64):
+            raise TypeError('layout must be a float 2D ndarray.')
+        
+        if layout.shape[0] != n_genes_stim:
+            raise TypeError(
+                'layout number of row must be equal to the number of genes' 
+                ' (including the stimulus)' 
+                f'({layout.size} != {n_genes_stim})'
+            )
+        
+        if layout.shape[1] != 2:
+            raise TypeError(
+                'layout number of colum must be equal 2' 
+                f'({layout.size} != 2)'
+            )
+    
+    return layout
+        
 
 def _masked_zeros(shape):
     """Array of zeros with given shape and hard-masked first column.

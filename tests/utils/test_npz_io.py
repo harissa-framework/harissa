@@ -11,8 +11,8 @@ from harissa.utils.npz_io import (
 @pytest.fixture
 def param_names():
     return {
-        'time_points': ParamInfos(True, np.float_, 1),
-        'initial_state': ParamInfos(False, np.float_, 2),
+        'time_points': ParamInfos(True, np.float64, 1),
+        'initial_state': ParamInfos(False, np.float64, 2),
         'count_matrix': ParamInfos(True, np.uint, 2),
         'gene_names': ParamInfos(False, np.str_, 1)
     }
@@ -61,11 +61,11 @@ class TestNPZ:
 
     def test_load_unexpected_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_npz(npz_file, {'foo': ParamInfos(True, np.float_, 1)})
+            load_npz(npz_file, {'foo': ParamInfos(True, np.float64, 1)})
     
     def test_load_missing_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_npz(npz_file, {'time_points': ParamInfos(True, np.float_, 1)})
+            load_npz(npz_file, {'time_points': ParamInfos(True, np.float64, 1)})
 
     def test_save(self, tmp_path, arrays):
         path = save_npz(tmp_path / 'foo.npz', arrays)
@@ -93,11 +93,11 @@ class TestDir:
 
     def test_load_unexpected_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_dir(npz_file, {'foo': ParamInfos(True, np.float_, 1)})
+            load_dir(npz_file, {'foo': ParamInfos(True, np.float64, 1)})
     
     def test_load_missing_array(self, npz_file):
         with pytest.raises(RuntimeError):
-            load_dir(npz_file, {'time_points': ParamInfos(True, np.float_, 1)})
+            load_dir(npz_file, {'time_points': ParamInfos(True, np.float64, 1)})
     
     def test_save(self, tmp_path, arrays):
         path = save_dir(tmp_path / 'foo', arrays)

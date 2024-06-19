@@ -26,6 +26,25 @@ try:
 except Exception:
     __version__ = 'unknown version'
 
+try:
+    from alive_progress.animations.spinners import (
+        bouncing_spinner_factory as _bouncing_spinner_factory
+    )
+    from alive_progress import config_handler as _config_handler
+
+    _config_handler.set_global(
+        bar='smooth',
+        spinner=_bouncing_spinner_factory('🌶', 6, hide=False),
+        unknown='horizontal',
+        # dual_line=True,
+        receipt=False,
+        force_tty=True,
+        length=20,
+        max_cols=100
+    )
+except ImportError:
+    pass
+
 # Handle exceptions with user-friendly traceback:
 # this may be moved later to specific end-user scripts
 # ====================================================

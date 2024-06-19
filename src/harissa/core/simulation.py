@@ -24,9 +24,9 @@ class Simulation(ABC):
         Simulation result
         """
         param_names: ClassVar[Dict[str, ParamInfos]] = {
-            'time_points': ParamInfos(True, np.float_, 1),
-            'rna_levels': ParamInfos(True, np.float_, 2),
-            'protein_levels' :ParamInfos(True, np.float_, 2)
+            'time_points': ParamInfos(True, np.float64, 1),
+            'rna_levels': ParamInfos(True, np.float64, 2),
+            'protein_levels' :ParamInfos(True, np.float64, 2)
         }
         time_points: np.ndarray
         rna_levels: np.ndarray
@@ -35,19 +35,19 @@ class Simulation(ABC):
         def __init__(self, time_points, rna_levels, protein_levels) -> None:
             if (not isinstance(time_points, np.ndarray) 
                 or time_points.ndim != 1
-                # or time_points.dtype != np.float_
+                # or time_points.dtype != np.float64
                 ):
                 raise TypeError('time_points must be a 1D float np.ndarray')
             
             if (not isinstance(rna_levels, np.ndarray) 
                 or rna_levels.ndim != 2
-                # or rna_levels.dtype != np.float_
+                # or rna_levels.dtype != np.float64
                 ):
                 raise TypeError('rna_levels must be a 2D float np.ndarray')
             
             if (not isinstance(protein_levels, np.ndarray) 
                 or protein_levels.ndim != 2
-                # or protein_levels.dtype != np.float_
+                # or protein_levels.dtype != np.float64
                 ):
                 raise TypeError('protein_levels must be a 2D float np.ndarray')
             

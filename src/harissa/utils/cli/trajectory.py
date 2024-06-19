@@ -10,9 +10,9 @@ from harissa.utils.npz_io import ParamInfos, load_dir, load_npz
 from harissa.utils.cli.infer import add_export_options, export_choices
 
 simulation_param_names = {
-    'time_points': ParamInfos(True, np.float_, 1),
-    'initial_state': ParamInfos(False, np.float_, 2),
-    'initial_time': ParamInfos(False, np.float_, 0)
+    'time_points': ParamInfos(True, np.float64, 1),
+    'initial_state': ParamInfos(False, np.float64, 2),
+    'initial_time': ParamInfos(False, np.float64, 0)
 }
 
 def _create_load_simulation_parameter(load_fn):

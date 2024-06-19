@@ -156,7 +156,10 @@ class NetworkModel:
                              f'and not a(n) {type(data)}.'))
         
         if self.parameter is None:
-            param = NetworkParameter(data.count_matrix.shape[1] - 1)
+            param = NetworkParameter(
+                data.count_matrix.shape[1] - 1,
+                data.gene_names
+            )
         else:
             param = self.parameter.copy()
         

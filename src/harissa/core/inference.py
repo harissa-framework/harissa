@@ -18,6 +18,15 @@ class Inference(ABC):
             for key, value in kwargs.items():
                 setattr(self, key, value)
 
+        # Add load methods
+        @classmethod
+        def load(cls, path, load_extra=False):
+            return Inference.Result(NetworkParameter.load(path))
+        
+        @classmethod
+        def load_txt(cls, path, load_extra=False):
+            return Inference.Result(NetworkParameter.load_txt(path))
+
         # Add a "save" methods
         def save_txt(self, path, save_extra=False):
             if save_extra:
@@ -40,7 +49,7 @@ class Inference(ABC):
     def directed(self) -> bool:
         raise NotImplementedError(
             f'{self.__class__.__name__} must only ' 
-             'implement this function (run) and not use it.'
+             'implement this function (directed) and not use it.'
         )
 
     @abstractmethod

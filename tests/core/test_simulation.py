@@ -35,7 +35,7 @@ class TestSimulation:
 
 @pytest.fixture(scope='module')
 def time_points():
-    return np.arange(2, dtype=np.float_)
+    return np.arange(2, dtype=np.float64)
 
 @pytest.fixture(scope='module')
 def rna_levels():
@@ -149,7 +149,7 @@ class TestSimulationResult:
         rna_levels = np.array([[0.0,2.0],[2.0,2.0]])
         protein_levels = np.array([[1.0,3.0],[3.0,3.0]])
         time_points = (simulation_res.time_points[-1] 
-                       + np.arange(1, 3, dtype=np.float_))
+                       + np.arange(1, 3, dtype=np.float64))
         
         sim = (simulation_res 
                + Simulation.Result(time_points, rna_levels, protein_levels))
@@ -170,12 +170,12 @@ class TestSimulationResult:
     
     @pytest.mark.parametrize('sim', [
         Simulation.Result(
-            np.arange(-1, 1, dtype=np.float_),
+            np.arange(-1, 1, dtype=np.float64),
             np.zeros((2, 2)), 
             np.zeros((2, 2))
         ),
         Simulation.Result(
-            np.arange(3, 5, dtype=np.float_),
+            np.arange(3, 5, dtype=np.float64),
             np.zeros((2, 3)), 
             np.zeros((2, 3))
         ),

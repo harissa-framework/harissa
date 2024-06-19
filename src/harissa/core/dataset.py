@@ -16,7 +16,7 @@ from harissa.utils.npz_io import (
 @dataclass(frozen=True, init=False)
 class Dataset:
     param_names: ClassVar[Dict[str, ParamInfos]] = {
-        'time_points': ParamInfos(True, np.float_, 1), 
+        'time_points': ParamInfos(True, np.float64, 1), 
         'count_matrix': ParamInfos(True, np.uint, 2),
         'gene_names': ParamInfos(False, np.str_, 1)
     }
