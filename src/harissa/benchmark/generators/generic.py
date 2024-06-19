@@ -20,23 +20,17 @@ V = TypeVar('V')
 class GenericGenerator(Iterable[Tuple[K, V]]):
     def __init__(self,
         sub_directory_name: str, 
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: List[str] = ['*'],
+        exclude: List[str] = [],
         path: Optional[Union[str, Path]] = None,
-        verbose: bool = False
+        verbose: bool = None
     ) -> None:
         self.sub_directory_name = sub_directory_name
-        self.verbose = verbose
 
-        self._include = ['**']
-        self._exclude = []
-        
+        self.include = include
+        self.exclude = exclude
         self.path = path
-
-        if include is not None:
-            self.include = include
-        if exclude is not None:
-            self.exclude = exclude
+        self.verbose = verbose
 
     @property
     def path(self) -> Optional[Path]:
@@ -47,13 +41,9 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         if path is not None:
             if not isinstance(path, (str, Path)):
                 raise TypeError('path must be an str or a Path.')
-            self.set_path(Path(path))
+            self._path = Path(path)
         else:
             self._path = None
-
-
-    def set_path(self, path: Path):
-        self._path = path
 
     @property
     def verbose(self) -> bool:
@@ -63,9 +53,6 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     def verbose(self, verbose: bool):
         if not isinstance(verbose, bool):
             raise TypeError('verbose must be a boolean.')
-        self.set_verbose(verbose)
-
-    def set_verbose(self, verbose:bool):
         self._verbose = verbose
 
     @property
@@ -74,10 +61,7 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     @include.setter
     def include(self, include):
         if not isinstance(include, list):
-            raise TypeError('include must be a list of str.')
-        self.set_include(include)
-
-    def set_include(self, include):
+            raise TypeError('include must be a list of keys.')
         self._include = include
 
     @property
@@ -87,8 +71,8 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     @exclude.setter
     def exclude(self, exclude):
         if not isinstance(exclude, list):
-            raise TypeError('exclude must be a list of str.')
-        self.set_exclude(exclude)
+            raise TypeError('exclude must be a list of keys.')
+        self._exclude = exclude
 
     def set_exclude(self, exclude):
         self._exclude = exclude

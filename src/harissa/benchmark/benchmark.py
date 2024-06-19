@@ -31,24 +31,29 @@ V : TypeAlias = Tuple[
 ]
 class Benchmark(GenericGenerator[K, V]):
     def __init__(self,
-        n_scores: int = 1, 
+        n_run: int = 1, 
         path: Optional[Union[str, Path]] = None,
-        include: Optional[List[str]] = None,
-        exclude: Optional[List[str]] = None,
+        include: List[str] = [('*', '*', '*', '*')],
+        exclude: List[str] = [],
         verbose: bool = True
     ) -> None:
-        self._generators = [
-           DatasetsGenerator(),
-           InferencesGenerator() 
-        ]
-        self.model = NetworkModel()
-        self.n_scores = n_scores
         super().__init__('scores', include, exclude, path, verbose)
+        self._generators = [
+           DatasetsGenerator(path=path),
+           InferencesGenerator(path=path) 
+        ]
+        self._old_generators_path, self._old_generators_verbose = (
+            [gen.path for gen in self._generators],
+            [gen.verbose for gen in self._generators]
+        ) 
+        self._model = NetworkModel()
+        self.n_run = n_run
 
     # Aliases
     @property
     def datasets(self):
         return self._generators[0]
+    
     
     @property
     def inferences(self):
@@ -57,26 +62,6 @@ class Benchmark(GenericGenerator[K, V]):
     @property
     def networks(self):
         return self.datasets.networks
-    
-    def set_path(self, path: Path):
-        super().set_path(path)
-        self.datasets.path = path
-        self.inferences.path = path
-
-    def set_verbose(self, verbose: bool):
-        super().set_verbose(verbose)
-        self.datasets.verbose = verbose
-        self.inferences.verbose = verbose
-
-    def set_include(self, include):
-        super().set_include(include)
-        for _ in self.keys():
-            pass
-    
-    def set_exclude(self, exclude):
-        super().set_exclude(exclude)
-        for _ in self.keys():
-            pass
     
     def _load_value(self, path: Path, key: K) -> V:
         network , dataset = self.datasets[key[0], key[2]]
@@ -92,9 +77,6 @@ class Benchmark(GenericGenerator[K, V]):
         return network, inf, dataset, result, runtime
 
     def _load_keys(self, path: Path) -> Iterator[K]:
-        datasets_included = []
-        inferences_included = []
-
         root = path / self.sub_directory_name
 
         for d_key in self.datasets.keys():
@@ -103,75 +85,71 @@ class Benchmark(GenericGenerator[K, V]):
                 for r_path in r_dir.iterdir():
                     key = (d_key[0], inf_name, d_key[1], r_path.stem)
                     if self.match(key):
-                        if d_key not in datasets_included:
-                            datasets_included.append(d_key)
-                        if inf_name not in inferences_included:
-                            inferences_included.append(inf_name)
-                        
                         yield key
-
-        self.datasets.include = datasets_included
-        self.inferences.include = inferences_included
 
     def _generate_value(self, key: K) -> V:
         network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
         
-        self.model.parameter = network
-        self.model.inference = inf[0]
+        self._model.parameter = network
+        self._model.inference = inf[0]
         
         start = perf_counter()
-        result = self.model.fit(dataset)
+        result = self._model.fit(dataset)
         runtime = perf_counter() - start
             
         return network, inf, dataset, result, runtime
 
     def _generate_keys(self) -> Iterator[K]:
-        datasets_included = []
-        inferences_included = []
-
         for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
-                for i in range(self.n_scores):
+                for i in range(self.n_run):
                     key = (dataset_key[0], inf_name, dataset_key[1], f'r{i+1}')
                     if self.match(key):
-                        if dataset_key not in datasets_included:
-                            datasets_included.append(dataset_key)
-                        if inf_name not in inferences_included:
-                            inferences_included.append(inf_name)
-                        
                         yield key
 
-        self.datasets.include = datasets_included
-        self.inferences.include = inferences_included
-
     def _pre_load(self, path: Path):
+        for i, generator in enumerate(self._generators):
+            self._old_generators_path[i] = generator.path
+        
         for generator in self._generators:
-            generator.path = path
+            if self.path == generator.path:
+                generator.path = path
 
     def _post_load(self):
-        for generator in self._generators:
-            generator.path = self.path
+        for i, path in enumerate(self._old_generators_path):
+            self._generators[i].path = path
 
     def _pre_generate(self):
+        for i, generator in enumerate(self._generators):
+            self._old_generators_verbose[i] = generator.verbose
+        
         for generator in self._generators:
             generator.verbose = False
 
     def _post_generate(self):
-        for generator in self._generators:
-            generator.verbose = self.verbose
+        for i, verbose in enumerate(self._old_generators_verbose):
+            self._generators[i].verbose = verbose
 
     def _pre_save(self, path):
+        for i, generator in enumerate(self._generators):
+            self._old_generators_path[i] = generator.path
+            self._old_generators_verbose[i] = generator.verbose
+
         for generator in self._generators:
+            generator.verbose = self.verbose
             generator.save(path)
             if generator.path is None:
                 generator.path = path
             generator.verbose = False
             
     def _post_save(self):
-        for generator in self._generators:
-            generator.verbose = self.verbose
+        for i, path in enumerate(self._old_generators_path):
+            self._generators[i].path = path
 
+        for i, verbose in enumerate(self._old_generators_verbose):
+            self._generators[i].verbose = verbose
+        
     def _save(self, path: Path) -> None:
         for (n, i, d, r), (*_, result, runtime) in self.items():
             output = path.joinpath(n, i, d, r)
@@ -179,10 +157,12 @@ class Benchmark(GenericGenerator[K, V]):
             result.save(output / 'result', True)
             np.save(output / 'runtime.npy', np.array([runtime]))
 
-        if self.path is None:
-            self.path = path.parent
+        old_path = self.path
+        self.path = path.parent
 
         self.save_reports(path.parent / 'reports')
+
+        self.path = old_path
 
     def reports(self, show_networks=False):
         return plot_benchmark(self, show_networks)
@@ -208,11 +188,10 @@ class Benchmark(GenericGenerator[K, V]):
 if __name__ == '__main__':
     benchmark = Benchmark()
     benchmark.datasets.path = 'test_benchmark'
-    benchmark.datasets.include = [('BN8', '*')]
+    benchmark.networks.include = ['BN8']
     benchmark.save('test_benchmark')
     
-    benchmark = Benchmark()
-    benchmark.path='test_benchmark'
+    benchmark = Benchmark(path='test_benchmark')
     benchmark.networks.exclude = ['Trees*']
     print(benchmark.save('test_benchmark2'))
     print(benchmark.save_reports('test_reports', True))

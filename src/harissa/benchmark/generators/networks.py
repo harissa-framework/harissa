@@ -78,8 +78,8 @@ class NetworksGenerator(GenericGenerator[K, V]):
     _networks : Dict[str, Union[V, Callable[[], V]]] = {}
 
     def __init__(self,
-        include: Optional[List[str]] = None, 
-        exclude: Optional[List[str]] = None,
+        include: List[str] = ['*'], 
+        exclude: List[str] = [],
         path: Optional[Union[str, Path]] = None,
         verbose: bool = False
     ) -> None:

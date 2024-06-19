@@ -21,51 +21,49 @@ from harissa.benchmark.generators.networks import NetworksGenerator
 K: TypeAlias = Tuple[str, str]
 V: TypeAlias = Tuple[NetworkParameter, Dataset]
 
+default_simulate_parameters: Dict = {
+    'time_points': np.array([
+        0, 6, 12, 24, 36, 48, 60, 72, 84, 96
+    ], dtype=float),
+    'n_cells': 100,
+    'burn_in_duration': 5.0
+}
+
+default_n_datasets: int = 10
+
 class DatasetsGenerator(GenericGenerator[K, V]):
     def __init__(self,
-        time_points : npt.NDArray[np.float_] = np.array([
-            0, 6, 12, 24, 36, 48, 60, 72, 84, 96
-        ], dtype=float),
-        n_cells: int = 100,
-        burn_in_duration: float = 5.0,
-        n_datasets : Union[int, Dict[str, int]] = 10,
-        include: Optional[List[str]] = None, 
-        exclude: Optional[List[str]] = None,
+        simulate_parameters: Dict = default_simulate_parameters,
+        n_datasets : Union[int, Dict[str, int]] = default_n_datasets,
+        include: List[K] = [('*', '*')], 
+        exclude: List[K] = [],
         path: Optional[Union[str, Path]] = None,
         verbose: bool = False
     ) -> None:
-        self.networks = NetworksGenerator()
-    
-        self.model = NetworkModel(
+        super().__init__('datasets', include, exclude, path, verbose)
+        self.n_datasets = n_datasets
+        self.simulate_parameters = simulate_parameters
+        self._model = NetworkModel(
             simulation=BurstyPDMP(use_numba=True)
         )
-        self.simulate_dataset_parameters = {
-            'time_points': time_points, 
-            'n_cells' : n_cells,
-            'burn_in_duration': burn_in_duration
-        }
-        self.n_datasets = n_datasets
-        super().__init__('datasets', include, exclude, path, verbose)
 
+        self.networks = NetworksGenerator(path=path)
+        self._old_network_path, self._old_network_verbose = (
+            self.networks.path, 
+            self.networks.verbose
+        )
 
-    def set_path(self, path: Path):
-        super().set_path(path)
-        self.networks.path = path
-
-    def set_verbose(self, verbose: bool):
-        super().set_verbose(verbose)
-        self.networks.verbose = verbose
-
-    def set_include(self, include):
-        super().set_include(include)
-        for _ in self.keys():
-            pass
-
-    def set_exclude(self, exclude):
-        super().set_exclude(exclude)
-        for _ in self.keys():
-            pass
-
+    @property
+    def networks(self):
+        return self._networks
+    
+    @networks.setter
+    def networks(self, network_gen):
+        if not isinstance(network_gen, NetworksGenerator):
+            raise TypeError(f'{network_gen} must be a NetworksGenerator.')
+        
+        self._networks = network_gen
+    
     def _load_value(self, path: Path, key: K) -> V:
         network = self.networks[key[0]]
         dataset = Dataset.load(
@@ -74,68 +72,85 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         return network, dataset
 
     def _load_keys(self, path: Path) -> Iterator[K]:
-        network_included = []
         for network_name in self.networks.keys():
             dataset_dir = path / self.sub_directory_name / network_name
+
             for dataset_path in dataset_dir.iterdir():
-                dataset_name = dataset_path.stem
-                if self.match((network_name, dataset_name)):
-                    if network_name not in network_included:
-                        network_included.append(network_name)
-                    yield network_name, dataset_name
-    
-        self.networks.include = network_included
+                key = (network_name, dataset_path.stem)
+                if self.match(key):
+                    yield key
 
     def _generate_value(self, key: K) -> V:
         network = self.networks[key[0]]
-        self.model.parameter = network
+        self._model.parameter = network
         
-        dataset = self.model.simulate_dataset(
-            **self.simulate_dataset_parameters
+        dataset = self._model.simulate_dataset(
+            **self.simulate_parameters[key]
         )
         
         return network, dataset
 
     def _generate_keys(self) -> Iterator[K]:
-        network_included = []
+        n_datasets = {}
+        parameters = {}
         for network_name in self.networks.keys():
             if isinstance(self.n_datasets, int):
-                n_datasets = self.n_datasets    
+                n = self.n_datasets    
             else: 
-                n_datasets = self.n_datasets.get(network_name, 10)
-                
-            for i in range(n_datasets):
-                dataset_name = f'd{i+1}'
-                if self.match((network_name, dataset_name)):
-                    if network_name not in network_included:
-                        network_included.append(network_name)
-                    yield network_name, dataset_name
+                n = self.n_datasets.get(
+                    network_name, 
+                    default_n_datasets
+                )
+            for i in range(n):
+                key = (network_name, f'd{i+1}')
+                if self.match(key):
+                    if network_name not in n_datasets:
+                        n_datasets[network_name] = n
 
-        self.networks.include = network_included
+                    if key in self.simulate_parameters:
+                        parameters[key] = self.simulate_parameters[key]
+                    elif key[0] in self.simulate_parameters:
+                        parameters[key] = self.simulate_parameters[key[0]]
+                    else:
+                        parameters[key] = {
+                            k:self.simulate_parameters.get(k, v)
+                            for k, v in default_simulate_parameters.items()
+                        }
+
+                    yield key
+
+        self.n_datasets = n_datasets
+        self.simulate_parameters = parameters
 
     def _pre_load(self, path: Path):
-        self.networks.path = path
+        self._old_network_path = self.networks.path
+        if self.path == self.networks.path: 
+            self.networks.path = path
 
     def _post_load(self):
-        self.networks.path = self.path
+        self.networks.path = self._old_network_path
 
     def _pre_generate(self):
+        self._old_network_verbose = self.networks.verbose
         self.networks.verbose = False
     
     def _post_generate(self):
-        self.networks.verbose = self.verbose
-
+        self.networks.verbose = self._old_network_verbose
 
     def _pre_save(self, path: Path):
+        self._old_network_verbose = self.networks.verbose
+        self.networks.verbose = self.verbose
+        
         self.networks.save(path)
+        self._old_network_path = self.networks.path
+        
         self.networks.verbose = False
-        if self.path is None:
+        if self.networks.path is None:
             self.networks.path = path
     
     def _post_save(self):
-        self.networks.verbose = self.verbose
-        if self.path is None:
-            self.networks.path = None
+        self.networks.verbose = self._old_network_verbose
+        self.networks.path = self._old_network_path
     
     def _save(self, path: Path) -> None:
         for (network_name, dataset_name) , (_, dataset) in self.items():
