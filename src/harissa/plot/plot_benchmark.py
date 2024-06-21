@@ -1,12 +1,9 @@
 """Some utility plot functions for benchmarking Harissa"""
 
 from __future__ import annotations
-from typing import Dict, Tuple, Union, Optional
-from pathlib import Path
-from functools import wraps
+from typing import List, Tuple, Optional
 
 import numpy as np
-from numpy._typing import NDArray
 import numpy.typing as npt
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
 import matplotlib.pyplot as plt
@@ -17,9 +14,11 @@ from harissa.plot.plot_network import build_pos, plot_network
 
 class DirectedPlotter:
     def __init__(self,
+        inferences_order: List[str],
         network: Optional[NetworkParameter] = None, 
         alpha_curve_std: float = 0.2
     ) -> None:
+        self._inferences_order = inferences_order
         self._truth = None
         if network is None:
             self._network = network
@@ -225,6 +224,13 @@ class DirectedPlotter:
                         ys_per_inf[inf_name][0].append(y)
                 yield
         finally:
+            # reorder inferences
+            ys_per_inf = {
+                inf_name:ys_per_inf[inf_name] 
+                for inf_name in self._inferences_order 
+                if inf_name in ys_per_inf
+            }
+
             for inf, (ys, colors) in ys_per_inf.items():
                 ys = np.array(ys)
                 y = np.mean(ys, axis=0)
@@ -261,6 +267,13 @@ class DirectedPlotter:
                         aucs_per_inf[inf_name][0].append(auc)
                 yield
         finally:
+            # reorder inferences
+            aucs_per_inf = {
+                inf_name:aucs_per_inf[inf_name] 
+                for inf_name in self._inferences_order
+                if inf_name in aucs_per_inf
+            }
+
             for i, (aucs, colors) in enumerate(aucs_per_inf.values()):
                 box = ax.boxplot(
                     [np.array(aucs)], 
@@ -291,11 +304,12 @@ class DirectedPlotter:
 
 
 class UnDirectedPlotter(DirectedPlotter):
-    def __init__(self, 
+    def __init__(self,
+        inferences_order: List[str], 
         network: Optional[NetworkParameter] = None,
         alpha_curve_std: float = 0.2
         ) -> None:
-        super().__init__(network, alpha_curve_std)
+        super().__init__(inferences_order, network, alpha_curve_std)
 
     def _prepare_score(self, 
         matrix: npt.NDArray[np.float64]
@@ -309,34 +323,41 @@ class UnDirectedPlotter(DirectedPlotter):
     def _accept_inference(self, inference: Inference) -> bool:
         return True
     
-
-
-def plot_benchmark(benchmark, show_networks=False):
+def plot_benchmark(
+    benchmark, 
+    networks_order, 
+    inferences_order, 
+    show_networks=False
+):
     plotters_per_networks = {
-        net_name:(DirectedPlotter(), UnDirectedPlotter())
-        for net_name in benchmark.networks.keys()
+        net_name:(
+            DirectedPlotter(inferences_order), 
+            UnDirectedPlotter(inferences_order)
+        )
+        for net_name in networks_order
     }
     nb_networks = len(plotters_per_networks)
     nb_colum = 4 + show_networks
     scale = 4
     figs = [
-        plt.figure(figsize=(16, 9)),
-        plt.figure(figsize=(scale*nb_colum, scale*nb_networks)),
-        plt.figure(figsize=(scale*nb_colum, scale*nb_networks))
+        plt.figure(figsize=(18, 10), layout="constrained"),
+        plt.figure(figsize=(scale*nb_colum, scale*nb_networks), layout="constrained"),
+        plt.figure(figsize=(scale*nb_colum, scale*nb_networks), layout="constrained")
     ]
+    titles = ['general', 'directed', 'undirected']
+    for fig, title in zip(figs, titles):
+        fig.suptitle(title)
 
-    grid = gs.GridSpec(2, 4)
+    grid = gs.GridSpec(2, 4, figure=figs[0])
     plotters = [
-        DirectedPlotter(), 
-        UnDirectedPlotter()
+        DirectedPlotter(inferences_order), 
+        UnDirectedPlotter(inferences_order)
     ]
-    for i, (plotter, title) in enumerate(
-        zip(plotters, ['directed', 'undirected'])
-    ):
+    for i, (plotter, title) in enumerate(zip(plotters, titles[1:])):
         plotter.axs = [figs[0].add_subplot(grid[i, j]) for j in range(0,4)]
         plotter.plots = None
         plotter.axs[0].text(
-            -0.095, 
+            -0.195, 
             0.875, 
             title, 
             bbox={
@@ -352,7 +373,7 @@ def plot_benchmark(benchmark, show_networks=False):
 
     for k in range(1, 3):
         fig = figs[k]
-        grid = gs.GridSpec(nb_networks, nb_colum)
+        grid = gs.GridSpec(nb_networks, nb_colum, figure=fig)
         for i, network_name in enumerate(plotters_per_networks):
             # prepare axes
             axs = [fig.add_subplot(grid[i, j]) for j in range(nb_colum)]
@@ -418,21 +439,26 @@ def plot_benchmark(benchmark, show_networks=False):
         
         for j in range(1, 4):
             plotter.axs[j].sharey(plotter.axs[0])
+            plt.setp(plotter.axs[j].get_yticklabels(), visible=False)
         
         if i < 1:
-            for ax in plotter.axs:
+            for j, ax in enumerate(plotter.axs):
                 ax.set_xlabel('')
+                if j % 2 == 0:
+                    plt.setp(ax.get_xticklabels(), visible=False)
 
     for i, plotters in enumerate(plotters_per_networks.values()):
         for plotter in plotters:
             for plot in plotter.plots:
                 plot.close()
-            
+
             for j in range(show_networks + 1, nb_colum):
                 plotter.axs[j].sharey(plotter.axs[show_networks])
+                plt.setp(plotter.axs[j].get_yticklabels(), visible=False)
                 
             if i < nb_networks - 1:
                 for ax in plotter.axs:
                     ax.set_xlabel('')
+                    plt.setp(ax.get_xticklabels(), visible=False)
              
     return figs

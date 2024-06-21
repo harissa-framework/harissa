@@ -55,7 +55,7 @@ class Benchmark(GenericGenerator[K, V]):
         super()._set_path(path)
         for generator in self._generators:
             generator.path = path
-            
+
     # Aliases    
     @property
     def datasets(self):
@@ -130,7 +130,17 @@ class Benchmark(GenericGenerator[K, V]):
 
 
     def reports(self, show_networks=False):
-        return plot_benchmark(self, show_networks)
+        networks, inferences = set(), set()
+        for network, inference, *_ in self.keys():
+            networks.add(network)
+            inferences.add(inference)
+
+        return plot_benchmark(
+            self, 
+            sorted(networks), 
+            sorted(inferences), 
+            show_networks
+        )
 
     def save_reports(self,
         path: Union[str, Path],
@@ -138,14 +148,9 @@ class Benchmark(GenericGenerator[K, V]):
         show_networks: bool = False,
         save_all: bool = False
     ) -> Path:
-        path = Path(path)
+        path = Path(path).with_suffix('')
         generators = [self, *self._generators, self.networks]
         old_paths = [gen.path for gen in generators]
-
-        fnames = ['general.pdf', 'directed.pdf', 'undirected.pdf']
-        fnames = map(lambda fname: Path(fname), fnames)
-        if save_all:
-            fnames = map(lambda fname: Path('reports') / fname, fnames)
 
         if archive_format is not None:
             with TemporaryDirectory() as tmp_dir:
@@ -153,10 +158,11 @@ class Benchmark(GenericGenerator[K, V]):
                 if save_all:
                     self.save(tmp_path)
                     self.path = tmp_path
+                    tmp_path = tmp_path / 'reports'
 
-                for fig, fname in zip(self.reports(show_networks), fnames):
-                    fpath = tmp_path / fname
-                    fpath.parent.mkdir(parents=True, exist_ok=True)
+                tmp_path.mkdir(parents=True, exist_ok=True)
+                for fig in self.reports(show_networks):
+                    fpath = (tmp_path / fig.get_suptitle()).with_suffix('.pdf')
                     fig.savefig(fpath)
                 
                 with alive_bar(
@@ -170,11 +176,15 @@ class Benchmark(GenericGenerator[K, V]):
             if save_all:
                 self.save(path)
                 self.path = path
-                
-            for fig, fname in zip(self.reports(show_networks), fnames):
-                fpath = path / fname
-                fpath.parent.mkdir(parents=True, exist_ok=True)
+                path = path / 'reports'
+            
+            path.mkdir(parents=True, exist_ok=True)
+            for fig in self.reports(show_networks):
+                fpath = (path / fig.get_suptitle()).with_suffix('.pdf')
                 fig.savefig(fpath)
+            
+            if save_all:
+                path = path.parent
 
         for generator, old_path in zip(generators, old_paths):
             generator.path = old_path
@@ -184,9 +194,9 @@ class Benchmark(GenericGenerator[K, V]):
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    # benchmark.datasets.path = 'test_benchmark.zip'
+    benchmark.path = 'test_benchmark.zip'
     # benchmark.networks.include = ['BN8']
-    benchmark.save_reports('test_benchmark', 'zip', True, True)
+    print(benchmark.save_reports('test_benchmark', None, True, True))
     
     benchmark = Benchmark(path='test_benchmark.zip')
     benchmark.networks.exclude = ['Trees*']
