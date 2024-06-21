@@ -1,6 +1,7 @@
 from typing import (
     Dict, 
     List,
+    Tuple,
     Callable, 
     Union, 
     Optional,
@@ -117,8 +118,8 @@ class NetworksGenerator(GenericGenerator[K, V]):
     def available_networks(cls) -> List[str]:
         return list(cls._networks.keys())
     
-    def _load_value(self, path: Path, key: K) -> V:
-        network_path = path / self.sub_directory_name / f'{key}.npz'
+    def _load_value(self, key: K) -> V:
+        network_path = self._to_path(key).with_suffix('.npz')
         return NetworkParameter.load(network_path)
     
     def _generate_value(self, key):
@@ -134,12 +135,16 @@ class NetworksGenerator(GenericGenerator[K, V]):
         for key in self._networks.keys():
             if self.match(key):
                 yield key
-            
-    def _save(self, path: Path) -> None:
-        for name, network in self.items():
-            if network.layout is None:
-                network.layout = build_pos(network.interaction)
-            network.save(path / name)
+
+    def _save_item(self, path: Path, item: Tuple[K, V]):
+        key, network = item
+        output = self._to_path(key, path).with_suffix('.npz')
+        output.parent.mkdir(parents=True, exist_ok=True)
+        
+        if network.layout is None:
+            network.layout = build_pos(network.interaction)
+        
+        network.save(output)
 
 NetworksGenerator.register_defaults()
 
