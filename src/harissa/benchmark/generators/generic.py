@@ -13,7 +13,7 @@ from collections.abc import Iterator, Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from shutil import make_archive, unpack_archive
-from alive_progress import alive_bar
+from harissa.utils.progress_bar import alive_bar
 
 K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')
@@ -41,9 +41,16 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         if path is not None:
             if not isinstance(path, (str, Path)):
                 raise TypeError('path must be an str or a Path.')
-            self._path = Path(path)
+            self._set_path(Path(path))
         else:
-            self._path = None
+            self._set_path(None)
+
+    def _set_path(self, path: Optional[Path]):
+        if path is not None and path.is_dir():
+            self._path = self._check_path(path)
+        else:
+            self._path = path
+        
 
     @property
     def verbose(self) -> bool:
@@ -77,17 +84,23 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     def set_exclude(self, exclude):
         self._exclude = exclude
 
-    def match(self, key: K):
-        def to_str(k: K) -> str:
-            return k if isinstance(k, str) else str(Path().joinpath(*k))
+    def _to_path(self, key: K, path: Optional[Path] = None):
+        if isinstance(key, str):
+            key = (key,)
+        
+        if path is None:
+            path = self.path or Path()
 
-        path = Path(to_str(key))
-        include = map(to_str, self.include)
-        exclude = map(to_str, self.exclude)
+        return path.joinpath(self.sub_directory_name, *key)
+
+    def match(self, key: K):
+        path = self._to_path(key)
+        include = map(self._to_path, self.include)
+        exclude = map(self._to_path, self.exclude)
 
         return (
-            any([path.match(pattern) for pattern in include]) 
-            and all([not path.match(pattern) for pattern in exclude])
+            any([path.match(str(pattern)) for pattern in include]) 
+            and all([not path.match(str(pattern)) for pattern in exclude])
         )
     
     def as_dict(self) -> Dict[K, V]:
@@ -104,18 +117,30 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         if self.match(key):
             if self.path is not None:
                 if self.path.suffix != '':
+                    old_path = self.path
                     with TemporaryDirectory() as tmp_dir:
                         unpack_archive(self.path, tmp_dir)
-                        return self._load_value(
-                            self._check_path(Path(tmp_dir)),
-                            key
-                        )
+                        self.path = tmp_dir
+                        value = self._load_value(key)
+                    self.path = old_path
                 else:
-                    return self._load_value(self._check_path(self.path), key) 
+                    value = self._load_value(key) 
             else:
-                return self._generate_value(key)
+                value = self._generate_value(key)
+
+            return value
         else:
             raise KeyError
+        
+    def save_item(self, 
+        path: Union[str, Path], 
+        key: K, 
+        value: Optional[V] = None
+    ) -> None:
+        if value is None:
+            value = self[key]
+
+        self._save_item(Path(path), (key, value))
     
     def __iter__(self) -> Iterator[K]:
         yield from self.keys()
@@ -142,7 +167,6 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         generate_keys_only = projection_fn is None
         if not generate_keys_only:
             def yield_projected_items(value_fn, title, keys):
-                self._pre_generate()
                 with alive_bar(
                     len(keys), 
                     title=title, 
@@ -153,36 +177,32 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
                         value = value_fn(key)
                         bar()
                         yield projection_fn(key, value)
-                self._post_generate()
-
+                
         if self.path is not None:
             title = f'Loading {self.sub_directory_name}'
             if self.path.suffix != '':
+                old_path = self.path
                 with TemporaryDirectory() as tmp_dir:
                     unpack_archive(self.path, tmp_dir)
-                    tmp_path = self._check_path(Path(tmp_dir))
-                    self._pre_load(tmp_path)
+                    self.path = tmp_dir
                     if generate_keys_only:
-                        yield from self._load_keys(tmp_path)
+                        yield from self._load_keys()
                     else:
                         yield from yield_projected_items(
-                            lambda key: self._load_value(tmp_path, key),
+                            self._load_value,
                             title,
-                            list(self._load_keys(tmp_path))
+                            list(self._load_keys())
                         )
-                    self._post_load()
+                self.path = old_path
             else:
-                path = self._check_path(self.path)
-                self._pre_load(path)
                 if generate_keys_only:
-                    yield from self._load_keys(path)
+                    yield from self._load_keys()
                 else:
                     yield from yield_projected_items(
-                        lambda key: self._load_value(path, key),
+                        self._load_value,
                         title,
-                        list(self._load_keys(path))
+                        list(self._load_keys())
                     )
-                self._post_load()
         else:
             if generate_keys_only:
                 yield from self._generate_keys()
@@ -201,51 +221,30 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
         if archive_format is not None:
             with TemporaryDirectory() as tmp_dir:
                 tmp_path = Path(tmp_dir)
-                self._pre_save(tmp_path)
-                self._save(tmp_path / self.sub_directory_name)
-                self._post_save()
+                for item in self.items():
+                    self._save_item(tmp_path, item)
                 with alive_bar(
                     title='Archiving', 
-                    monitor=False, 
+                    monitor=False,
                     stats= False
                 ) as bar:
                     path=Path(make_archive(str(path), archive_format, tmp_dir))
                     bar()
         else:
-            output = path / self.sub_directory_name
-            output.mkdir(parents=True, exist_ok=True)
-            self._pre_save(path)
-            self._save(output)
-            self._post_save()
-
+            path.mkdir(parents=True, exist_ok=True)
+            for item in self.items():
+                self._save_item(path, item)
+            
         return path.absolute()
-    
-    def _pre_save(self, path: Path):
-        pass
 
-    def _post_save(self):
-        pass
-
-    def _pre_load(self, path: Path):
-        pass
-
-    def _post_load(self):
-        pass 
-    
-    def _pre_generate(self):
-        pass
-
-    def _post_generate(self):
-        pass
-
-    def _load_value(self, path: Path, key: K) -> V:
+    def _load_value(self, key: K) -> V:
         raise NotImplementedError
     
     def _generate_value(self, key: K) -> V:
         raise NotImplementedError
     
-    def _load_keys(self, path: Path) -> Iterator[K]:
-        root = path / self.sub_directory_name
+    def _load_keys(self) -> Iterator[K]:
+        root = self.path / self.sub_directory_name
         def yield_rec(p: Path):
             if p.is_dir():
                 for sub_p in p.iterdir():
@@ -259,6 +258,6 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
     
     def _generate_keys(self) -> Iterator[K]:
         raise NotImplementedError
-
-    def _save(self, path: Path) -> None:
+    
+    def _save_item(self, path: Path, item: Tuple[K, V]):
         raise NotImplementedError

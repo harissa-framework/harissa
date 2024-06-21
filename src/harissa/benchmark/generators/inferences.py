@@ -9,7 +9,6 @@ from typing import (
 )
 from collections.abc import Iterator
 
-from dataclasses import dataclass
 from pathlib import Path
 from dill import loads, dumps
 
@@ -94,8 +93,8 @@ class InferencesGenerator(GenericGenerator[K, V]):
     # def getInferenceInfo(cls, name: str) -> InferenceInfo:
     #     return cls._inferences[name]
     
-    def _load_value(self, path: Path, key: K) -> V:
-        inference_path = path / self.sub_directory_name / f'{key}.npz'
+    def _load_value(self, key: K) -> V:
+        inference_path = self._to_path(key).with_suffix('.npz')
         with np.load(inference_path) as data:
             inf = loads(data['inference'].item())
             colors = data['colors']
@@ -124,15 +123,17 @@ class InferencesGenerator(GenericGenerator[K, V]):
         for key in self._inferences.keys():
             if self.match(key):
                 yield key
-    
-    def _save(self, path: Path) -> None:
-        for inf_name, (inf, colors) in self.items():
-            output = (path / inf_name).with_suffix('.npz')
-            np.savez_compressed(
-                output,
-                inference=np.array(dumps(inf)),
-                colors=colors
-            )
+
+    def _save_item(self, path: Path, item: Tuple[K, V]):
+        key, (inf, colors) = item
+        output = self._to_path(key, path).with_suffix('.npz')
+        output.parent.mkdir(parents=True, exist_ok=True)
+
+        np.savez_compressed(
+            output,
+            inference=np.array(dumps(inf)),
+            colors=colors
+        )
 
 InferencesGenerator.register_defaults()
 

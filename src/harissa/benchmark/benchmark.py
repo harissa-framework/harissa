@@ -8,9 +8,12 @@ from typing import (
 from collections.abc import Iterator
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from shutil import make_archive
 from time import perf_counter
 
 import numpy as np
+import numpy.typing as npt
 
 from harissa.core import NetworkModel, NetworkParameter, Inference, Dataset
 from harissa.benchmark.generators import (
@@ -20,11 +23,12 @@ from harissa.benchmark.generators import (
 )
 
 from harissa.plot.plot_benchmark import plot_benchmark
+from harissa.utils.progress_bar import alive_bar
 
 K : TypeAlias = Tuple[str, str, str, str]
 V : TypeAlias = Tuple[
     NetworkParameter, 
-    Inference, 
+    Tuple[Inference, npt.NDArray[np.float64]], 
     Dataset, 
     Inference.Result, 
     float
@@ -37,23 +41,25 @@ class Benchmark(GenericGenerator[K, V]):
         exclude: List[str] = [],
         verbose: bool = True
     ) -> None:
-        super().__init__('scores', include, exclude, path, verbose)
         self._generators = [
-           DatasetsGenerator(path=path),
-           InferencesGenerator(path=path) 
+            DatasetsGenerator(verbose=verbose),
+            InferencesGenerator(verbose=verbose)
         ]
-        self._old_generators_path, self._old_generators_verbose = (
-            [gen.path for gen in self._generators],
-            [gen.verbose for gen in self._generators]
-        ) 
+
+        super().__init__('scores', include, exclude, path, verbose)
+
         self._model = NetworkModel()
         self.n_run = n_run
 
-    # Aliases
+    def _set_path(self, path: Path):
+        super()._set_path(path)
+        for generator in self._generators:
+            generator.path = path
+
+    # Aliases    
     @property
     def datasets(self):
         return self._generators[0]
-    
     
     @property
     def inferences(self):
@@ -63,11 +69,11 @@ class Benchmark(GenericGenerator[K, V]):
     def networks(self):
         return self.datasets.networks
     
-    def _load_value(self, path: Path, key: K) -> V:
-        network , dataset = self.datasets[key[0], key[2]]
+    def _load_value(self, key: K) -> V:
+        network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
 
-        result_path = path.joinpath(self.sub_directory_name, *key)
+        result_path = self._to_path(key)
         result = inf[0].Result.load(
             result_path / 'result.npz', 
             load_extra=True
@@ -76,14 +82,13 @@ class Benchmark(GenericGenerator[K, V]):
 
         return network, inf, dataset, result, runtime
 
-    def _load_keys(self, path: Path) -> Iterator[K]:
-        root = path / self.sub_directory_name
-
-        for d_key in self.datasets.keys():
+    def _load_keys(self) -> Iterator[K]:
+        for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
-                r_dir = root.joinpath(d_key[0], inf_name, d_key[1])
-                for r_path in r_dir.iterdir():
-                    key = (d_key[0], inf_name, d_key[1], r_path.stem)
+                run_key = (dataset_key[0], inf_name, dataset_key[1])
+                run_dir = self._to_path(run_key)
+                for run_path in run_dir.iterdir():
+                    key = (*run_key, run_path.stem)
                     if self.match(key):
                         yield key
 
@@ -108,91 +113,93 @@ class Benchmark(GenericGenerator[K, V]):
                     if self.match(key):
                         yield key
 
-    def _pre_load(self, path: Path):
-        for i, generator in enumerate(self._generators):
-            self._old_generators_path[i] = generator.path
-        
-        for generator in self._generators:
-            if self.path == generator.path:
-                generator.path = path
+    def _save_item(self, path: Path, item: Tuple[K, V]):
+        key, (network, inf, dataset, result, runtime) = item
 
-    def _post_load(self):
-        for i, path in enumerate(self._old_generators_path):
-            self._generators[i].path = path
+        output = self._to_path(key, path)
+        output.mkdir(parents=True, exist_ok=True)
 
-    def _pre_generate(self):
-        for i, generator in enumerate(self._generators):
-            self._old_generators_verbose[i] = generator.verbose
-        
-        for generator in self._generators:
-            generator.verbose = False
+        result.save(output / 'result', True)
+        np.save(output / 'runtime.npy', np.array([runtime]))
 
-    def _post_generate(self):
-        for i, verbose in enumerate(self._old_generators_verbose):
-            self._generators[i].verbose = verbose
+        keys = [(key[0], key[2]), key[1]]
+        values = [(network, dataset), inf]
 
-    def _pre_save(self, path):
-        for i, generator in enumerate(self._generators):
-            self._old_generators_path[i] = generator.path
-            self._old_generators_verbose[i] = generator.verbose
+        for generator, key, value in zip(self._generators, keys, values):
+            generator.save_item(path, key, value)
 
-        for generator in self._generators:
-            generator.verbose = self.verbose
-            generator.save(path)
-            if generator.path is None:
-                generator.path = path
-            generator.verbose = False
-            
-    def _post_save(self):
-        for i, path in enumerate(self._old_generators_path):
-            self._generators[i].path = path
-
-        for i, verbose in enumerate(self._old_generators_verbose):
-            self._generators[i].verbose = verbose
-        
-    def _save(self, path: Path) -> None:
-        for (n, i, d, r), (*_, result, runtime) in self.items():
-            output = path.joinpath(n, i, d, r)
-            output.mkdir(parents=True, exist_ok=True)
-            result.save(output / 'result', True)
-            np.save(output / 'runtime.npy', np.array([runtime]))
-
-        old_path = self.path
-        self.path = path.parent
-
-        self.save_reports(path.parent / 'reports')
-
-        self.path = old_path
 
     def reports(self, show_networks=False):
-        return plot_benchmark(self, show_networks)
+        networks, inferences = set(), set()
+        for network, inference, *_ in self.keys():
+            networks.add(network)
+            inferences.add(inference)
+
+        return plot_benchmark(
+            self, 
+            sorted(networks), 
+            sorted(inferences), 
+            show_networks
+        )
 
     def save_reports(self,
-        path: Union[str, Path], 
-        show_networks=False
+        path: Union[str, Path],
+        archive_format: Optional[str] = None,
+        show_networks: bool = False,
+        save_all: bool = False
     ) -> Path:
-        path = Path(path)
-        path.mkdir(parents=True, exist_ok=True)
-        for fname, fig in zip(
-            [
-                'general.pdf', 
-                'directed.pdf', 
-                'undirected.pdf'
-            ], 
-             self.reports(show_networks)
-        ):
-            fig.savefig(path / fname)
+        path = Path(path).with_suffix('')
+        generators = [self, *self._generators, self.networks]
+        old_paths = [gen.path for gen in generators]
+
+        if archive_format is not None:
+            with TemporaryDirectory() as tmp_dir:
+                tmp_path = Path(tmp_dir)
+                if save_all:
+                    self.save(tmp_path)
+                    self.path = tmp_path
+                    tmp_path = tmp_path / 'reports'
+
+                tmp_path.mkdir(parents=True, exist_ok=True)
+                for fig in self.reports(show_networks):
+                    fpath = (tmp_path / fig.get_suptitle()).with_suffix('.pdf')
+                    fig.savefig(fpath)
+                
+                with alive_bar(
+                    title='Archiving', 
+                    monitor=False, 
+                    stats= False
+                ) as bar:
+                    path=Path(make_archive(str(path), archive_format, tmp_dir))
+                    bar()
+        else:
+            if save_all:
+                self.save(path)
+                self.path = path
+                path = path / 'reports'
+            
+            path.mkdir(parents=True, exist_ok=True)
+            for fig in self.reports(show_networks):
+                fpath = (path / fig.get_suptitle()).with_suffix('.pdf')
+                fig.savefig(fpath)
+            
+            if save_all:
+                path = path.parent
+
+        for generator, old_path in zip(generators, old_paths):
+            generator.path = old_path
+        
         return path
     
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    benchmark.datasets.path = 'test_benchmark'
-    benchmark.networks.include = ['BN8']
-    benchmark.save('test_benchmark')
+    benchmark.path = 'test_benchmark.zip'
+    # benchmark.networks.include = ['BN8']
+    print(benchmark.save_reports('test_benchmark', None, True, True))
     
-    benchmark = Benchmark(path='test_benchmark')
+    benchmark = Benchmark(path='test_benchmark.zip')
     benchmark.networks.exclude = ['Trees*']
     print(benchmark.save('test_benchmark2'))
-    print(benchmark.save_reports('test_reports', True))
+    print(benchmark.save_reports('test_reports', show_networks=True))
     
