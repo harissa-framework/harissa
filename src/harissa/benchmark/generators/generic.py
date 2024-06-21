@@ -5,10 +5,11 @@ from typing import (
     TypeVar, 
     Union, 
     Optional,
-    Callable
+    Callable,
+    Generic
 )
 
-from collections.abc import Iterator, Iterable
+from collections.abc import Iterator
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,7 +18,7 @@ from harissa.utils.progress_bar import alive_bar
 
 K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')
-class GenericGenerator(Iterable[Tuple[K, V]]):
+class GenericGenerator(Generic[K, V]):
     def __init__(self,
         sub_directory_name: str, 
         include: List[str] = ['*'],
@@ -81,26 +82,26 @@ class GenericGenerator(Iterable[Tuple[K, V]]):
             raise TypeError('exclude must be a list of keys.')
         self._exclude = exclude
 
-    def set_exclude(self, exclude):
-        self._exclude = exclude
-
-    def _to_path(self, key: K, path: Optional[Path] = None):
+    def _to_str(self, key: K):
         if isinstance(key, str):
             key = (key,)
-        
+
+        return str(Path().joinpath(*key))
+
+    def _to_path(self, key: K, path: Optional[Path] = None):
         if path is None:
             path = self.path or Path()
 
-        return path.joinpath(self.sub_directory_name, *key)
+        return path.joinpath(self.sub_directory_name, self._to_str(key))
 
     def match(self, key: K):
-        path = self._to_path(key)
-        include = map(self._to_path, self.include)
-        exclude = map(self._to_path, self.exclude)
+        path = Path(self._to_str(key))
+        include = list(map(self._to_str, self.include))
+        exclude = list(map(self._to_str, self.exclude))
 
         return (
-            any([path.match(str(pattern)) for pattern in include]) 
-            and all([not path.match(str(pattern)) for pattern in exclude])
+            any([path.match(pattern) for pattern in include]) 
+            and all([not path.match(pattern) for pattern in exclude])
         )
     
     def as_dict(self) -> Dict[K, V]:
