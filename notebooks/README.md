@@ -1,5 +1,7 @@
 # Harissa notebooks
 
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/harissa-framework/harissa/interactive-notebook?labpath=notebooks)
+
 * **Notebook 1 - Simulation**  
 Simulate a basic repressilator network with 3 genes
 
