@@ -1,2 +1,2 @@
 harissa==4.0.0a2
-ipywidget
+ipywidgets
