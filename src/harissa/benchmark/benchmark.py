@@ -34,6 +34,14 @@ V : TypeAlias = Tuple[
     float
 ]
 class Benchmark(GenericGenerator[K, V]):
+    """
+    _summary_
+
+    Parameters
+    ----------
+    GenericGenerator : _type_
+        _description_
+    """
     def __init__(self,
         n_run: int = 1, 
         path: Optional[Union[str, Path]] = None,
@@ -129,7 +137,7 @@ class Benchmark(GenericGenerator[K, V]):
             generator.save_item(path, key, value)
 
 
-    def reports(self, show_networks=False):
+    def reports(self, show_networks: bool = False):
         networks, inferences = set(), set()
         for network, inference, *_ in self.keys():
             networks.add(network)

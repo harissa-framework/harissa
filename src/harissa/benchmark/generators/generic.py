@@ -18,15 +18,40 @@ from harissa.utils.progress_bar import alive_bar
 
 K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')
+
+def _to_str(key: K) -> str:
+    """
+    Transform a key to a path-like string.
+
+    Parameters
+    ----------
+    key
+        key to be transformed
+   
+    """
+    if isinstance(key, str):
+        return key
+    else:
+        return str(Path().joinpath(*key))
+
 class GenericGenerator(Generic[K, V]):
+    """
+    Generic abstract class for benchmark generators
+
+    Attributes
+    ----------
+    verbose: bool
+        If True display a progress bar during the generation.
+
+    """
     def __init__(self,
         sub_directory_name: str, 
-        include: List[str] = ['*'],
-        exclude: List[str] = [],
+        include: List[K] = ['*'],
+        exclude: List[K] = [],
         path: Optional[Union[str, Path]] = None,
         verbose: bool = None
     ) -> None:
-        self.sub_directory_name = sub_directory_name
+        self._sub_directory_name = sub_directory_name
 
         self.include = include
         self.exclude = exclude
@@ -35,6 +60,10 @@ class GenericGenerator(Generic[K, V]):
 
     @property
     def path(self) -> Optional[Path]:
+        """
+        Path where to load values. 
+        If path is None, values are generated on the fly.
+        """
         return self._path
     
     @path.setter
@@ -51,29 +80,30 @@ class GenericGenerator(Generic[K, V]):
             self._path = self._check_path(path)
         else:
             self._path = path
-        
 
     @property
-    def verbose(self) -> bool:
-        return self._verbose
+    def include(self) -> List[K]:
+        """
+        List of keys to be included in the generation. 
+        The wildcard ``*`` can be used. 
+        See https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match
+        """
+        return self._include
     
-    @verbose.setter
-    def verbose(self, verbose: bool):
-        if not isinstance(verbose, bool):
-            raise TypeError('verbose must be a boolean.')
-        self._verbose = verbose
-
-    @property
-    def include(self):
-        return self._include    
     @include.setter
-    def include(self, include):
+    def include(self, include) -> None:
         if not isinstance(include, list):
             raise TypeError('include must be a list of keys.')
         self._include = include
 
     @property
-    def exclude(self):
+    def exclude(self) -> List[K]:
+        """
+        List of keys to be excluded in the generation. 
+        The wildcard ``*`` can be used. 
+        See https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.match
+
+        """
         return self._exclude
     
     @exclude.setter
@@ -82,22 +112,35 @@ class GenericGenerator(Generic[K, V]):
             raise TypeError('exclude must be a list of keys.')
         self._exclude = exclude
 
-    def _to_str(self, key: K):
-        if isinstance(key, str):
-            key = (key,)
+    def _to_path(self, key: K, path: Optional[Path] = None) -> Path:
+        """
+        Transform a key to a path.
 
-        return str(Path().joinpath(*key))
-
-    def _to_path(self, key: K, path: Optional[Path] = None):
+        Parameters
+        ----------
+        key
+            key to be transformed
+        path
+            root of the returned path
+        """
         if path is None:
             path = self.path or Path()
 
-        return path.joinpath(self.sub_directory_name, self._to_str(key))
+        return path.joinpath(self._sub_directory_name, _to_str(key))
 
-    def match(self, key: K):
-        path = Path(self._to_str(key))
-        include = list(map(self._to_str, self.include))
-        exclude = list(map(self._to_str, self.exclude))
+    def match(self, key: K) -> bool:
+        """
+        Test if a key is inside `self.include` and outside of `self.exclude`.
+
+        Parameters
+        ----------
+        key
+            key to be tested
+
+        """
+        path = Path(_to_str(key))
+        include = map(_to_str, self.include)
+        exclude = map(_to_str, self.exclude)
 
         return (
             any([path.match(pattern) for pattern in include]) 
@@ -105,16 +148,32 @@ class GenericGenerator(Generic[K, V]):
         )
     
     def as_dict(self) -> Dict[K, V]:
+        """
+        Return self as a dictionary (values stored in memory).
+        """
         return dict(iter(self))
     
     def _check_path(self, path) -> Path:
-        sub_dir = path / self.sub_directory_name
+        sub_dir = path / self._sub_directory_name
         if not sub_dir.is_dir():
             raise ValueError(f'{sub_dir.name} is missing from {path}.')
         
         return path
     
     def __getitem__(self, key: K) -> V:
+        """
+        return the value mapped to the key
+
+        Parameters
+        ----------
+        key
+            input key
+
+        Raises
+        ------
+        KeyError
+        
+        """
         if self.match(key):
             if self.path is not None:
                 if self.path.suffix != '':
@@ -138,12 +197,28 @@ class GenericGenerator(Generic[K, V]):
         key: K, 
         value: Optional[V] = None
     ) -> None:
+        """
+        save value in the corresponding sub directory.
+
+        Parameters
+        ----------
+        path
+            path where the value is saved.
+        key
+            input key
+        value
+            input value. 
+            If value is None then value is generated from the key.
+        """
         if value is None:
             value = self[key]
 
         self._save_item(Path(path), (key, value))
     
     def __iter__(self) -> Iterator[K]:
+        """
+        return an iterator on keys
+        """
         yield from self.keys()
     
     def __len__(self) -> int:
@@ -154,9 +229,20 @@ class GenericGenerator(Generic[K, V]):
         return count
 
     def keys(self) -> Iterator[K]:
+        """
+        return an iterator on keys
+        """
         yield from self._generate(None)
 
     def items(self) -> Iterator[Tuple[K, V]]:
+        """
+        return an iterator on items
+
+        Yields
+        ------
+        Tuple[K, V]
+            _description_
+        """
         yield from self._generate(lambda key, value: (key, value))
 
     def values(self) -> Iterator[V]:
@@ -180,7 +266,7 @@ class GenericGenerator(Generic[K, V]):
                         yield projection_fn(key, value)
                 
         if self.path is not None:
-            title = f'Loading {self.sub_directory_name}'
+            title = f'Loading {self._sub_directory_name}'
             if self.path.suffix != '':
                 old_path = self.path
                 with TemporaryDirectory() as tmp_dir:
@@ -210,7 +296,7 @@ class GenericGenerator(Generic[K, V]):
             else:
                 yield from yield_projected_items(
                     self._generate_value,
-                    f'Generating {self.sub_directory_name}',
+                    f'Generating {self._sub_directory_name}',
                     list(self._generate_keys())
                 )
 
@@ -245,7 +331,7 @@ class GenericGenerator(Generic[K, V]):
         raise NotImplementedError
     
     def _load_keys(self) -> Iterator[K]:
-        root = self.path / self.sub_directory_name
+        root = self.path / self._sub_directory_name
         def yield_rec(p: Path):
             if p.is_dir():
                 for sub_p in p.iterdir():
