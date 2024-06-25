@@ -78,6 +78,7 @@ extensions = [
     'sphinx_multiversion',
     # 'sphinx_gallery.gen_gallery',
     'sphinx_copybutton',
+    # 'jupyter_sphinx'
     # 'myst-nb'
 ]
 
@@ -100,6 +101,27 @@ if use_nbsphinx_link:
 else:
     extensions.append('sphinxcontrib.collections')
     extensions.append('myst_nb')
+    extensions.append('sphinx_thebe')
+    from ipywidgets.embed import DEFAULT_EMBED_REQUIREJS_URL
+    nb_ipywidgets_js = {
+        # Load RequireJS, used by the IPywidgets for dependency management
+        "https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js": 
+        {
+            "integrity": "sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=",
+            "crossorigin": "anonymous"
+        },
+        DEFAULT_EMBED_REQUIREJS_URL:
+        {
+            "data-jupyter-widgets-cdn": "https://cdn.jsdelivr.net/npm/",
+            "crossorigin": "anonymous"
+        },
+    }
+
+    thebe_config = {
+        'codemirror-theme': 'default',
+        'repository_url': 'https://github.com/harissa-framework/harissa/',
+        'repository_branch': 'interactive-notebook'
+    }
 
     # -- Options for sphinx collections output -------------------------------
     # https://sphinx-collections.readthedocs.io/en/latest/

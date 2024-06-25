@@ -2,15 +2,25 @@
     @media (prefers-color-scheme: dark) {
         body:not([data-theme="light"]) .nboutput img,
         body:not([data-theme="light"]) .cell_output img,
-        body:not([data-theme="light"]) .nbsphinx-gallery img {
+        body:not([data-theme="light"]) .nbsphinx-gallery img,
+        body:not([data-theme="light"]) .widget-subarea {
             filter: invert();
+        }
+
+        body:not([data-theme="light"]) .widget-subarea img {
+            filter: inherit;
         }
     }
   
     body[data-theme="dark"] .nboutput img,
     body[data-theme="dark"] .cell_output img,
-    body[data-theme="dark"] .nbsphinx-gallery img {
+    body[data-theme="dark"] .nbsphinx-gallery img, 
+    body[data-theme="dark"] .widget-subarea {
         filter: invert();
+    }
+
+    body[data-theme="dark"] .widget-subarea img {
+        filter: inherit;
     }
 
 }
