@@ -43,7 +43,7 @@ class Benchmark(GenericGenerator[K, V]):
         _description_
     """
     def __init__(self,
-        n_run: int = 1, 
+        n_run: Union[int, List[str]] = 1, 
         path: Optional[Union[str, Path]] = None,
         include: List[str] = [('*', '*', '*', '*')],
         exclude: List[str] = [],
@@ -81,12 +81,13 @@ class Benchmark(GenericGenerator[K, V]):
         network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
 
-        result_path = self._to_path(key)
-        result = inf[0].Result.load(
-            result_path / 'result.npz', 
-            load_extra=True
-        )
-        runtime = np.load(result_path / 'runtime.npy')
+        path = self._to_path(key)
+        
+        if not path.exists():
+            raise KeyError(f'{key} is invalid. {path} does not exist.')
+        
+        result = inf[0].Result.load(path / 'result.npz', load_extra=True)
+        runtime = np.load(path / 'runtime.npy')
 
         return network, inf, dataset, result, runtime
 
@@ -100,7 +101,19 @@ class Benchmark(GenericGenerator[K, V]):
                     if self.match(key):
                         yield key
 
+    def _get_n_run(self) -> List[str]:
+        if isinstance(self.n_run, int):
+            return [f'r{i+1}' for i in range(self.n_run)]
+        else:
+            return self.n_run
+
     def _generate_value(self, key: K) -> V:
+        n_run = self._get_n_run()
+        if key[-1] not in n_run:
+            raise KeyError(
+                f'{key} is invalid. {key[-1]} must be inside {n_run}.'
+            )
+
         network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
         
@@ -116,8 +129,8 @@ class Benchmark(GenericGenerator[K, V]):
     def _generate_keys(self) -> Iterator[K]:
         for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
-                for i in range(self.n_run):
-                    key = (dataset_key[0], inf_name, dataset_key[1], f'r{i+1}')
+                for run_name in self._get_n_run():
+                    key = (dataset_key[0], inf_name, dataset_key[1], run_name)
                     if self.match(key):
                         yield key
 
@@ -202,7 +215,7 @@ class Benchmark(GenericGenerator[K, V]):
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    benchmark.path = 'test_benchmark.zip'
+    # benchmark.path = 'test_benchmark.zip'
     # benchmark.networks.include = ['BN8']
     print(benchmark.save_reports('test_benchmark', None, True, True))
     
