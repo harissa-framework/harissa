@@ -94,8 +94,12 @@ class InferencesGenerator(GenericGenerator[K, V]):
     #     return cls._inferences[name]
     
     def _load_value(self, key: K) -> V:
-        inference_path = self._to_path(key).with_suffix('.npz')
-        with np.load(inference_path) as data:
+        path = self._to_path(key).with_suffix('.npz')
+
+        if not path.exists():
+            raise KeyError(f'{key} is invalid. {path} does not exist.')
+
+        with np.load(path) as data:
             inf = loads(data['inference'].item())
             colors = data['colors']
             if not isinstance(inf, Inference):
@@ -106,6 +110,9 @@ class InferencesGenerator(GenericGenerator[K, V]):
         return inf, colors
 
     def _generate_value(self, key: K) -> V:
+        if key not in self._inferences:
+            raise KeyError(f'{key} is invalid. {key} is not registered.')
+
         inference, colors = self._inferences[key]
         if isinstance(inference, Inference):
             inf = inference
