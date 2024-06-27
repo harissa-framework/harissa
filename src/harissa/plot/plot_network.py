@@ -238,7 +238,7 @@ def plot_network(inter, pos, width=1., height=1., scale=1., names=None,
         ax.axis('off')
     else:
         ax = axes
-        fig = ax.get_figure()
+        fig = plt.gcf()
         size = fig.get_size_inches()
         w, h = size[0], size[1]
         if nodes is None: I, J = inter.nonzero()
