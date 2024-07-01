@@ -14,11 +14,9 @@ from harissa.plot.plot_network import build_pos, plot_network
 
 class DirectedPlotter:
     def __init__(self,
-        inferences_order: List[str],
         network: Optional[NetworkParameter] = None, 
         alpha_curve_std: float = 0.2
     ) -> None:
-        self._inferences_order = inferences_order
         self._truth = None
         if network is None:
             self._network = network
@@ -61,7 +59,7 @@ class DirectedPlotter:
     def _prepare_truth(self, matrix):
         return 1.0 * (self._prepare_score(matrix) > 0)
     
-    def _accept_inference(self, inference: Inference) -> bool:
+    def accept_inference(self, inference: Inference) -> bool:
         return inference.directed
     
     
@@ -99,15 +97,19 @@ class DirectedPlotter:
         x, y = self.roc(score)
         return auc(x, y) 
     
-    def plot_roc_curves(self,
-        ax: plt.Axes
-    ):
+    def plot_roc_curves(self, ax: plt.Axes, inferences_order: List[str]):
         """
         Plot mutiple ROC curves (see function `roc`).
         """
         y_start, y_end = 0.0, 1.0
         try:
-            yield from self._plot_curves(ax, self.roc, y_start, y_end)
+            yield from self._plot_curves(
+                ax, 
+                inferences_order, 
+                self.roc, 
+                y_start, 
+                y_end
+            )
         finally:
             ax.plot(
                 [y_start, y_end], 
@@ -119,12 +121,10 @@ class DirectedPlotter:
             ax.set_xlabel('False positive rate')
             ax.set_ylabel('True positive rate')
             ax.legend(loc='lower right')
-            # ax.set_xlim(0,1)
-            # ax.set_ylim(0)
 
-    def plot_roc_boxes(self, ax: plt.Axes):
+    def plot_roc_boxes(self, ax: plt.Axes, inferences_order: List[str]):
         try:
-            yield from self._plot_boxes_auc(ax, self.auroc)
+            yield from self._plot_boxes_auc(ax, inferences_order, self.auroc)
         finally:
             left, right = ax.get_xlim()
             ax.plot(
@@ -136,7 +136,6 @@ class DirectedPlotter:
             )
             
             ax.set_xlim(left, right)
-            # ax.set_ylim(0,1)
             ax.set_ylabel('AUROC')
 
     def pr(self,
@@ -164,48 +163,45 @@ class DirectedPlotter:
         x, y = self.pr(score)
         return auc(x,y)
 
-    def plot_pr_curves(self, ax: plt.Axes):
+    def plot_pr_curves(self, ax: plt.Axes, inferences_order: List[str]):
         """
         Plot multiple PR curves (see function `pr`).
         """
         try:
-            yield from self._plot_curves(ax, self.pr, 1.0)
+            yield from self._plot_curves(ax, inferences_order, self.pr, 1.0)
         finally:
             b = np.mean(self.truth)
             ax.plot(
-                [0,1], 
-                [b,b], 
+                [0.0, 1.0], 
+                [b, b], 
                 color='lightgray', 
                 ls='--', 
                 label=f'Random ({b:.2f})'
             )
             
-            # ax.set_xlim(0,1)
-            # ax.set_ylim(0,1)
             ax.set_xlabel('Recall')
             ax.set_ylabel('Precision')
             ax.legend(loc='lower right')
 
-    def plot_pr_boxes(self, ax: plt.Axes):
+    def plot_pr_boxes(self, ax: plt.Axes, inferences_order: List[str]):
         try:
-            yield from self._plot_boxes_auc(ax, self.aupr)
+            yield from self._plot_boxes_auc(ax, inferences_order, self.aupr)
         finally:
             b = np.mean(self.truth)
             left, right = ax.get_xlim()
             ax.plot(
                 [left, right], 
-                [b,b], 
+                [b, b], 
                 color='lightgray', 
                 ls='--' 
                 # label=f'Random ({b:.2f})'
             )
             
             ax.set_xlim(left, right)
-            # ax.set_ylim(0,1)
             ax.set_ylabel('AUPR')
 
     # https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc_crossval.html
-    def _plot_curves(self, ax, curve_fn, y_start, y_end=None):
+    def _plot_curves(self, ax, inferences_order, curve_fn, y_start, y_end=None):
         ys_per_inf = {}
         x = np.linspace(0, 1, 1000)
         try:
@@ -213,7 +209,7 @@ class DirectedPlotter:
                 params = yield 
                 if params is not None:
                     inf_name, (inference, colors), result = params
-                    if self._accept_inference(inference):
+                    if self.accept_inference(inference):
                         curve = curve_fn(result.parameter.interaction)
                         y = np.interp(x, *curve)
                         y[0] = y_start
@@ -227,7 +223,7 @@ class DirectedPlotter:
             # reorder inferences
             ys_per_inf = {
                 inf_name:ys_per_inf[inf_name] 
-                for inf_name in self._inferences_order 
+                for inf_name in inferences_order 
                 if inf_name in ys_per_inf
             }
 
@@ -251,14 +247,17 @@ class DirectedPlotter:
                     alpha=self.alpha_curve_std
                 )
 
-    def _plot_boxes_auc(self, ax, auc_fn):
+            ax.set_xlim(0.0, 1.0)
+            ax.set_ylim(0.0, 1.0)
+
+    def _plot_boxes_auc(self, ax, inferences_order, auc_fn):
         aucs_per_inf = {}
         try:
             while True:
                 params = yield
                 if params is not None:
                     inf_name, (inference, colors), result = params
-                    if self._accept_inference(inference):
+                    if self.accept_inference(inference):
                         auc = auc_fn(result.parameter.interaction)
 
                         if inf_name not in aucs_per_inf:
@@ -270,7 +269,7 @@ class DirectedPlotter:
             # reorder inferences
             aucs_per_inf = {
                 inf_name:aucs_per_inf[inf_name] 
-                for inf_name in self._inferences_order
+                for inf_name in inferences_order
                 if inf_name in aucs_per_inf
             }
 
@@ -295,6 +294,7 @@ class DirectedPlotter:
                 )
 
             ax.set_xticklabels(list(aucs_per_inf.keys()))
+            ax.set_ylim(0.0, 1.0)
             # w = 0.7
             # ax.tick_params(direction='out', length=3, width=w)
             # ax.tick_params(axis='x', pad=2, labelsize=5.5)
@@ -304,12 +304,11 @@ class DirectedPlotter:
 
 
 class UnDirectedPlotter(DirectedPlotter):
-    def __init__(self,
-        inferences_order: List[str], 
+    def __init__(self, 
         network: Optional[NetworkParameter] = None,
         alpha_curve_std: float = 0.2
         ) -> None:
-        super().__init__(inferences_order, network, alpha_curve_std)
+        super().__init__(network, alpha_curve_std)
 
     def _prepare_score(self, 
         matrix: npt.NDArray[np.float64]
@@ -320,7 +319,7 @@ class UnDirectedPlotter(DirectedPlotter):
 
         return np.maximum(abs_matrix[mask], abs_matrix.T[mask])
 
-    def _accept_inference(self, inference: Inference) -> bool:
+    def accept_inference(self, inference: Inference) -> bool:
         return True
     
 def plot_benchmark(
@@ -330,29 +329,25 @@ def plot_benchmark(
     show_networks=False
 ):
     plotters_per_networks = {
-        net_name:(
-            DirectedPlotter(inferences_order), 
-            UnDirectedPlotter(inferences_order)
-        )
+        net_name:(DirectedPlotter(), UnDirectedPlotter())
         for net_name in networks_order
     }
     nb_networks = len(plotters_per_networks)
     nb_colum = 4 + show_networks
     scale = 4
+    fig_size = (scale*nb_colum, scale*nb_networks)
     figs = [
-        plt.figure(figsize=(18, 10), layout="constrained"),
-        plt.figure(figsize=(scale*nb_colum, scale*nb_networks), layout="constrained"),
-        plt.figure(figsize=(scale*nb_colum, scale*nb_networks), layout="constrained")
+        plt.figure(figsize=(18, 10), layout='constrained'),
+        plt.figure(figsize=fig_size, layout='constrained'),
+        plt.figure(figsize=fig_size, layout='constrained')
     ]
     titles = ['general', 'directed', 'undirected']
     for fig, title in zip(figs, titles):
         fig.suptitle(title)
 
     grid = gs.GridSpec(2, 4, figure=figs[0])
-    plotters = [
-        DirectedPlotter(inferences_order), 
-        UnDirectedPlotter(inferences_order)
-    ]
+    plotters = [DirectedPlotter(), UnDirectedPlotter()]
+
     for i, (plotter, title) in enumerate(zip(plotters, titles[1:])):
         plotter.axs = [figs[0].add_subplot(grid[i, j]) for j in range(0,4)]
         plotter.plots = None
@@ -405,10 +400,10 @@ def plot_benchmark(
             plotter.network = network
             if plotter.plots is None:
                 plotter.plots = [
-                    plotter.plot_roc_curves(plotter.axs[0]),
-                    plotter.plot_roc_boxes(plotter.axs[1]),
-                    plotter.plot_pr_curves(plotter.axs[2]),
-                    plotter.plot_pr_boxes(plotter.axs[3])
+                    plotter.plot_roc_curves(plotter.axs[0], inferences_order),
+                    plotter.plot_roc_boxes(plotter.axs[1], inferences_order),
+                    plotter.plot_pr_curves(plotter.axs[2], inferences_order),
+                    plotter.plot_pr_boxes(plotter.axs[3], inferences_order)
                 ]
             
             for plot in plotter.plots:
@@ -423,10 +418,22 @@ def plot_benchmark(
                     scale = 1.1 / np.min([ax_pos.width,ax_pos.height])
                     plotter.plot_network(axes=plotter.axs[0], scale=scale)
                 plotter.plots = [
-                    plotter.plot_roc_curves(plotter.axs[show_networks+0]),
-                    plotter.plot_roc_boxes(plotter.axs[show_networks+1]),
-                    plotter.plot_pr_curves(plotter.axs[show_networks+2]),
-                    plotter.plot_pr_boxes(plotter.axs[show_networks+3])
+                    plotter.plot_roc_curves(
+                        plotter.axs[show_networks+0], 
+                        inferences_order
+                    ),
+                    plotter.plot_roc_boxes(
+                        plotter.axs[show_networks+1],
+                        inferences_order
+                    ),
+                    plotter.plot_pr_curves(
+                        plotter.axs[show_networks+2],
+                        inferences_order
+                    ),
+                    plotter.plot_pr_boxes(
+                        plotter.axs[show_networks+3],
+                        inferences_order
+                    )
                 ]
             
             for plot in plotter.plots:

@@ -29,7 +29,7 @@ def plot_average_traj(
     need_to_save = False
     if ax is None:
         need_to_save = path is not None
-        fig = plt.figure(figsize=(8,2))
+        fig = plt.figure(figsize=(8,2), layout='constrained')
         ax = fig.add_subplot()
 
     # Draw trajectory and export figure
@@ -58,7 +58,7 @@ def compare_average_traj(
     need_to_save = False
     if axs is None:
         need_to_save = path is not None
-        fig, axs = plt.subplots(1, 2, figsize=(16, 2))
+        fig, axs = plt.subplots(1, 2, figsize=(16, 2), layout='constrained')
 
     for dataset, ax in zip([dataset_left, dataset_right], axs):
         plot_average_traj(dataset, ax)

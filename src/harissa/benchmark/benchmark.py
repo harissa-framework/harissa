@@ -87,9 +87,9 @@ class Benchmark(GenericGenerator[K, V]):
             raise KeyError(f'{key} is invalid. {path} does not exist.')
         
         result = inf[0].Result.load(path / 'result.npz', load_extra=True)
-        runtime = np.load(path / 'runtime.npy')
+        runtime_in_sec = float(np.load(path / 'runtime.npy')[0])
 
-        return network, inf, dataset, result, runtime
+        return network, inf, dataset, result, runtime_in_sec
 
     def _load_keys(self) -> Iterator[K]:
         for dataset_key in self.datasets.keys():
@@ -122,9 +122,9 @@ class Benchmark(GenericGenerator[K, V]):
         
         start = perf_counter()
         result = self._model.fit(dataset)
-        runtime = perf_counter() - start
+        runtime_in_sec = perf_counter() - start
             
-        return network, inf, dataset, result, runtime
+        return network, inf, dataset, result, runtime_in_sec
 
     def _generate_keys(self) -> Iterator[K]:
         for dataset_key in self.datasets.keys():
