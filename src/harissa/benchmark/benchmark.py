@@ -35,12 +35,7 @@ V : TypeAlias = Tuple[
 ]
 class Benchmark(GenericGenerator[K, V]):
     """
-    _summary_
-
-    Parameters
-    ----------
-    GenericGenerator : _type_
-        _description_
+    Benchmark, the generator of scores.
     """
     def __init__(self,
         n_run: Union[int, List[str]] = 1, 
@@ -60,6 +55,9 @@ class Benchmark(GenericGenerator[K, V]):
         self.n_run = n_run
 
     def _set_path(self, path: Path):
+        """
+        Set the path to self and to its generators
+        """
         super()._set_path(path)
         for generator in self._generators:
             generator.path = path
@@ -67,17 +65,38 @@ class Benchmark(GenericGenerator[K, V]):
     # Aliases    
     @property
     def datasets(self):
+        """
+        Datasets generator
+        """
         return self._generators[0]
     
     @property
     def inferences(self):
+        """
+        Inference methods generator
+        """
         return self._generators[1]
     
     @property
     def networks(self):
+        """
+        Networks generator
+        """
         return self.datasets.networks
     
     def _load_value(self, key: K) -> V:
+        """
+        Load a value from a key.
+
+        Parameters
+        ----------
+        key : 
+            input key
+
+        Raises
+        ------
+        KeyError
+        """
         network, dataset = self.datasets[key[0], key[2]]
         inf = self.inferences[key[1]]
 
@@ -92,6 +111,13 @@ class Benchmark(GenericGenerator[K, V]):
         return network, inf, dataset, result, runtime_in_sec
 
     def _load_keys(self) -> Iterator[K]:
+        """
+        Load all the keys
+
+        Yields
+        ------
+        K
+        """
         for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
                 run_key = (dataset_key[0], inf_name, dataset_key[1])
@@ -102,12 +128,27 @@ class Benchmark(GenericGenerator[K, V]):
                         yield key
 
     def _get_n_run(self) -> List[str]:
+        """
+        Get the run names.
+        """
         if isinstance(self.n_run, int):
             return [f'r{i+1}' for i in range(self.n_run)]
         else:
             return self.n_run
 
     def _generate_value(self, key: K) -> V:
+        """
+        Generate a value from a key
+
+        Parameters
+        ----------
+        key
+            input key
+
+        Raises
+        ------
+        KeyError
+        """
         n_run = self._get_n_run()
         if key[-1] not in n_run:
             raise KeyError(
@@ -127,6 +168,13 @@ class Benchmark(GenericGenerator[K, V]):
         return network, inf, dataset, result, runtime_in_sec
 
     def _generate_keys(self) -> Iterator[K]:
+        """
+        Generate all the keys
+
+        Yields
+        ------
+        K
+        """
         for dataset_key in self.datasets.keys():
             for inf_name in self.inferences.keys():
                 for run_name in self._get_n_run():
@@ -135,6 +183,17 @@ class Benchmark(GenericGenerator[K, V]):
                         yield key
 
     def _save_item(self, path: Path, item: Tuple[K, V]):
+        """
+        Save an item
+
+        Parameters
+        ----------
+        path
+            path where to save
+        item : 
+            item to save
+
+        """
         key, (network, inf, dataset, result, runtime) = item
 
         output = self._to_path(key, path)
@@ -150,7 +209,19 @@ class Benchmark(GenericGenerator[K, V]):
             generator.save_item(path, key, value)
 
 
-    def reports(self, show_networks: bool = False):
+    def reports(self, show_networks: bool = False) -> List:
+        """
+        Generate reports (figures) of the benchmark.
+
+        Parameters
+        ----------
+        show_networks
+            Show networks in the figures, by default False
+
+        Returns
+        -------
+            3 matplotlib figures
+        """
         networks, inferences = set(), set()
         for network, inference, *_ in self.keys():
             networks.add(network)
@@ -169,6 +240,30 @@ class Benchmark(GenericGenerator[K, V]):
         show_networks: bool = False,
         save_all: bool = False
     ) -> Path:
+        """
+        Save the generated reports
+
+        Parameters
+        ----------
+        path
+            path where to save
+        archive_format
+            The format to archive the path, by default None.
+            If None the path is not archived.
+            The available formats are `zip`, `tar`, `gztar`, `bztar` 
+            or `xztar`. 
+            The archive format is pass to the function `make_archive`, see
+            more informations at https://docs.python.org/3/library/shutil.html#shutil.make_archive
+        show_networks
+            Show networks in the figures, by default False
+        save_all
+            Save also scores, datasets, networks and inference methods 
+            of the benchmark, by default False.
+
+        Returns
+        -------
+            The absolute path containing the saved items
+        """
         path = Path(path).with_suffix('')
         generators = [self, *self._generators, self.networks]
         old_paths = [gen.path for gen in generators]
@@ -210,7 +305,7 @@ class Benchmark(GenericGenerator[K, V]):
         for generator, old_path in zip(generators, old_paths):
             generator.path = old_path
         
-        return path
+        return path.absolute()
     
 
 if __name__ == '__main__':

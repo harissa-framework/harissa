@@ -37,6 +37,9 @@ N_DatasetsType: TypeAlias = Union[
 ]
 
 class DatasetsGenerator(GenericGenerator[K, V]):
+    """
+    Generator of datasets
+    """
     def __init__(self,
         simulate_parameters: Dict = default_simulate_parameters,
         n_datasets: N_DatasetsType = default_n_datasets,
@@ -56,11 +59,17 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         )
 
     def _set_path(self, path: Path):
+        """
+        Set the path to self and to the networks generator.
+        """
         super()._set_path(path)
         self.networks.path = path
 
     @property
     def networks(self):
+        """
+        Networks generator
+        """
         return self._networks
     
     @networks.setter
@@ -71,6 +80,18 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         self._networks = network_gen
     
     def _load_value(self, key: K) -> V:
+        """
+        Load a value from a key.
+
+        Parameters
+        ----------
+        key : 
+            input key
+
+        Raises
+        ------
+        KeyError
+        """
         network = self.networks[key[0]]
         path = self._to_path(key).with_suffix('.npz')
         
@@ -82,6 +103,13 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         return network, dataset
 
     def _load_keys(self) -> Iterator[K]:
+        """
+        Load all the keys
+
+        Yields
+        ------
+        K
+        """
         for network_name in self.networks.keys():
             dataset_dir = self._to_path(network_name)
             for dataset_path in dataset_dir.iterdir():
@@ -90,6 +118,15 @@ class DatasetsGenerator(GenericGenerator[K, V]):
                     yield key
 
     def _get_n_datasets(self, network_key: str) -> List[str]:
+        """
+        Get the dataset names given a network name.
+
+        Parameters
+        ----------
+        network_key
+            input network key
+
+        """
         if isinstance(self.n_datasets, dict):
             n_datasets = self.n_datasets.get(network_key, default_n_datasets)
         else:
@@ -101,6 +138,18 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         return n_datasets
 
     def _generate_value(self, key: K) -> V:
+        """
+        Generate a value from a key
+
+        Parameters
+        ----------
+        key
+            input key
+
+        Raises
+        ------
+        KeyError
+        """
         n_datasets = self._get_n_datasets(key[0])
         if key[1] not in n_datasets:
             raise KeyError(
@@ -127,6 +176,13 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         return network, dataset
 
     def _generate_keys(self) -> Iterator[K]:
+        """
+        Generate all the keys
+
+        Yields
+        ------
+        K
+        """
         for network_name in self.networks.keys():
             for dataset_name in self._get_n_datasets(network_name):
                 key = (network_name, dataset_name)
@@ -134,6 +190,17 @@ class DatasetsGenerator(GenericGenerator[K, V]):
                     yield key
 
     def _save_item(self, path: Path, item: Tuple[K, V]):
+        """
+        Save an item
+
+        Parameters
+        ----------
+        path
+            path where to save
+        item : 
+            item to save
+
+        """
         key, (network, dataset) = item
         output = self._to_path(key, path).with_suffix('.npz')
         output.parent.mkdir(parents=True, exist_ok=True)

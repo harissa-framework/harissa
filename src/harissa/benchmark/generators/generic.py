@@ -76,6 +76,14 @@ class GenericGenerator(Generic[K, V]):
             self._set_path(None)
 
     def _set_path(self, path: Optional[Path]):
+        """
+        Check and set the path
+
+        Parameters
+        ----------
+        path
+            input path
+        """
         if path is not None and path.is_dir():
             self._path = self._check_path(path)
         else:
@@ -153,7 +161,24 @@ class GenericGenerator(Generic[K, V]):
         """
         return dict(iter(self))
     
-    def _check_path(self, path) -> Path:
+    def _check_path(self, path: Path) -> Path:
+        """
+        Check if the sub directory exists.
+
+        Parameters
+        ----------
+        path
+            The input path to be tested
+
+        Returns
+        -------
+            The input path
+
+        Raises
+        ------
+        ValueError
+            If the sub directory is missing
+        """
         sub_dir = path / self._sub_directory_name
         if not sub_dir.is_dir():
             raise ValueError(f'{sub_dir.name} is missing from {path}.')
@@ -162,7 +187,7 @@ class GenericGenerator(Generic[K, V]):
     
     def __getitem__(self, key: K) -> V:
         """
-        return the value mapped to the key
+        Return the value mapped to the key
 
         Parameters
         ----------
@@ -198,7 +223,7 @@ class GenericGenerator(Generic[K, V]):
         value: Optional[V] = None
     ) -> None:
         """
-        save value in the corresponding sub directory.
+        Save value in the corresponding sub directory and key.
 
         Parameters
         ----------
@@ -217,11 +242,18 @@ class GenericGenerator(Generic[K, V]):
     
     def __iter__(self) -> Iterator[K]:
         """
-        return an iterator on keys
+        Return an iterator on keys
         """
         yield from self.keys()
     
     def __len__(self) -> int:
+        """
+        Get the number of elements
+
+        Returns
+        -------
+            The number of elements
+        """
         count = 0
         for _ in self.keys():
             count += 1
@@ -230,27 +262,51 @@ class GenericGenerator(Generic[K, V]):
 
     def keys(self) -> Iterator[K]:
         """
-        return an iterator on keys
+        Returns an iterator on keys
+
+        Yields
+        ------
+        K
         """
         yield from self._generate(None)
 
     def items(self) -> Iterator[Tuple[K, V]]:
         """
-        return an iterator on items
+        Returns an iterator on items
 
         Yields
         ------
         Tuple[K, V]
-            _description_
         """
         yield from self._generate(lambda key, value: (key, value))
 
     def values(self) -> Iterator[V]:
+        """
+        Returns an iterator on values
+
+        Yields
+        ------
+        V
+        """
         yield from self._generate(lambda key, value: value)
 
     def _generate(self, 
         projection_fn: Optional[Callable[[K, V], Union[K, Tuple[K, V]]]]
-    ) -> Union[Iterator[K], Iterator[K, V], Iterator[V]]:
+    ) -> Union[Iterator[K], Iterator[Tuple[K, V]], Iterator[V]]:
+        """
+        Returns an iterator on keys or items or values.
+
+        Parameters
+        ----------
+        projection_fn
+            if None iterate on the keys else iterate on projected items
+
+
+        Yields
+        ------
+        Union[K, Tuple[K, V], V]
+            _description_
+        """
         generate_keys_only = projection_fn is None
         if not generate_keys_only:
             def yield_projected_items(value_fn, title, keys):
@@ -304,6 +360,25 @@ class GenericGenerator(Generic[K, V]):
         path: Union[str, Path], 
         archive_format: Optional[str] = None
     ) -> Path:
+        """
+        Save items in the corresponding sub directory.
+
+        Parameters
+        ----------
+        path
+            The path where to save.
+        archive_format
+            The format to archive the path, by default None.
+            If None the path is not archived.
+            The available formats are `zip`, `tar`, `gztar`, `bztar` 
+            or `xztar`. 
+            The archive format is pass to the function `make_archive`, see
+            more informations at https://docs.python.org/3/library/shutil.html#shutil.make_archive
+
+        Returns
+        -------
+            The absolute path containing the saved items
+        """
         path = Path(path).with_suffix('')
         if archive_format is not None:
             with TemporaryDirectory() as tmp_dir:
@@ -325,12 +400,35 @@ class GenericGenerator(Generic[K, V]):
         return path.absolute()
 
     def _load_value(self, key: K) -> V:
+        """
+        Load a value from a key.
+
+        Parameters
+        ----------
+        key : 
+            input key
+        """
         raise NotImplementedError
     
     def _generate_value(self, key: K) -> V:
+        """
+        Generate a value from a key
+
+        Parameters
+        ----------
+        key
+            input key
+        """
         raise NotImplementedError
     
     def _load_keys(self) -> Iterator[K]:
+        """
+        Load all the keys
+
+        Yields
+        ------
+        K
+        """
         root = self.path / self._sub_directory_name
         def yield_rec(p: Path):
             if p.is_dir():
@@ -344,7 +442,25 @@ class GenericGenerator(Generic[K, V]):
         yield from yield_rec(root)
     
     def _generate_keys(self) -> Iterator[K]:
+        """
+        Generate all the keys
+
+        Yields
+        ------
+        K
+        """
         raise NotImplementedError
     
     def _save_item(self, path: Path, item: Tuple[K, V]):
+        """
+        Save an item
+
+        Parameters
+        ----------
+        path
+            path where to save
+        item : 
+            item to save
+
+        """
         raise NotImplementedError
