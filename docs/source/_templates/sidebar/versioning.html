@@ -11,7 +11,7 @@
     <strong>{{ _('Versions') }}:</strong>
   </label>
   <select name="__versions" id="__versions" onchange="window.location.href=this.value;">
-    {% call option(versions.branches | first) -%} development {%- endcall %}
+    {% call option(versions.branches | first) -%} {{ version }} {%- endcall %}
     {% for item in versions.tags | sort(reverse=True) -%}
     {% call option(item) -%} {{ item.name }} {%- endcall %}
     {%- endfor %}
