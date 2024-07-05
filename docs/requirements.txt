@@ -1,5 +1,5 @@
 sphinx
-furo
+pydata-sphinx-theme
 myst-parser
 myst-nb
 nbsphinx

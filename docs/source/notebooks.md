@@ -8,6 +8,6 @@
 :::{toctree}
 :glob:
 
-_collections/notebooks/*
+notebooks/*
 :::
  
