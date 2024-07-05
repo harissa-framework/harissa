@@ -248,16 +248,18 @@ def setup_multi_version(app, config):
         config.version = current_semver
         config.release = config.version
 
-        config.html_title = f'{project} documentation'
-        config.html_theme_options['switcher'] = {
-            'json_url' : switcher_filename, 
-            'version_match': current_semver
+        config.html_title = project
+        config.html_theme_options = {
+            **config.html_theme_options,
+            'switcher': {
+                'json_url' : switcher_filename,
+                'version_match': current_semver
+            },
+            'show_version_warning_banner': True,
+            'navbar_start' : ['navbar-logo', 'version-switcher'],
+            # 'navbar_align': 'left',
+            # 'navbar_center': ['version-switcher', 'navbar-nav']
         }
-        config.html_theme_options['show_version_warning_banner'] = True
-        config.html_theme_options['navbar_start'] = [
-            'navbar-logo', 
-            'version-switcher'
-        ]
 
         for data in switcher_data:
             if data.get('preferred', False):
