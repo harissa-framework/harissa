@@ -18,14 +18,13 @@ from sphinxcontrib.collections.api import register_driver
 
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
-VERSION_PATTERN = re.compile(
-    r'^(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?$'
-)
+PYPI_VERSION_PATTERN=r'(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
+pattern = re.compile(f'^v{PYPI_VERSION_PATTERN}$')
 switcher_filename = 'switcher.json' 
 
 with open(Path(__file__).parent / switcher_filename) as fp:
     switcher_data = list(filter(
-        lambda data: re.match(VERSION_PATTERN, data['version']), 
+        lambda data: re.match(pattern, data['version']), 
         json.load(fp)
     ))
 
@@ -36,9 +35,9 @@ def tag_whitelist():
         for i, data in enumerate(switcher_data):
             version = data['version'].replace(r'.', r'\.')
             if i > 0:
-                whitelist += rf'|{version}'
+                whitelist += f'|{version}'
             else:
-                whitelist += rf'{version}'
+                whitelist += version
         whitelist += r')'
 
     whitelist += r'$'
