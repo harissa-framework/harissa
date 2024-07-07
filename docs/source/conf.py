@@ -5,10 +5,14 @@
 
 import re 
 import sys
+import sysconfig
 from importlib.metadata import version as get_version, PackageNotFoundError
 from pathlib import Path
 from shutil import copytree, rmtree, ignore_patterns
 import json
+import venv
+import subprocess
+import shlex
 
 from sphinxcontrib.collections.drivers import Driver
 from sphinxcontrib.collections.api import register_driver
@@ -106,7 +110,12 @@ def reset_conf_dir(conf_dir):
 
     return wrapper
 
-main_branch = 'pydata-sphinx-theme'
+current_branch = subprocess.run(
+    shlex.split('git branch --show-current'), 
+    capture_output=True, 
+    text=True,
+    check=True
+).stdout.strip()
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -116,11 +125,11 @@ copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
 
 try:
-    main_version = get_version(project.lower())
+    current_branch_version = get_version(project.lower())
 except PackageNotFoundError:
     raise RuntimeError('harissa must be installed for the autodoc to work.')
 
-version = main_version
+version = current_branch_version
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -211,7 +220,7 @@ copybutton_prompt_is_regexp = True
 # https://holzhaus.github.io/sphinx-multiversion/master/index.html
 
 smv_tag_whitelist = tag_whitelist()
-smv_branch_whitelist = rf'^{main_branch}$'
+smv_branch_whitelist = rf'^{current_branch}$'
 smv_remote_whitelist = r'^$'
 smv_released_pattern = r'^tags/v\d+(\.\d+)*$'
 
@@ -233,15 +242,49 @@ def setup_collections(app, config):
 def setup_multi_version(app, config):
     current_version = config.smv_current_version
     if current_version:
-        sys.path[0] = str(Path(app.srcdir).parent.parent / 'src')
+        tmp_project = Path(app.srcdir).parent.parent
+        # Create a fresh git repo for setuptool-scm to retrieve dummy version
+        git_cmds = [
+            'git init', 
+            'git config --local user.name sphinx-mv',
+            'git config --local user.email sphinx-mv@example.com',
+            'git add .',
+            'git commit -m v0.0.1',
+            'git tag v0.0.1'
+        ]
+        for cmd in git_cmds:
+            subprocess.run(shlex.split(cmd), cwd=tmp_project, check=True)
+
+        # Create virtual env
+        venv_builder = venv.EnvBuilder(clear=True, with_pip=True)
+        context = venv_builder.ensure_directories(tmp_project / '.venv')
+        lib_path = sysconfig.get_path('purelib', vars={
+            'base': context.env_dir,
+            'platbase': context.env_dir,
+            'installed_base': context.env_dir,
+            'installed_platbase': context.env_dir,
+        })
+
+        venv_builder.create(context.env_dir)
+
+        # Install current_version of harissa
+        subprocess.run(
+            shlex.split(
+                f'{context.env_exec_cmd} -m pip install {tmp_project}'
+            ), 
+            check=True
+        )
+
+        sys.path.insert(0, lib_path)
+
         output_root = Path(app.outdir).parent
 
-        redirect_version = main_branch
-        main_semver = to_sem_ver(main_version)
+        redirect_version = current_branch
+        current_branch_semver = to_sem_ver(current_branch_version)
 
-        if current_version == main_branch:
+        if current_version == current_branch:
             app.outdir = output_root / 'latest'
-            current_semver = main_semver
+            current_semver = current_branch_semver
         else:
             current_semver = to_sem_ver(current_version[1:])
 
@@ -273,17 +316,17 @@ def setup_multi_version(app, config):
                 data['name'] = data['version']
             data['version'] = to_sem_ver(data['version'][1:])
 
-        main_branch_data = {
-            'name': f'v{version}', 
-            'version': main_semver,
+        current_branch_data = {
+            'name': f'v{current_branch_version}', 
+            'version': current_branch_semver,
             'url': f'/{project_lower}/latest/'
         }
 
-        if redirect_version == main_branch:
+        if redirect_version == current_branch:
             redirect_version = 'latest'
-            main_branch_data['preferred'] = True
+            current_branch_data['preferred'] = True
 
-        data = [main_branch_data] + switcher_data
+        data = [current_branch_data] + switcher_data
         with open(Path(app.srcdir) / switcher_filename, 'w') as fp:
             json.dump(data, fp, indent=4)
 
@@ -308,7 +351,7 @@ def clean_up(app, exception):
     current_version = app.config.smv_current_version
     
     if current_version:
-        if current_version == main_branch:
+        if current_version == current_branch:
             print(f'\033[1mCleaning {current_version}\033[0m')
             rmtree(output.parent / current_version)
 
