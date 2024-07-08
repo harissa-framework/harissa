@@ -258,12 +258,15 @@ def setup_multi_version(app, config):
         # Create virtual env
         venv_builder = venv.EnvBuilder(clear=True, with_pip=True)
         context = venv_builder.ensure_directories(tmp_project / '.venv')
-        lib_path = sysconfig.get_path('purelib', vars={
-            'base': context.env_dir,
-            'platbase': context.env_dir,
-            'installed_base': context.env_dir,
-            'installed_platbase': context.env_dir,
-        })
+        if hasattr(context, 'lib_path'):
+            lib_path = context.lib_path
+        else:
+            lib_path = sysconfig.get_path('purelib', vars={
+                'base': context.env_dir,
+                'platbase': context.env_dir,
+                'installed_base': context.env_dir,
+                'installed_platbase': context.env_dir,
+            })
 
         venv_builder.create(context.env_dir)
 
