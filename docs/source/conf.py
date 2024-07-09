@@ -95,15 +95,15 @@ class CopyFolderOnly(Driver):
 
     def clean(self):
         try:
-            rmtree(self.config['target'])
-            # delete_only = self.copy_only(
-            #     Path(self.config['target']),
-            #     list(Path(self.config['target']).iterdir())
-            # )
-            # for names in delete_only:
-            #     path = Path(names)
-            #     path.unlink()
-            #     self.info(f'File deleted: {path}')
+            # rmtree(self.config['target'])
+            target = Path(self.config['target'])
+            patterns = self.config.get('only', [])
+            names = list(map(lambda p: p.name, target.iterdir()))
+            delete_only = ignore_patterns(*patterns)(target, names)
+            for name in delete_only:
+                path = target / name
+                path.unlink()
+                self.info(f'File deleted: {path}')
         except FileNotFoundError:
             pass  # Already cleaned? I'm okay with it.
         except IOError as e:
@@ -235,8 +235,8 @@ def setup_collections(app, config):
             'driver': 'copy_folder_only',
             'source': str(doc_src_dir.parent.parent / 'notebooks'),
             'only': ['*.ipynb'],
-            'clean': False,
-            'final_clean':False
+            # 'clean': False,
+            # 'final_clean':False
         }
     }
     config.collections_target = str(doc_src_dir)
