@@ -9,7 +9,7 @@ maxdepth: 2
 caption: "Contents:"
 ---
 Harissa <README>
-modules
+api
 notebooks
 cli/cli
 :::

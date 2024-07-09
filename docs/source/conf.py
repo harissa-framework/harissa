@@ -110,7 +110,7 @@ def reset_conf_dir(conf_dir):
 
     return wrapper
 
-current_branch = 'pydata-sphinx-theme'
+current_branch = 'test-api'
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
