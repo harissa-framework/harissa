@@ -4,7 +4,7 @@
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: api
+   :toctree: .
    :nosignatures:
 
    harissa
@@ -14,7 +14,7 @@
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: api
+   :toctree: .
    :nosignatures:
    :recursive:
 
@@ -31,7 +31,7 @@
 
 ```{eval-rst}
 .. autosummary::
-   :toctree: api
+   :toctree: .
    :nosignatures:
 
    harissa.core.parameter
