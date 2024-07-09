@@ -110,12 +110,7 @@ def reset_conf_dir(conf_dir):
 
     return wrapper
 
-current_branch = subprocess.run(
-    shlex.split('git branch --show-current'), 
-    capture_output=True, 
-    text=True,
-    check=True
-).stdout.strip()
+current_branch = 'pydata-sphinx-theme'
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
