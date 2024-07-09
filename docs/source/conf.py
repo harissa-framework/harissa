@@ -96,7 +96,14 @@ class CopyFolderOnly(Driver):
     def clean(self):
         try:
             rmtree(self.config['target'])
-            self.info(f'Folder deleted: {self.config["target"]}')
+            # delete_only = self.copy_only(
+            #     Path(self.config['target']),
+            #     list(Path(self.config['target']).iterdir())
+            # )
+            # for names in delete_only:
+            #     path = Path(names)
+            #     path.unlink()
+            #     self.info(f'File deleted: {path}')
         except FileNotFoundError:
             pass  # Already cleaned? I'm okay with it.
         except IOError as e:
@@ -228,6 +235,8 @@ def setup_collections(app, config):
             'driver': 'copy_folder_only',
             'source': str(doc_src_dir.parent.parent / 'notebooks'),
             'only': ['*.ipynb'],
+            'clean': False,
+            'final_clean':False
         }
     }
     config.collections_target = str(doc_src_dir)
@@ -374,9 +383,8 @@ def update_json_url(app, pagename, templatename, context, doctree):
         )
 
 def setup(app):
-    if (Path(app.srcdir) / 'notebooks').is_dir():
+    if not (Path(app.srcdir) / 'notebooks' / 'index.md').exists():
         app.setup_extension('nbsphinx')
-        app.setup_extension('sphinx_gallery.load_style')
     else:
         conf_dir = app.confdir
 

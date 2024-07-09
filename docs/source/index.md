@@ -8,10 +8,10 @@
 maxdepth: 2
 caption: "Contents:"
 ---
-Harissa <README>
+Quickstart <quickstart/index>
 api/index
-notebooks
-cli/cli
+notebooks/index
+cli/index
 :::
 
 ----
