@@ -40,7 +40,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install harissa
-        run: pip install -e .
+        run: pip install .
       - name: Setup documentation dependencies
         run: |
           sudo apt-get update
@@ -48,8 +48,6 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Build documentation
         run: sphinx-multiversion docs/source html || sphinx-build docs/source html
-      - name: Clean up .doctrees
-        run: rm -rf `find html -name .doctrees -type d`
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

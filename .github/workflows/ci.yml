@@ -113,8 +113,6 @@ jobs:
           pip install -r docs/requirements.txt
       - name: Build documentation
         run: sphinx-build docs/source html
-      - name: Clean up .doctrees
-        run: rm -rf html/.doctrees
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
