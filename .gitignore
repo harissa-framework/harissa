@@ -22,7 +22,6 @@ dist
 .vscode
 
 build
-docs/source/api/*.rst
-docs/source/notebooks/*.ipynb
+docs/source/**/api/*.rst
 html
 jupyter_execute
