@@ -52,18 +52,16 @@ def to_sem_ver(version):
     semver = re.sub(r'(\d+)(a|b|rc)(\d+)', r'\g<1>-pre.\g<3>', version)
     return re.sub(r'\.dev(\d+)', r'+build.\g<1>', semver)
 
-def root_index_content(project, redirect_version):
-    v_index = f'{redirect_version}/index.html' 
-    relative_url = f'./{v_index}'
-    absolute_url = f'/{project}/{v_index}'
+def root_index_content(baseurl):
+    index = 'stable/index.html'
 
     return f'''<!DOCTYPE html>
 <html>
     <head>
-        <title>Redirecting to version {redirect_version}</title>
+        <title>Redirecting to stable version</title>
         <meta charset="utf-8">
-        <meta http-equiv="refresh" content="0; url={relative_url}">
-        <link rel="canonical" href="{absolute_url}">
+        <meta http-equiv="refresh" content="0; url=./{index}">
+        <link rel="canonical" href="{baseurl}{index}">
     </head>
 </html>
 '''
@@ -286,7 +284,6 @@ def setup_multi_version(app, config):
 
         output_root = Path(app.outdir).parent
 
-        redirect_version = current_branch
         current_branch_semver = to_sem_ver(current_branch_version)
 
         if current_version == current_branch:
@@ -308,20 +305,33 @@ def setup_multi_version(app, config):
             'show_version_warning_banner': True,
             'navbar_start' : ['navbar-logo', 'version-switcher'],
             # 'navbar_align': 'left',
-            # 'navbar_center': ['version-switcher', 'navbar-nav']
+            # 'navbar_center': ['version-switcher', 'navbar-nav'],
+            # 'navbar_end' : ['theme-switcher','navbar-icon-links', 'version-switcher']
         }
-
-        for data in switcher_data:
-            if data.get('preferred', False):
-                redirect_version = data['version']
-                break
         
         project_lower = project.lower()
+        stable_version = []
+        new_switcher_data = []
         for data in switcher_data:
-            data['url'] = f"/{project_lower}/{data['version']}/"
-            if 'name' not in data:
-                data['name'] = data['version']
-            data['version'] = to_sem_ver(data['version'][1:])
+            data_version = data['version']
+            new_data = {
+                'name': data.get('name', data_version),
+                'version': to_sem_ver(data_version[1:])
+            }
+            if data.get('preferred', False):
+                new_data['url'] = f'/{project_lower}/stable/'
+                new_data['preferred'] = True
+                stable_version.append(data_version)
+            else:
+                new_data['url'] = f'/{project_lower}/{data_version}/'
+            new_switcher_data.append(new_data)
+
+        if len(stable_version) == 0 or len(stable_version) > 1:
+            raise RuntimeError('Switcher file must have only 1 preferred version.')
+        stable_version = stable_version[0]
+
+        if current_version == stable_version:
+            app.outdir = output_root / 'stable'
 
         current_branch_data = {
             'name': f'v{current_branch_version}', 
@@ -329,25 +339,21 @@ def setup_multi_version(app, config):
             'url': f'/{project_lower}/latest/'
         }
 
-        if redirect_version == current_branch:
-            redirect_version = 'latest'
-            current_branch_data['preferred'] = True
-
-        data = [current_branch_data] + switcher_data
+        new_switcher_data = [current_branch_data] + new_switcher_data
         with open(Path(app.srcdir) / switcher_filename, 'w') as fp:
-            json.dump(data, fp, indent=4)
+            json.dump(new_switcher_data, fp, indent=4)
 
-        if current_version == redirect_version:
+        if current_version == stable_version:
             print('\033[1mBuilding Switcher.json\033[0m')
             with open(output_root / switcher_filename, 'w') as fp:
-                json.dump(data, fp, indent=4)
+                json.dump(new_switcher_data, fp, indent=4)
             print('Switcher generated.')
 
             print('\033[1mBuilding root index.html\033[0m')
             with open(output_root / 'index.html', 'w') as fp:
-                fp.write(root_index_content(project_lower, redirect_version))
+                fp.write(root_index_content(html_baseurl))
             print(f'Root index generated.\n' 
-            f'It redirects to version {redirect_version}')
+            f'It redirects to version {stable_version}')
     
 def clean_up(app, exception):
     if exception is not None:
@@ -358,7 +364,12 @@ def clean_up(app, exception):
     current_version = app.config.smv_current_version
     
     if current_version:
-        if current_version == current_branch:
+        stable_version = list(filter(
+            lambda data: data.get('preferred', False), 
+            switcher_data
+        ))[0]['version']
+
+        if current_version == stable_version or current_version == current_branch:
             print(f'\033[1mCleaning {current_version}\033[0m')
             rmtree(output.parent / current_version)
 
