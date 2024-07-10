@@ -160,7 +160,7 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
-    'sphinx_copybutton',
+    'sphinx_copybutton'
 ]
 
 # -- Options for autodoc output ----------------------------------------------
@@ -222,6 +222,11 @@ myst_enable_extensions = [
     'tasklist',
 ]
 
+myst_fence_as_directive = {'mermaid'}
+mermaid_version ="10.9.1"
+mermaid_init_js = "mermaid.initialize({startOnLoad:true, theme: 'neutral', legacyMathML: true});"
+# mermaid_d3_zoom = True
+
 #-- Options for Napoleon ----------------------------------------------------
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True
@@ -249,8 +254,11 @@ def setup_collections(app, config):
             'driver': 'copy_folder_only',
             'source': str(doc_src_dir.parent.parent / 'notebooks'),
             'only': ['*.ipynb'],
-            # 'clean': False,
-            # 'final_clean':False
+        },
+        'benchmark' : {
+            'driver': 'copy_folder_only',
+            'source': str(doc_src_dir.parent.parent / 'benchmark' / 'notebooks'),
+            'only': ['*.ipynb'],
         }
     }
     config.collections_target = str(doc_src_dir)
@@ -421,6 +429,7 @@ def setup(app):
         app.setup_extension('sphinxcontrib.collections')
         app.connect('config-inited', reset_conf_dir(conf_dir))
         app.setup_extension('myst_nb')
+        app.setup_extension('sphinxcontrib.mermaid')
 
     app.connect('config-inited', setup_multi_version)
     app.connect('html-page-context', update_json_url)
