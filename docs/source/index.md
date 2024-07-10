@@ -6,12 +6,13 @@
 :::{toctree}
 ---
 maxdepth: 2
-caption: "Contents:"
+caption: "Contents:"    
 ---
 Quickstart <quickstart/index>
 api/index
 notebooks/index
-cli/index
+CLI <cli/index>
+Benchmark <benchmark/index>
 :::
 
 ----
