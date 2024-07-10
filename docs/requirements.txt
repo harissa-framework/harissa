@@ -9,3 +9,4 @@ ipython
 sphinx-gallery
 sphinx-copybutton
 sphinx-multiversion
+sphinxcontrib-mermaid
