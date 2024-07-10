@@ -17,8 +17,11 @@ import shlex
 from sphinxcontrib.collections.drivers import Driver
 from sphinxcontrib.collections.api import register_driver
 
+import sphinx
 
 # -------------- Utility functions and class -----------------------
+
+logger = sphinx.util.logging.getLogger(__name__)
 
 # Convention for version number https://packaging.python.org/en/latest/specifications/version-specifiers/#version-specifiers
 # [N!]N(.N)*[{a|b|rc}N][.postN][.devN]
@@ -87,7 +90,7 @@ class CopyFolderOnly(Driver):
                 self.config['source'], 
                 self.config['target'], 
                 ignore=self.copy_only,
-                dirs_exist_ok=True # for sphinx-autobuild
+                dirs_exist_ok=True
             )
         except IOError as e:
             self.error("Problems during copying folder.", e)
@@ -126,20 +129,21 @@ if (conf_dir.parent.parent / '.git').is_dir():
 else:
     current_branch = 'main'
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
-project = 'Harissa'
-copyright = '2023, Ulysse Herbach'
-author = 'Ulysse Herbach'
-
+module_name = 'harissa'
 try:
-    current_branch_version = f'v{get_version(project.lower())}'
+    current_branch_version = f'v{get_version(module_name)}'
 except PackageNotFoundError:
     raise RuntimeError('harissa must be installed for the autodoc to work.')
 
 if current_branch_version in map(lambda data: data['version'], switcher_data):
     current_branch = ''
+
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
+
+project = module_name.capitalize()
+copyright = '2023, Ulysse Herbach'
+author = 'Ulysse Herbach'
 
 version = current_branch_version[1:]
 release = version
@@ -176,7 +180,7 @@ exclude_patterns = []
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_baseurl = f'https://harissa-framework.github.io/{project.lower()}/'
+html_baseurl = f'https://harissa-framework.github.io/{module_name}/'
 html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
@@ -184,7 +188,7 @@ html_theme_options = {
     'icon_links': [
         {
             'name': 'GitHub',
-            'url': f'https://github.com/harissa-framework/{project.lower()}',
+            'url': f'https://github.com/harissa-framework/{module_name}',
             'icon': 'fa-brands fa-github',
             'type': 'fontawesome',
         }
@@ -321,7 +325,6 @@ def setup_multi_version(app, config):
             # 'navbar_end' : ['theme-switcher','navbar-icon-links', 'version-switcher']
         }
         
-        project_lower = project.lower()
         stable_version = []
         new_switcher_data = []
         for data in switcher_data:
@@ -331,11 +334,11 @@ def setup_multi_version(app, config):
                 'version': to_sem_ver(data_version[1:])
             }
             if data.get('preferred', False):
-                new_data['url'] = f'/{project_lower}/stable/'
+                new_data['url'] = f'/{module_name}/stable/'
                 new_data['preferred'] = True
                 stable_version.append(data_version)
             else:
-                new_data['url'] = f'/{project_lower}/{data_version}/'
+                new_data['url'] = f'/{module_name}/{data_version}/'
             new_switcher_data.append(new_data)
 
         if len(stable_version) == 0 or len(stable_version) > 1:
@@ -349,7 +352,7 @@ def setup_multi_version(app, config):
             current_branch_data = {
                 'name': current_branch_version, 
                 'version': current_branch_semver,
-                'url': f'/{project_lower}/latest/'
+                'url': f'/{module_name}/latest/'
             }
 
             new_switcher_data = [current_branch_data] + new_switcher_data
@@ -358,21 +361,21 @@ def setup_multi_version(app, config):
             json.dump(new_switcher_data, fp, indent=4)
 
         if current_version == stable_version:
-            print('\033[1mBuilding Switcher.json\033[0m')
+            logger.info('\033[1mBuilding Switcher.json\033[0m')
             with open(output_root / switcher_filename, 'w') as fp:
                 json.dump(new_switcher_data, fp, indent=4)
-            print('Switcher generated.')
+            logger.info('Switcher generated.')
 
-            print('\033[1mBuilding root index.html\033[0m')
+            logger.info('\033[1mBuilding root index.html\033[0m')
             with open(output_root / 'index.html', 'w') as fp:
                 fp.write(root_index_content(html_baseurl))
-            print(f'Root index generated.\n' 
+            logger.info(f'Root index generated.\n' 
             f'It redirects to version {stable_version}')
     
 def clean_up(app, exception):
     if exception is not None:
         return 
-    print(f'\033[1m{sys.modules["harissa"]=}\033[0m')
+    logger.info(f'\033[1m{sys.modules["harissa"]=}\033[0m')
     
     output = Path(app.outdir)
     current_version = app.config.smv_current_version
@@ -384,10 +387,10 @@ def clean_up(app, exception):
         ))[0]['version']
 
         if current_version == stable_version or current_version == current_branch:
-            print(f'\033[1mCleaning {current_version}\033[0m')
+            logger.info(f'\033[1mCleaning {current_version}\033[0m')
             rmtree(output.parent / current_version)
 
-        print('\033[1mCleaning extras\033[0m')
+        logger.info('\033[1mCleaning extras\033[0m')
         for subpath in ['.doctrees', 'doctrees', 'objects.inv', '.buildinfo']:
             path = output / subpath
             if path.is_dir():
@@ -397,14 +400,14 @@ def clean_up(app, exception):
 
     myst_nb_jupyter_execute_dir = output.parent / 'jupyter_execute'
     if myst_nb_jupyter_execute_dir.is_dir():
-        print('\033[1mCleaning jupyter_execute\033[0m')
+        logger.info('\033[1mCleaning jupyter_execute\033[0m')
         rmtree(myst_nb_jupyter_execute_dir)
     
 
 def update_json_url(app, pagename, templatename, context, doctree):
     if app.config.smv_current_version:
         context['theme_switcher']['json_url'] = (
-            f'/{project.lower()}/{switcher_filename}'
+            f'/{module_name}/{switcher_filename}'
         )
 
 def setup(app):
