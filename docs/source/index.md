@@ -6,12 +6,13 @@
 :::{toctree}
 ---
 maxdepth: 2
-caption: "Contents:"
+caption: "Contents:"    
 ---
-Harissa <README>
-modules
-notebooks
-cli/cli
+Quickstart <quickstart/index>
+api/index
+notebooks/index
+CLI <cli/index>
+Benchmark <benchmark/index>
 :::
 
 ----

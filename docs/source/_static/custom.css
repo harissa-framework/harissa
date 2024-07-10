@@ -1,38 +1,22 @@
-@media not print {
-    @media (prefers-color-scheme: dark) {
-        body:not([data-theme="light"]) .nboutput img,
-        body:not([data-theme="light"]) .cell_output img,
-        body:not([data-theme="light"]) .nbsphinx-gallery img {
-            filter: invert();
-        }
-    }
-  
-    body[data-theme="dark"] .nboutput img,
-    body[data-theme="dark"] .cell_output img,
-    body[data-theme="dark"] .nbsphinx-gallery img {
-        filter: invert();
-    }
-
+html[data-theme="dark"] .mermaid svg {
+    filter: invert();
 }
 
-.sidebar-versions {
-    display: flex;
-    column-gap: 10px;
-    align-items: center;
-    padding: var(--sidebar-item-spacing-vertical) var(--sidebar-item-spacing-horizontal);
-    /* select {
-        background: var(--color-sidebar-background);
-        color: var(--color-foreground-primary);
-    } */
+html[data-theme="dark"] .bd-content div.cell_output img {
+    padding: unset;
 }
 
-.announcement {
-  height: unset;
-  /* height: calc(var(--sidebar-item-line-height) + 6 * var(--sidebar-item-spacing-vertical));   */
+html[data-theme="dark"] .hide summary {
+    background-color: #29313d !important;
+    color: #EEFFFF; 
 }
 
-.o {
-    user-select: none;
+div.cell details.above-input > summary {
+    border-bottom: var(--mystnb-source-border-width) var(--mystnb-source-border-color) solid;
+}
+
+div.cell details.above-input div.cell_input {
+    border-top: var(--mystnb-source-border-width) var(--mystnb-source-border-color) solid;
 }
 
 .nbinput button.copybtn {
@@ -42,4 +26,8 @@
 .nboutput button.copybtn,
 .cell_output button.copybtn {
     display: none;
+}
+
+button.btn.version-switcher__button {
+    margin-bottom: unset
 }

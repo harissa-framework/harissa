@@ -1,5 +1,5 @@
 sphinx
-furo
+pydata-sphinx-theme
 myst-parser
 myst-nb
 nbsphinx
@@ -9,3 +9,4 @@ ipython
 sphinx-gallery
 sphinx-copybutton
 sphinx-multiversion
+sphinxcontrib-mermaid
