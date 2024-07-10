@@ -25,8 +25,8 @@ from sphinxcontrib.collections.api import register_driver
 PYPI_VERSION_PATTERN=r'(\d+!)?\d+(\.\d+)*((a|b|rc)\d+)?(\.post\d+)?(\.dev\d+)?'
 pattern = re.compile(f'^v{PYPI_VERSION_PATTERN}$')
 switcher_filename = 'switcher.json' 
-
-with open(Path(__file__).parent / switcher_filename) as fp:
+conf_dir = Path(__file__).parent 
+with open(conf_dir / switcher_filename) as fp:
     switcher_data = list(filter(
         lambda data: re.match(pattern, data['version']), 
         json.load(fp)
@@ -115,7 +115,15 @@ def reset_conf_dir(conf_dir):
 
     return wrapper
 
-current_branch = 'test-api'
+if (conf_dir.parent.parent / '.git').is_dir():
+    current_branch = subprocess.run(
+        shlex.split('git rev-parse --abbrev-ref HEAD'),
+        capture_output=True,
+        text=True,
+        check=True
+    ).stdout.strip()
+else:
+    current_branch = 'main'
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -125,11 +133,14 @@ copyright = '2023, Ulysse Herbach'
 author = 'Ulysse Herbach'
 
 try:
-    current_branch_version = get_version(project.lower())
+    current_branch_version = f'v{get_version(project.lower())}'
 except PackageNotFoundError:
     raise RuntimeError('harissa must be installed for the autodoc to work.')
 
-version = current_branch_version
+if current_branch_version in map(lambda data: data['version'], switcher_data):
+    current_branch = ''
+
+version = current_branch_version[1:]
 release = version
 
 # -- General configuration ---------------------------------------------------
@@ -284,7 +295,7 @@ def setup_multi_version(app, config):
 
         output_root = Path(app.outdir).parent
 
-        current_branch_semver = to_sem_ver(current_branch_version)
+        current_branch_semver = to_sem_ver(current_branch_version[1:])
 
         if current_version == current_branch:
             app.outdir = output_root / 'latest'
@@ -333,13 +344,15 @@ def setup_multi_version(app, config):
         if current_version == stable_version:
             app.outdir = output_root / 'stable'
 
-        current_branch_data = {
-            'name': f'v{current_branch_version}', 
-            'version': current_branch_semver,
-            'url': f'/{project_lower}/latest/'
-        }
+        if current_branch:
+            current_branch_data = {
+                'name': current_branch_version, 
+                'version': current_branch_semver,
+                'url': f'/{project_lower}/latest/'
+            }
 
-        new_switcher_data = [current_branch_data] + new_switcher_data
+            new_switcher_data = [current_branch_data] + new_switcher_data
+        
         with open(Path(app.srcdir) / switcher_filename, 'w') as fp:
             json.dump(new_switcher_data, fp, indent=4)
 
