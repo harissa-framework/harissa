@@ -50,6 +50,7 @@ def tag_whitelist():
 
 def to_sem_ver(version):
     semver = re.sub(r'(\d+)(a|b|rc)(\d+)', r'\g<1>-pre.\g<3>', version)
+    semver = re.sub(r'\.post(\d+)', r'+\g<1>', semver)
     return re.sub(r'\.dev(\d+)', r'+build.\g<1>', semver)
 
 def root_index_content(baseurl):
