@@ -70,6 +70,22 @@ def root_index_content(baseurl):
 </html>
 '''
 
+def root_sitemap_index_content(baseurl, versions):
+    sitemaps = map(
+        lambda version: f'{baseurl}{version}/sitemap.xml',
+        versions
+    )
+    sitemaps_str = "".join(map(
+        lambda sitemap: f'<sitemap><loc>{sitemap}</loc></sitemap>',
+        sitemaps
+    ))
+
+    return f'''<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{sitemaps_str}
+</sitemapindex>
+'''
+
 class CopyFolderOnly(Driver):
     def copy_only(self, path, names):
         patterns = self.config.get('only', [])
@@ -160,7 +176,8 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.coverage',
     'sphinx_multiversion',
-    'sphinx_copybutton'
+    'sphinx_copybutton',
+    'sphinx_sitemap'
 ]
 
 # -- Options for autodoc output ----------------------------------------------
@@ -243,7 +260,8 @@ copybutton_prompt_is_regexp = True
 smv_tag_whitelist = tag_whitelist()
 smv_branch_whitelist = rf'^{current_branch}$'
 smv_remote_whitelist = r'^$'
-smv_released_pattern = r'^tags/v\d+(\.\d+)*$'
+
+sitemap_url_scheme = "{link}"
 
 def setup_collections(app, config):
     doc_src_dir = Path(app.srcdir)
@@ -317,7 +335,6 @@ def setup_multi_version(app, config):
             current_semver = to_sem_ver(current_version[1:])
 
         config.version = current_semver
-        config.release = config.version
 
         config.html_title = project
         config.html_theme_options = {
@@ -356,6 +373,11 @@ def setup_multi_version(app, config):
         if current_version == stable_version:
             app.outdir = output_root / 'stable'
 
+        config.version = Path(app.outdir).name
+        config.release = current_semver
+
+        config.sitemap_url_scheme = "{version}{link}"
+
         if current_branch:
             current_branch_data = {
                 'name': current_branch_version, 
@@ -379,6 +401,14 @@ def setup_multi_version(app, config):
                 fp.write(root_index_content(html_baseurl))
             logger.info(f'Root index generated.\n' 
             f'It redirects to version {stable_version}')
+
+            logger.info('\033[1mBuilding root sitemap\033[0m')
+            with open(output_root / 'sitemapindex.xml', 'w') as fp:
+                fp.write(root_sitemap_index_content(
+                    html_baseurl,
+                    [Path(data['url']).name for data in new_switcher_data]
+                ))
+            logger.info('Sitemap index generated.')
     
 def clean_up(app, exception):
     if exception is not None:

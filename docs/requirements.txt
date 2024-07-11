@@ -10,3 +10,4 @@ sphinx-gallery
 sphinx-copybutton
 sphinx-multiversion
 sphinxcontrib-mermaid
+sphinx-sitemap
