@@ -1,7 +1,7 @@
 # Building the documentation
 
 Use python `3.10` or `3.11` but not `3.12` because `sphinxcontrib.collections`
-depends on something that is deprecated and removed after in `3.12`.
+depends on something that is deprecated and removed in `3.12`.
 
 ## Install dependencies
 
