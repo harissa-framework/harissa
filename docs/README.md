@@ -9,7 +9,7 @@ From the root of the project you can install the dependencies required for the
 documentation generation by typing:
 
 ```bash
-$ pip install -r docs/requirements.txt
+pip install -r docs/requirements.txt
 ```
 
 ## Build
@@ -19,7 +19,7 @@ $ pip install -r docs/requirements.txt
 To build the single version website run the command:
 
 ```bash
-$ sphinx-build -M html docs/source docs/build
+sphinx-build -M html docs/source docs/build
 ```
 
 or go the `docs` folder and run `make html`.
@@ -29,7 +29,7 @@ or go the `docs` folder and run `make html`.
 To build the multi version website run the command:
 
 ```bash
-$ sphinx-multiversion docs/source harissa
+sphinx-multiversion docs/source harissa
 ```
 
 ## Visualise the website
