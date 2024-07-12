@@ -37,19 +37,25 @@ def create_cardamom(args):
         options['use_numba'] = args.use_numba
 
     return Cardamom(**options)
+
+def load_dataset(path: Path):
+    if path.suffix == '.npz':
+        dataset = Dataset.load(path) 
+    elif path.suffix == '.h5ad':
+        dataset = Dataset.load_h5ad(path)
+    else:
+        dataset = Dataset.load_txt(path)
+
+    return dataset
         
 def infer(args):
     model = NetworkModel(inference=args.create_inference(args))
-    npz_suffix = '.npz'
-    if args.dataset_path.suffix == npz_suffix:
-        dataset = Dataset.load(args.dataset_path) 
-    else:
-        dataset = Dataset.load_txt(args.dataset_path)
+    dataset = load_dataset(args.dataset_path)
 
     if args.network_path is not None:
         model.parameter = (
             NetworkParameter.load(args.network_path) 
-            if args.network_path.suffix == npz_suffix
+            if args.network_path.suffix == '.npz'
             else NetworkParameter.load_txt(args.network_path) 
         )
     
@@ -69,7 +75,7 @@ def infer(args):
         inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
         plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
 
-def add_export_options(parser, plot_option = False):
+def add_export_options(parser, export_choices=export_choices, plot_option=False):
     parser.add_argument(
         '-f', '--format',
         choices=export_choices,
@@ -96,7 +102,7 @@ def add_subcommand(main_subparsers):
 
     parser.add_argument('dataset_path', type=Path, help='path to data file')
     parser.add_argument('-n', '--network_path', type=Path, help='path to network file')
-    add_export_options(parser, True)
+    add_export_options(parser, plot_option=True)
     parser.add_argument(
         '--cut-off',
         type=float,

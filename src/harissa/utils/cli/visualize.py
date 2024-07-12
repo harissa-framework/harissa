@@ -2,24 +2,16 @@ import numpy as np
 # import argparse as ap
 from pathlib import Path
 
-from harissa.core import Dataset
 from harissa.plot.plot_datasets import (
     plot_data_distrib,
     compare_marginals,
     plot_data_umap
 )
+from harissa.utils.cli.infer import load_dataset
 
 def visualize(args):
-    npz_suffix = '.npz'
-    if args.ref_dataset_path.suffix == npz_suffix:
-        dataset_ref = Dataset.load(args.ref_dataset_path) 
-    else:
-        dataset_ref = Dataset.load_txt(args.ref_dataset_path)
-
-    if args.sim_dataset_path.suffix == npz_suffix:
-        dataset_sim = Dataset.load(args.sim_dataset_path) 
-    else:
-        dataset_sim = Dataset.load_txt(args.sim_dataset_path)
+    dataset_ref = load_dataset(args.ref_dataset_path)
+    dataset_sim = load_dataset(args.sim_dataset_path)
 
     t_ref = np.unique(dataset_ref.time_points)
     t_sim = np.unique(dataset_sim.time_points)
