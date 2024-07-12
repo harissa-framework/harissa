@@ -213,6 +213,9 @@ html_theme_options = {
    'pygments_light_style': 'default',
    'pygments_dark_style': 'material',
 }
+html_sidebars = {
+  "quickstart/index": []
+}
 html_copy_source = False
 
 
@@ -428,13 +431,13 @@ def clean_up(app, exception):
             logger.info(f'\033[1mCleaning {current_version}\033[0m')
             rmtree(output.parent / current_version)
 
-        logger.info('\033[1mCleaning extras\033[0m')
-        for subpath in ['.doctrees', 'doctrees', 'objects.inv', '.buildinfo']:
-            path = output / subpath
-            if path.is_dir():
-                rmtree(path)
-            elif path.is_file():
-                path.unlink()
+        # logger.info('\033[1mCleaning extras\033[0m')
+        # for subpath in ['.doctrees', 'doctrees', 'objects.inv', '.buildinfo']:
+        #     path = output / subpath
+        #     if path.is_dir():
+        #         rmtree(path)
+        #     elif path.is_file():
+        #         path.unlink()
 
     myst_nb_jupyter_execute_dir = output.parent / 'jupyter_execute'
     if myst_nb_jupyter_execute_dir.is_dir():
