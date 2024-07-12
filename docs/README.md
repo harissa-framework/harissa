@@ -8,7 +8,7 @@ depends on something that is deprecated and removed in `3.12`.
 From the root of the project you can install the dependencies required for the 
 documentation generation by typing:
 
-```console
+```bash
 $ pip install -r docs/requirements.txt
 ```
 
@@ -18,7 +18,7 @@ $ pip install -r docs/requirements.txt
 
 To build the single version website run the command:
 
-```console
+```bash
 $ sphinx-build -M html docs/source docs/build
 ```
 
@@ -28,7 +28,7 @@ or go the `docs` folder and run `make html`.
 
 To build the multi version website run the command:
 
-```console
+```bash
 $ sphinx-multiversion docs/source harissa
 ```
 
@@ -53,6 +53,6 @@ The output dir must be `harissa` for the version dropdown to work.
 
 [^1]: To start a local server you can use python `http.server` or [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) if you are using vscode.
     
-    ```console
-    $ python3 -m http.server
+    ```bash
+    python3 -m http.server
     ```
