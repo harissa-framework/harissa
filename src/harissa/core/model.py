@@ -1,9 +1,10 @@
 """
 Main class for network inference and simulation
 """
-from typing import List, Tuple, Union, Optional
-from harissa.core.dataset import Dataset
+from typing import List, Tuple, Union, Optional, Literal
 import numpy as np
+from anndata import AnnData
+from harissa.core.dataset import Dataset
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
 from harissa.core.simulation import Simulation
@@ -147,13 +148,16 @@ class NetworkModel:
     # Methods
     # =======
 
-    def fit(self, data: Dataset) -> Inference.Result:
+    def fit(self, data: Union[Dataset, AnnData]) -> Inference.Result:
         """
         Fit the network model to the data.
         """
-        if not isinstance(data, Dataset):
-            raise TypeError(( 'data must be Dataset objet ' 
+        if not isinstance(data, (Dataset, AnnData)):
+            raise TypeError(( 'data must be a Dataset or an AnnData object' 
                              f'and not a(n) {type(data)}.'))
+        
+        if isinstance(data, AnnData):
+            data = Dataset.from_annData(data)
         
         if self.parameter is None:
             param = NetworkParameter(
@@ -171,7 +175,7 @@ class NetworkModel:
         time_points: np.ndarray,
         initial_state: Optional[np.ndarray] = None,
         initial_time: float = 0.0
-        ) -> Simulation.Result:
+    ) -> Simulation.Result:
         """
         Perform simulation of the network model.
         Note: the stimulus is given by initial_state[1,0] (protein 0).
@@ -252,21 +256,31 @@ class NetworkModel:
     def simulate_dataset(self,
             time_points: np.ndarray, 
             n_cells: Union[int, List[int], Tuple[int], np.ndarray],
-            burn_in_duration: float = 5.0
-        ) -> Dataset:
+            burn_in_duration: float = 5.0,
+            return_format: Literal['dataset', 'anndata'] = 'dataset'
+        ) -> Union[Dataset, AnnData]:
         """
         Generate a dataset
 
         Parameters
         ----------
-        time_points:
+        time_points
             The time points
-        n_cells:
+        n_cells
             The number of cells per time point 
+        burn_in_duration
+            The burst-in duration
+        return_format
+            format of the returned dataset. 
+            If return_format is `dataset` 
+            then the returned dataset is a `Dataset` object.
+            If return_format is `anndata` 
+            then the returned dataset is an `AnnData` object.
+
 
         Returns
         -------
-        Dataset
+        Dataset | AnnData
             The simulated dataset
         """
         if not isinstance(time_points, np.ndarray) or time_points.ndim != 1:
@@ -319,8 +333,22 @@ class NetworkModel:
 
             offset += n_cell
         
-        return Dataset(cells_time, count_matrix)
+        dataset = Dataset(cells_time, count_matrix, self.parameter.genes_names)
 
+        transforms = {
+            'dataset': lambda d: d,
+            'anndata': lambda d: d.as_annData()
+        }
+
+        transform = transforms.get(return_format, None)
+        if transform is None:
+            raise RuntimeError(
+                 'Invalid return type. '
+                f'Valid values are {",".join(list(transforms.keys()))}'
+            )
+        
+        return transform(dataset)
+    
     # FEATURE: dynamic stimulus
     # def simulate_dynamic(self, time_points, stimulus_states):
     #     pass

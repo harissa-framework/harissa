@@ -1,6 +1,9 @@
 from __future__ import annotations
-from typing import Dict, Union
+from typing import Dict, Union, Optional, Literal
 import numpy as np
+from scipy.sparse import issparse
+from pandas import DataFrame
+from anndata import AnnData, read_h5ad #, read_zarr
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import ClassVar
@@ -11,7 +14,7 @@ from harissa.utils.npz_io import (
     load_npz,
     save_dir,
     save_npz
-) 
+)
 
 @dataclass(frozen=True, init=False)
 class Dataset:
@@ -22,7 +25,7 @@ class Dataset:
     }
     time_points: np.ndarray
     count_matrix: np.ndarray
-    gene_names: np.ndarray
+    gene_names: Optional[np.ndarray]
 
     def __init__(self, 
                  time_points: np.ndarray, 
@@ -94,11 +97,13 @@ class Dataset:
     def load(cls, path: Union[str, Path]) -> Dataset:
         return cls(**load_npz(path, cls.param_names))
     
-    def as_dict(self) -> Dict[str, np.ndarray]:
-        return asdict(
-            self, 
-            dict_factory=lambda x: {k:v for (k, v) in x if v is not None}
-        )
+    @classmethod
+    def load_h5ad(cls, path: Union[str, Path]) -> Dataset:
+        return cls.from_annData(read_h5ad(path))
+    
+    # @classmethod
+    # def load_zarr(cls, path: Union[str, Path]) -> Dataset:
+    #     return cls.from_annData(read_zarr(path))
     
     # Add a "save" methods
     def save_txt(self, path: Union[str, Path]) -> Path:
@@ -106,4 +111,62 @@ class Dataset:
 
     def save(self, path: Union[str, Path]) -> Path:
         return save_npz(path, self.as_dict())
+    
+    def save_h5ad(self, 
+        path: Union[str, Path], 
+        compression: Optional[Literal['gzip', 'lzf']] = None, 
+        compression_opts = None
+    ) -> Path:
+        path = Path(path)
+        adata = self.as_annData()
+        adata.write_h5ad(path, compression, compression_opts)
+        return path
+
+    # def save_zarr(self, path:Union[str, Path]) -> Path:
+    #     path = Path(path)
+    #     adata = self.as_annData()
+    #     adata.write_zarr(path)
+    #     return path
+    
+    def as_dict(self) -> Dict[str, np.ndarray]:
+        return asdict(
+            self, 
+            dict_factory=lambda x: {k:v for (k, v) in x if v is not None}
+        )
+    
+    @classmethod
+    def from_annData(cls, adata: AnnData) -> Dataset:
+        if isinstance(adata.X, DataFrame):
+            count_matrix = adata.X.to_numpy()
+        elif issparse(adata.X):
+            count_matrix = adata.X.toarray()
+        else:
+            count_matrix = adata.X
+
+        time_points = adata.obs.get('time_points', None)
+        if time_points is None:
+            raise RuntimeError(
+                'adata must have a time_points field in its obs.'
+            )
+        
+        return cls(
+            np.array(time_points, dtype=np.float64), 
+            count_matrix.astype(np.uint), 
+            np.array(adata.var_names, dtype=np.str_)
+        )
+
+    def as_annData(self) -> AnnData:
+        adata = AnnData(self.count_matrix, {'time_points': self.time_points})
+        adata.obs_names = np.array([f'Cell_{i+1}' for i in range(adata.n_obs)])
+        if self.gene_names is not None:
+            adata.var_names = self.gene_names
+        else:
+            adata.var_names = np.array(
+                [f'Gene_{i}' for i in range(adata.n_vars)]
+            )
+
+        return adata
+    
+
+
 

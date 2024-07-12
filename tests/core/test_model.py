@@ -1,4 +1,5 @@
 import numpy as np
+from anndata import AnnData
 import pytest
 from inspect import getmembers
 
@@ -119,9 +120,12 @@ def test_parameter_shortcuts():
     assert np.array_equal(model.inter, model.parameter.interaction)
 
 @pytest.fixture
-def dataset():
-    time_points = np.array([0.0, 0.0, 1.0, 1.0, 1.0])
-    count_matrix = np.array([
+def time_points():
+    return np.array([0.0, 0.0, 1.0, 1.0, 1.0])
+
+@pytest.fixture
+def count_matrix():
+    return np.array([
         # s g1 g2 g3
         [0, 4, 1, 0], # Cell 1
         [0, 5, 0, 1], # Cell 2
@@ -129,12 +133,26 @@ def dataset():
         [1, 2, 0, 8], # Cell 4
         [1, 0, 0, 3], # Cell 5
     ], dtype=np.uint)
-    data = Dataset(time_points, count_matrix)
-    return data
+
+
+@pytest.fixture
+def dataset(time_points, count_matrix):
+    return Dataset(time_points, count_matrix)
+
+@pytest.fixture
+def adata(time_points, count_matrix):
+    return AnnData(count_matrix, {'time_points' : time_points})
 
 def test_fit(dataset):
     model = NetworkModel()
     res = model.fit(dataset)
+
+    assert model.parameter is not None
+    assert model.parameter is res.parameter
+
+def test_fit_anndata(adata):
+    model = NetworkModel()
+    res = model.fit(adata)
 
     assert model.parameter is not None
     assert model.parameter is res.parameter
@@ -291,4 +309,18 @@ def test_simulate_dataset_wrong_values(network_parameter,time_points,n_cells):
 
     with pytest.raises(ValueError):
         model.simulate_dataset(time_points, n_cells)
-    
+
+
+def test_simulate_anndata(network_parameter):
+    model = NetworkModel(network_parameter)
+
+    time_points = np.arange(10)
+    n_cells = 10
+
+    dataset = model.simulate_dataset(
+        time_points, 
+        n_cells, 
+        return_format='anndata'
+    )
+    assert isinstance(dataset, AnnData)
+    assert dataset.obs['time_points'].size == time_points.size * n_cells

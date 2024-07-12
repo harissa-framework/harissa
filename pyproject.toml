@@ -31,7 +31,9 @@ dependencies = [
     "matplotlib>=3.4",
     "networkx>=2.6",
     "scikit-learn",
-    "dill"
+    "dill",
+    # "zarr", # install zarr since anndata does not provide it
+    "anndata"
 ]
 dynamic = ["version"]
 
