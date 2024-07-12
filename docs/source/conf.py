@@ -230,7 +230,7 @@ nb_execution_mode = 'off'
 
 # -- Options for myst-nb ----------------------------------------------------
 
-nb_number_source_lines = True
+nb_number_source_lines = False
 
 # myst_heading_anchors = 3
 
