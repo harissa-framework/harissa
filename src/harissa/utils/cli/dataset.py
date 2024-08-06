@@ -6,7 +6,11 @@ from harissa import NetworkModel, NetworkParameter
 from harissa.core.dataset import Dataset
 from harissa.processing import binarize
 from harissa.utils.progress_bar import alive_bar
-from harissa.utils.cli.infer import add_export_options, export_choices
+from harissa.utils.cli.infer import (
+    add_export_options, 
+    export_choices, 
+    load_dataset
+)
 from harissa.utils.cli.trajectory import add_methods
 
 export_choices = (*export_choices, 'h5ad')
@@ -22,11 +26,8 @@ def simulate_dataset(args):
     else:
         network_param = NetworkParameter.load(args.network_parameter_path)
 
-    if args.dataset_path.suffix == '.npz':
-        dataset = Dataset.load(args.dataset_path)        
-    else:
-        dataset = Dataset.load_txt(args.dataset_path)
-
+    dataset = load_dataset(args.dataset_path)
+    
     model= NetworkModel(network_param, simulation=args.create_simulation(args))
 
     data_prot = binarize(dataset).count_matrix
