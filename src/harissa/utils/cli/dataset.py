@@ -3,7 +3,6 @@ import argparse as ap
 from pathlib import Path
 
 from harissa import NetworkModel, NetworkParameter
-from harissa.core.dataset import Dataset
 from harissa.processing import binarize
 from harissa.utils.progress_bar import alive_bar
 from harissa.utils.cli.infer import (
@@ -27,7 +26,7 @@ def simulate_dataset(args):
         network_param = NetworkParameter.load(args.network_parameter_path)
 
     dataset = load_dataset(args.dataset_path)
-    
+
     model= NetworkModel(network_param, simulation=args.create_simulation(args))
 
     data_prot = binarize(dataset).count_matrix
