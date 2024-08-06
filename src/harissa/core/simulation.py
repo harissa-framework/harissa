@@ -124,10 +124,11 @@ class Simulation(ABC):
                                           'Simulation.Result object.')
 
     @abstractmethod
-    def run(self, 
+    def run(self,
             time_points: np.ndarray,
             initial_state: np.ndarray,
-            parameter: NetworkParameter) -> Result:
+            parameter: NetworkParameter,
+            stimulus_traj: Union[np.ndarray, None]) -> Result:
         """Note: here time points must start from 0 (Markov model)."""
         raise NotImplementedError(
             f'{self.__class__.__name__} must only '

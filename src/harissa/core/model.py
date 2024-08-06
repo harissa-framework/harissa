@@ -170,7 +170,8 @@ class NetworkModel:
     def simulate(self,
         time_points: np.ndarray,
         initial_state: Optional[np.ndarray] = None,
-        initial_time: float = 0.0
+        initial_time: float = 0.0,
+        stimulus_traj: Optional[np.ndarray] = None
         ) -> Simulation.Result:
         """
         Perform simulation of the network model.
@@ -215,7 +216,8 @@ class NetworkModel:
         res = self.simulation.run(
             time_points - initial_time,
             initial_state,
-            parameter
+            parameter,
+            stimulus_traj
         )
         # Set time points
         res.time_points[:] = time_points

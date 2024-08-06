@@ -7,10 +7,10 @@ from harissa.core.parameter import NetworkParameter
 from harissa.core.simulation import Simulation
 from harissa.simulation.bursty_pdmp.utils import kon, kon_bound, flow
 
-def _kon_jit(p: np.ndarray, 
-             basal: np.ndarray, 
-             inter: np.ndarray, 
-             k0: np.ndarray, 
+def _kon_jit(p: np.ndarray,
+             basal: np.ndarray,
+             inter: np.ndarray,
+             k0: np.ndarray,
              k1: np.ndarray) -> np.ndarray:
     """
     Interaction function kon (off->on rate), given protein levels p.
@@ -20,13 +20,13 @@ def _kon_jit(p: np.ndarray,
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
-def _kon_bound_jit(state: np.ndarray, 
-                   basal: np.ndarray, 
-                   inter: np.ndarray, 
-                   d0: np.ndarray, 
-                   d1: np.ndarray, 
-                   s1: np.ndarray, 
-                   k0: np.ndarray, 
+def _kon_bound_jit(state: np.ndarray,
+                   basal: np.ndarray,
+                   inter: np.ndarray,
+                   d0: np.ndarray,
+                   d1: np.ndarray,
+                   s1: np.ndarray,
+                   k0: np.ndarray,
                    k1: np.ndarray) -> np.ndarray:
     """
     Compute the current kon upper bound.
@@ -47,7 +47,7 @@ _flow_jit = None
 def step(state: np.ndarray,
          basal: np.ndarray,
          inter: np.ndarray,
-         d0: np.ndarray, 
+         d0: np.ndarray,
          d1: np.ndarray,
          s1: np.ndarray,
          k0: np.ndarray,
@@ -61,14 +61,14 @@ def step(state: np.ndarray,
     if tau is None:
         # Adaptive thinning parameter
         tau = np.sum(kon_bound(state, basal, inter, d0, d1, s1, k0, k1))
-    
+
     # 0. Draw the waiting time before the next jump
     U = np.random.exponential(scale=1/tau)
-    
+
     # 1. Update the continuous states
     state = flow(U, state, d0, d1, s1)
-    
-    # 2. Compute the next jump    
+
+    # 2. Compute the next jump
     # Deal robustly with precision errors
     v = kon(state[1], basal, inter, k0, k1) # i = 1, ..., G-1 : burst of mRNA i
     v[1:] /= tau # i = 1, ..., G-1 : burst of mRNA i
@@ -83,7 +83,7 @@ def step(state: np.ndarray,
 def _step_jit(state: np.ndarray,
               basal: np.ndarray,
               inter: np.ndarray,
-              d0: np.ndarray, 
+              d0: np.ndarray,
               d1: np.ndarray,
               s1: np.ndarray,
               k0: np.ndarray,
@@ -97,13 +97,13 @@ def _step_jit(state: np.ndarray,
     if tau is None:
         # Adaptive thinning parameter
         tau = np.sum(_kon_bound_jit(state, basal, inter, d0, d1, s1, k0, k1))
-    
+
     # 0. Draw the waiting time before the next jump
     U = np.random.exponential(scale=1/tau)
-    
+
     # 1. Update the continuous states
     state = _flow_jit(U, state, d0, d1, s1)
-    
+
     # 2. Compute the next jump
     v = _kon_jit(state[1], basal, inter, k0, k1)
     #### # Fix precision errors
@@ -121,7 +121,7 @@ def _step_jit(state: np.ndarray,
     jump = i > 0 # Test if the jump is a true (i > 0) or phantom jump (i == 0)
     if jump:
         state[0, i] += np.random.exponential(1/b[i])
-    
+
     return U, jump, state
 
 def _create_simulation(step, flow):
@@ -135,7 +135,9 @@ def _create_simulation(step, flow):
                    k0: np.ndarray,
                    k1: np.ndarray,
                    b: np.ndarray,
-                   tau: Optional[float]) -> Tuple[np.ndarray, int, int]:
+                   tau: Optional[float],
+                   stimulus_traj: Optional[np.ndarray] = None
+                   ) -> Tuple[np.ndarray, int, int]:
         """
         Exact simulation of the network in the bursty PDMP case.
         """
@@ -144,6 +146,8 @@ def _create_simulation(step, flow):
         t, t_old, state_old = 0.0, 0.0, state
         # Core loop for simulation
         for i, time_point in enumerate(time_points):
+            if stimulus_traj is not None:
+                state[1,0] = stimulus_traj[i]
             while t < time_point:
                 t_old, state_old = t, state
                 U, jump, state = step(state, basal, inter, d0, d1,
@@ -151,14 +155,14 @@ def _create_simulation(step, flow):
                 t += U
                 if jump:
                     true_jump_count += 1
-                else: 
+                else:
                     phantom_jump_count += 1
             # Recording
             states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
 
         # Remove the stimulus
         return states, phantom_jump_count, true_jump_count
-    
+
     return simulation
 
 simulation = _create_simulation(step, flow)
@@ -169,9 +173,9 @@ class BurstyPDMP(Simulation):
     Bursty PDMP version of the network model (promoters not described)
     """
 
-    def __init__(self, 
-                 thin_adapt: bool = True, 
-                 verbose: bool = False, 
+    def __init__(self,
+                 thin_adapt: bool = True,
+                 verbose: bool = False,
                  use_numba: bool = False) -> None:
         self.thin_adapt : bool  = thin_adapt
         self.is_verbose : bool  = verbose
@@ -181,7 +185,7 @@ class BurstyPDMP(Simulation):
     @property
     def use_numba(self) -> bool:
         return self._use_numba
-    
+
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
         global _kon_jit, _kon_bound_jit, _flow_jit, _step_jit, _simulation_jit
@@ -199,13 +203,14 @@ class BurstyPDMP(Simulation):
                 self._simulation = _simulation_jit
             else:
                 self._simulation = simulation
-            
+
             self._use_numba = use_numba
-    
+
     def run(self,
             time_points: np.ndarray,
             initial_state: np.ndarray,
-            parameter: NetworkParameter) -> Simulation.Result:
+            parameter: NetworkParameter,
+            stimulus_traj: Optional[np.ndarray] = None) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
         """
@@ -214,7 +219,7 @@ class BurstyPDMP(Simulation):
 
         # Thinning parameter
         tau = None if self.thin_adapt else np.sum(k1)
-        
+
         states, phantom_jump_count, true_jump_count = self._simulation(
             state=initial_state,
             time_points=time_points,
@@ -222,17 +227,18 @@ class BurstyPDMP(Simulation):
             inter=parameter.interaction.filled(),
             d0=parameter.degradation_rna.filled(fill_value=1.0),
             d1=parameter.degradation_protein.filled(fill_value=2.0),
-            s1=parameter.creation_protein.filled(), 
-            k0=k0.filled(), k1=k1.filled(), 
+            s1=parameter.creation_protein.filled(),
+            k0=k0.filled(), k1=k1.filled(),
             b=parameter.burst_size_inv.filled(),
-            tau=tau
+            tau=tau,
+            stimulus_traj=stimulus_traj
         )
-        
+
         if self.is_verbose:
             # Display info about jumps
             total_jump = phantom_jump_count + true_jump_count
             print(f'Exact simulation used {total_jump} jumps '
                     f'including {phantom_jump_count} phantom jumps '
                     f'({100*phantom_jump_count/total_jump : .2f}%)')
-        
+
         return self.Result(time_points, states[:, 0], states[:, 1])
