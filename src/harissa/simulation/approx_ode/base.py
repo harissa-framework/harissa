@@ -1,7 +1,6 @@
 """
 Perform simulations using the ODE model
 """
-from typing import Optional
 import numpy as np
 from harissa.core.parameter import NetworkParameter
 from harissa.core.simulation import Simulation
@@ -35,7 +34,6 @@ def _create_step(kon):
         m_new = a/b # Mean level of mRNA given protein levels
         p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
         m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
-
         return np.vstack((m_new, p_new))
 
     return step
@@ -45,6 +43,7 @@ step = _create_step(kon)
 def _create_simulation(step):
     def simulation(state: np.ndarray,
                    time_points: np.ndarray,
+                   stimulus: np.ndarray,
                    basal: np.ndarray,
                    inter: np.ndarray,
                    d0: np.ndarray,
@@ -53,8 +52,7 @@ def _create_simulation(step):
                    k0: np.ndarray,
                    k1: np.ndarray,
                    b: np.ndarray,
-                   euler_step:float,
-                   stimulus_traj: Optional[np.ndarray] = None) -> np.ndarray:
+                   euler_step:float) -> np.ndarray:
         """
         Simulation of the deterministic limit model, which is relevant when
         promoters and mRNA are much faster than proteins.
@@ -68,8 +66,7 @@ def _create_simulation(step):
         t, step_count = 0.0, 0
         # Core loop for simulation and recording
         for i, time_point in enumerate(time_points):
-            if stimulus_traj is not None:
-                state[1,0] = stimulus_traj[i]
+            state[1, 0] = stimulus[i]
             while t < time_point:
                 state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
                 t += dt
@@ -118,8 +115,8 @@ class ApproxODE(Simulation):
     def run(self,
             time_points: np.ndarray,
             initial_state: np.ndarray,
-            parameter: NetworkParameter,
-            stimulus_traj: Optional[np.ndarray] = None) -> Simulation.Result:
+            stimulus: np.ndarray,
+            parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (ODE version).
         This is the slow-fast limit of the PDMP model, which is only
@@ -133,6 +130,7 @@ class ApproxODE(Simulation):
         states, step_count, dt = self._simulation(
             state=initial_state,
             time_points=time_points,
+            stimulus=stimulus,
             basal=parameter.basal.filled(),
             inter=parameter.interaction.filled(),
             d0=parameter.degradation_rna.filled(fill_value=1.0),
@@ -140,8 +138,7 @@ class ApproxODE(Simulation):
             s1=parameter.creation_protein.filled(),
             k0=k0.filled(), k1=k1.filled(),
             b=parameter.burst_size_inv.filled(fill_value=1.0),
-            euler_step=1e-3/np.max(parameter.degradation_protein),
-            stimulus_traj=stimulus_traj
+            euler_step=1e-3/np.max(parameter.degradation_protein)
         )
 
         if self.is_verbose:

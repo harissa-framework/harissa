@@ -127,6 +127,7 @@ def _step_jit(state: np.ndarray,
 def _create_simulation(step, flow):
     def simulation(state: np.ndarray,
                    time_points: np.ndarray,
+                   stimulus: np.ndarray,
                    basal: np.ndarray,
                    inter: np.ndarray,
                    d0: np.ndarray,
@@ -135,9 +136,7 @@ def _create_simulation(step, flow):
                    k0: np.ndarray,
                    k1: np.ndarray,
                    b: np.ndarray,
-                   tau: Optional[float],
-                   stimulus_traj: Optional[np.ndarray] = None
-                   ) -> Tuple[np.ndarray, int, int]:
+                   tau: Optional[float]) -> Tuple[np.ndarray, int, int]:
         """
         Exact simulation of the network in the bursty PDMP case.
         """
@@ -146,8 +145,7 @@ def _create_simulation(step, flow):
         t, t_old, state_old = 0.0, 0.0, state
         # Core loop for simulation
         for i, time_point in enumerate(time_points):
-            if stimulus_traj is not None:
-                state[1,0] = stimulus_traj[i]
+            state[1, 0] = stimulus[i]
             while t < time_point:
                 t_old, state_old = t, state
                 U, jump, state = step(state, basal, inter, d0, d1,
@@ -209,8 +207,8 @@ class BurstyPDMP(Simulation):
     def run(self,
             time_points: np.ndarray,
             initial_state: np.ndarray,
-            parameter: NetworkParameter,
-            stimulus_traj: Optional[np.ndarray] = None) -> Simulation.Result:
+            stimulus: np.ndarray,
+            parameter: NetworkParameter) -> Simulation.Result:
         """
         Perform simulation of the network model (bursty PDMP version).
         """
@@ -223,6 +221,7 @@ class BurstyPDMP(Simulation):
         states, phantom_jump_count, true_jump_count = self._simulation(
             state=initial_state,
             time_points=time_points,
+            stimulus=stimulus,
             basal=parameter.basal.filled(),
             inter=parameter.interaction.filled(),
             d0=parameter.degradation_rna.filled(fill_value=1.0),
@@ -230,8 +229,7 @@ class BurstyPDMP(Simulation):
             s1=parameter.creation_protein.filled(),
             k0=k0.filled(), k1=k1.filled(),
             b=parameter.burst_size_inv.filled(),
-            tau=tau,
-            stimulus_traj=stimulus_traj
+            tau=tau
         )
 
         if self.is_verbose:

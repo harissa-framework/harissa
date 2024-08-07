@@ -152,9 +152,9 @@ class NetworkModel:
         Fit the network model to the data.
         """
         if not isinstance(data, Dataset):
-            raise TypeError(( 'data must be Dataset objet ' 
+            raise TypeError(( 'data must be Dataset objet '
                              f'and not a(n) {type(data)}.'))
-        
+
         if self.parameter is None:
             param = NetworkParameter(
                 data.count_matrix.shape[1] - 1,
@@ -162,7 +162,7 @@ class NetworkModel:
             )
         else:
             param = self.parameter.copy()
-        
+
         res = self.inference.run(data, param)
         self.parameter = res.parameter
         return res
@@ -171,7 +171,7 @@ class NetworkModel:
         time_points: np.ndarray,
         initial_state: Optional[np.ndarray] = None,
         initial_time: float = 0.0,
-        stimulus_traj: Optional[np.ndarray] = None
+        stimulus: Optional[np.ndarray] = None
         ) -> Simulation.Result:
         """
         Perform simulation of the network model.
@@ -182,7 +182,7 @@ class NetworkModel:
         """
         parameter = _check_parameter_specified(self.parameter)
 
-        if not (isinstance(time_points, np.ndarray) 
+        if not (isinstance(time_points, np.ndarray)
                 or isinstance(time_points, np.generic)):
             raise TypeError(('time_points must be a np.ndarray and '
                              f'not a(n) {type(time_points)}'))
@@ -206,25 +206,35 @@ class NetworkModel:
             # Activate the stimulus
             initial_state[1, 0] = 1.0
         else:
-            if (not isinstance(initial_state, np.ndarray) 
+            if (not isinstance(initial_state, np.ndarray)
                 or initial_state.shape != state_shape):
                 raise TypeError(('initial_state must be a 2D np.ndarray '
                                 f'of shape {state_shape}.'))
             initial_state = initial_state.copy()
 
+        # Stimulus
+        if stimulus is None:
+            stimulus = initial_state[1, 0] * np.ones(time_points.shape)
+        else:
+            if (not isinstance(stimulus, np.ndarray)
+                or stimulus.shape != time_points.shape):
+                raise TypeError(('stimulus must be a 1D np.ndarray with '
+                                 'same size as time_points (or None).'))
+            stimulus = stimulus.copy()
+
         # Main simulation
         res = self.simulation.run(
             time_points - initial_time,
             initial_state,
-            parameter,
-            stimulus_traj
+            stimulus,
+            parameter
         )
         # Set time points
         res.time_points[:] = time_points
 
         # NOTE: maybe wrap it to AnnData
         return res
-    
+
     def burn_in(self, duration: float) -> np.ndarray:
         """
         Burn-in simulation without stimulus
@@ -243,16 +253,15 @@ class NetworkModel:
             np.array([duration]),
             np.zeros((2, self.n_genes_stim))
         )
-        
+
         final_state = res_burn_in.final_state
         # Activate the stimulus
         final_state[1, 0] = 1.0
 
         return final_state
 
-    
     def simulate_dataset(self,
-            time_points: np.ndarray, 
+            time_points: np.ndarray,
             n_cells: Union[int, List[int], Tuple[int], np.ndarray],
             burn_in_duration: float = 5.0
         ) -> Dataset:
@@ -264,7 +273,7 @@ class NetworkModel:
         time_points:
             The time points
         n_cells:
-            The number of cells per time point 
+            The number of cells per time point
 
         Returns
         -------
@@ -279,7 +288,7 @@ class NetworkModel:
             n_cells = np.full(time_points.size, n_cells, dtype=np.int_)
         elif isinstance(n_cells, (list, tuple)):
             n_cells = np.array(n_cells, dtype=np.int_)
-        elif (not isinstance(n_cells, np.ndarray) 
+        elif (not isinstance(n_cells, np.ndarray)
               or n_cells.dtype != np.int_
               or n_cells.ndim != 1):
             raise TypeError(('n_cells must be an int 1D np.ndarray '
@@ -288,20 +297,20 @@ class NetworkModel:
         if n_cells.size != time_points.size:
             raise ValueError((f'n_cells ({n_cells.size}) must have the same '
                               f'size as time_points ({time_points.size})'))
-        
+
         if np.any(time_points < 0):
             raise ValueError(('time_points must contains '
                               'only non negative elements.'))
 
         if np.any(n_cells <= 0):
             raise ValueError('n_cells must contains only positive elements.')
-        
+
         tot_cells = np.sum(n_cells)
 
         cells_time = np.empty(tot_cells)
         count_matrix = np.empty((tot_cells, self.n_genes_stim), dtype=np.uint)
         offset = 0
-        
+
         for i in range(time_points.size):
             time = time_points[i]
             n_cell = n_cells[i]
@@ -320,7 +329,7 @@ class NetworkModel:
                 )
 
             offset += n_cell
-        
+
         return Dataset(cells_time, count_matrix)
 
     # FEATURE: dynamic stimulus
