@@ -31,7 +31,7 @@ class TestSimulation:
         sim = SimulationSuperRun()
 
         with pytest.raises(NotImplementedError):
-            sim.run(np.empty(1), np.empty((1, 2)), None)
+            sim.run(np.empty(1), np.empty((1, 2)), np.empty(1), None)
 
 @pytest.fixture(scope='module')
 def time_points():
