@@ -2,7 +2,6 @@ from __future__ import annotations
 from typing import Dict, Union, Optional, Literal
 import numpy as np
 from scipy.sparse import issparse
-from pandas import DataFrame
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import ClassVar
@@ -113,6 +112,7 @@ class Dataset:
     @classmethod
     def from_annData(cls, adata) -> Dataset:
         try:
+            from pandas import DataFrame
             from anndata import AnnData
 
             if not isinstance(adata, AnnData):
