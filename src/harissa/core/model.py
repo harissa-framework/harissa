@@ -221,6 +221,8 @@ class NetworkModel:
                 raise TypeError(('stimulus must be a 1D np.ndarray with '
                                  'same size as time_points (or None).'))
             stimulus = stimulus.copy()
+            # Copy the first stimulus to initial state
+            initial_state[1, 0] = stimulus[0]
 
         # Main simulation
         res = self.simulation.run(
