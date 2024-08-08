@@ -31,14 +31,12 @@ dependencies = [
     "matplotlib>=3.4",
     "networkx>=2.6",
     "scikit-learn",
-    "dill",
-    # "zarr", # install zarr since anndata does not provide it
-    "anndata"
+    "dill"
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-extra = ["alive-progress>=3.0", "umap-learn"]
+extra = ["alive-progress>=3.0", "umap-learn", "anndata"]
 
 [project.urls]
 Repository = "https://github.com/harissa-framework/harissa"
@@ -66,7 +64,7 @@ raw-options = { local_scheme = "no-local-version" }
 # Ruff
 
 [tool.ruff]
-select = ["E", "F"]
+select = ["E", "F", "W"]
 line-length = 79
 
 [tool.ruff.format]

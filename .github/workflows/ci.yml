@@ -55,7 +55,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install harissa
-        run: pip install dist/*.whl
+        run: pip install -f dist harissa[extra]
       - name: Install pytest
         run: pip install pytest pytest-cov
       - name: Run tests and coverage

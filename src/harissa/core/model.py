@@ -3,7 +3,6 @@ Main class for network inference and simulation
 """
 from typing import List, Tuple, Union, Optional, Literal
 import numpy as np
-from anndata import AnnData
 from harissa.core.dataset import Dataset
 from harissa.core.parameter import NetworkParameter
 from harissa.core.inference import Inference
@@ -148,17 +147,23 @@ class NetworkModel:
     # Methods
     # =======
 
-    def fit(self, data: Union[Dataset, AnnData]) -> Inference.Result:
+    def fit(self, data) -> Inference.Result:
         """
         Fit the network model to the data.
         """
-        if not isinstance(data, (Dataset, AnnData)):
-            raise TypeError(( 'data must be a Dataset or an AnnData object' 
-                             f'and not a(n) {type(data)}.'))
-        
-        if isinstance(data, AnnData):
-            data = Dataset.from_annData(data)
-        
+        try:
+            from anndata import AnnData
+            if not isinstance(data, (Dataset, AnnData)):
+                raise TypeError(( 'data must be a Dataset or an AnnData object'
+                                f'and not a(n) {type(data)}.'))
+
+            if isinstance(data, AnnData):
+                data = Dataset.from_annData(data)
+        except ImportError:
+            if not isinstance(data, Dataset):
+                raise TypeError(( 'data must be a Dataset object'
+                                f'and not a(n) {type(data)}.'))
+
         if self.parameter is None:
             param = NetworkParameter(
                 data.count_matrix.shape[1] - 1,
@@ -166,7 +171,7 @@ class NetworkModel:
             )
         else:
             param = self.parameter.copy()
-        
+
         res = self.inference.run(data, param)
         self.parameter = res.parameter
         return res
@@ -185,7 +190,7 @@ class NetworkModel:
         """
         parameter = _check_parameter_specified(self.parameter)
 
-        if not (isinstance(time_points, np.ndarray) 
+        if not (isinstance(time_points, np.ndarray)
                 or isinstance(time_points, np.generic)):
             raise TypeError(('time_points must be a np.ndarray and '
                              f'not a(n) {type(time_points)}'))
@@ -209,7 +214,7 @@ class NetworkModel:
             # Activate the stimulus
             initial_state[1, 0] = 1.0
         else:
-            if (not isinstance(initial_state, np.ndarray) 
+            if (not isinstance(initial_state, np.ndarray)
                 or initial_state.shape != state_shape):
                 raise TypeError(('initial_state must be a 2D np.ndarray '
                                 f'of shape {state_shape}.'))
@@ -226,7 +231,7 @@ class NetworkModel:
 
         # NOTE: maybe wrap it to AnnData
         return res
-    
+
     def burn_in(self, duration: float) -> np.ndarray:
         """
         Burn-in simulation without stimulus
@@ -245,20 +250,19 @@ class NetworkModel:
             np.array([duration]),
             np.zeros((2, self.n_genes_stim))
         )
-        
+
         final_state = res_burn_in.final_state
         # Activate the stimulus
         final_state[1, 0] = 1.0
 
         return final_state
 
-    
     def simulate_dataset(self,
-            time_points: np.ndarray, 
+            time_points: np.ndarray,
             n_cells: Union[int, List[int], Tuple[int], np.ndarray],
             burn_in_duration: float = 5.0,
             return_format: Literal['dataset', 'anndata'] = 'dataset'
-        ) -> Union[Dataset, AnnData]:
+        ):
         """
         Generate a dataset
 
@@ -267,14 +271,14 @@ class NetworkModel:
         time_points
             The time points
         n_cells
-            The number of cells per time point 
+            The number of cells per time point
         burn_in_duration
             The burst-in duration
         return_format
-            format of the returned dataset. 
-            If return_format is `dataset` 
+            format of the returned dataset.
+            If return_format is `dataset`
             then the returned dataset is a `Dataset` object.
-            If return_format is `anndata` 
+            If return_format is `anndata`
             then the returned dataset is an `AnnData` object.
 
 
@@ -291,7 +295,7 @@ class NetworkModel:
             n_cells = np.full(time_points.size, n_cells, dtype=np.int_)
         elif isinstance(n_cells, (list, tuple)):
             n_cells = np.array(n_cells, dtype=np.int_)
-        elif (not isinstance(n_cells, np.ndarray) 
+        elif (not isinstance(n_cells, np.ndarray)
               or n_cells.dtype != np.int_
               or n_cells.ndim != 1):
             raise TypeError(('n_cells must be an int 1D np.ndarray '
@@ -300,20 +304,20 @@ class NetworkModel:
         if n_cells.size != time_points.size:
             raise ValueError((f'n_cells ({n_cells.size}) must have the same '
                               f'size as time_points ({time_points.size})'))
-        
+
         if np.any(time_points < 0):
             raise ValueError(('time_points must contains '
                               'only non negative elements.'))
 
         if np.any(n_cells <= 0):
             raise ValueError('n_cells must contains only positive elements.')
-        
+
         tot_cells = np.sum(n_cells)
 
         cells_time = np.empty(tot_cells)
         count_matrix = np.empty((tot_cells, self.n_genes_stim), dtype=np.uint)
         offset = 0
-        
+
         for i in range(time_points.size):
             time = time_points[i]
             n_cell = n_cells[i]
@@ -332,7 +336,7 @@ class NetworkModel:
                 )
 
             offset += n_cell
-        
+
         dataset = Dataset(cells_time, count_matrix, self.parameter.genes_names)
 
         transforms = {
@@ -346,9 +350,9 @@ class NetworkModel:
                  'Invalid return type. '
                 f'Valid values are {",".join(list(transforms.keys()))}'
             )
-        
+
         return transform(dataset)
-    
+
     # FEATURE: dynamic stimulus
     # def simulate_dynamic(self, time_points, stimulus_states):
     #     pass

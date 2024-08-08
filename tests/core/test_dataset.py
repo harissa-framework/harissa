@@ -2,6 +2,19 @@ import numpy as np
 import anndata as ad
 import pytest
 from harissa.core import Dataset
+import sys
+
+@pytest.fixture
+def empty_sys_path():
+    sys_path = sys.path
+    sys.path = []
+    if 'anndata' in sys.modules:
+        del sys.modules['anndata']
+
+    yield None
+
+    sys.path = sys_path
+
 
 @pytest.fixture(scope='module')
 def time_points():
@@ -44,8 +57,8 @@ def adata_with_gene_names(time_points, count_matrix, gene_names) -> ad.AnnData:
 def npz_file(tmp_path_factory, time_points, count_matrix):
     path = tmp_path_factory.mktemp('dataset') / 'dataset.npz'
     np.savez_compressed(
-        path, 
-        time_points=time_points, 
+        path,
+        time_points=time_points,
         count_matrix=count_matrix
     )
     return path
@@ -85,10 +98,10 @@ def hd5ad_file(tmp_path_factory, time_points, count_matrix):
 #     return path
 
 def test_as_dict(
-        dataset, 
-        dataset_with_gene_names, 
-        time_points, 
-        count_matrix, 
+        dataset,
+        dataset_with_gene_names,
+        time_points,
+        count_matrix,
         gene_names
     ):
     data = dataset.as_dict()
@@ -101,7 +114,7 @@ def test_as_dict(
     assert np.array_equal(data['count_matrix'], count_matrix)
 
     data = dataset_with_gene_names.as_dict()
-    
+
     assert len(data) == 3
     assert 'time_points' in data
     assert 'count_matrix' in data
@@ -118,11 +131,11 @@ def test_as_annData(dataset: Dataset):
     assert np.array_equal(adata.X, dataset.count_matrix)
     assert np.array_equal(adata.obs['time_points'], dataset.time_points)
     assert np.array_equal(
-        adata.obs_names, 
+        adata.obs_names,
         np.array([f'Cell_{i+1}' for i in range(adata.n_obs)])
     )
     assert np.array_equal(
-        adata.var_names, 
+        adata.var_names,
         np.array([f'Gene_{i}' for i in range(adata.n_vars)])
     )
 
@@ -131,14 +144,19 @@ def test_as_annData_with_gene_names(dataset_with_gene_names: Dataset):
 
     assert np.array_equal(adata.X, dataset_with_gene_names.count_matrix)
     assert np.array_equal(
-        adata.obs['time_points'], 
+        adata.obs['time_points'],
         dataset_with_gene_names.time_points
     )
     assert np.array_equal(
-        adata.obs_names, 
+        adata.obs_names,
         np.array([f'Cell_{i+1}' for i in range(adata.n_obs)])
     )
     assert np.array_equal(adata.var_names, dataset_with_gene_names.gene_names)
+
+def test_as_annData_without_anndata_pkg(dataset, empty_sys_path):
+    with pytest.raises(RuntimeError):
+        dataset.as_annData()
+
 
 def test_from_anndata(adata: ad.AnnData):
     dataset = Dataset.from_annData(adata)
@@ -151,7 +169,7 @@ def test_from_anndata_with_gene_names(adata_with_gene_names: ad.AnnData):
 
     assert np.array_equal(adata_with_gene_names.X, dataset.count_matrix)
     assert np.array_equal(
-        adata_with_gene_names.obs['time_points'], 
+        adata_with_gene_names.obs['time_points'],
         dataset.time_points
     )
     assert np.array_equal(adata_with_gene_names.var_names, dataset.gene_names)
@@ -159,6 +177,10 @@ def test_from_anndata_with_gene_names(adata_with_gene_names: ad.AnnData):
 def test_from_anndata_missing_time_points(count_matrix):
     adata = ad.AnnData(count_matrix)
 
+    with pytest.raises(RuntimeError):
+        Dataset.from_annData(adata)
+
+def test_from_annData_without_anndata_pkg(adata, empty_sys_path):
     with pytest.raises(RuntimeError):
         Dataset.from_annData(adata)
 
@@ -181,25 +203,25 @@ class TestInit():
         (None, np.uint, np.float64)
     ])
     def test_wrong_type(self, times_type, count_matrix_type, gene_names_type):
-        time_points = (np.zeros(1) if times_type is None else 
-                    np.zeros(1, dtype=times_type))
-        count_matrix = (np.zeros((1, 2)) if count_matrix_type is None else 
+        time_points = (np.zeros(1) if times_type is None else
+                       np.zeros(1, dtype=times_type))
+        count_matrix = (np.zeros((1, 2)) if count_matrix_type is None else
                         np.zeros((1, 2), dtype=count_matrix_type))
-        gene_names = (np.zeros(2, dtype=gene_names_type) 
-                      if gene_names_type is not None else None) 
+        gene_names = (np.zeros(2, dtype=gene_names_type)
+                      if gene_names_type is not None else None)
         with pytest.raises(TypeError):
             Dataset(time_points, count_matrix, gene_names)
 
-    @pytest.mark.parametrize('times_shape,count_matrix_shape,gene_names_shape', 
+    @pytest.mark.parametrize('times_shape,count_matrix_shape,gene_names_shape',
     [
         ((1,2), (1,2), 2),
         (1, 1, 2),
         (1, (2,2), 2),
         (1, (1,2), 1),
     ])
-    def test_wrong_shape(self, 
-        times_shape, 
-        count_matrix_shape, 
+    def test_wrong_shape(self,
+        times_shape,
+        count_matrix_shape,
         gene_names_shape
     ):
         time_points = np.zeros(times_shape)
@@ -223,13 +245,13 @@ class TestIO:
 
     def test_load_txt(self, txt_dir, time_points, count_matrix):
         dataset = Dataset.load_txt(txt_dir)
-        
+
         assert np.array_equal(dataset.time_points, time_points)
         assert np.array_equal(dataset.count_matrix, count_matrix)
 
-    def test_load_txt_backward_compatibility(self, 
-        txt_file, 
-        time_points, 
+    def test_load_txt_backward_compatibility(self,
+        txt_file,
+        time_points,
         count_matrix
     ):
         dataset = Dataset.load_txt(txt_file)
@@ -247,15 +269,13 @@ class TestIO:
         assert np.array_equal(dataset.time_points, time_points)
         assert np.array_equal(dataset.count_matrix, count_matrix)
 
-    # def test_load_zarr(self, zarr_file, time_points, count_matrix):
-    #     dataset = Dataset.load_zarr(zarr_file)
-
-    #     assert np.array_equal(dataset.time_points, time_points)
-    #     assert np.array_equal(dataset.count_matrix, count_matrix)
+    def test_load_h5ad_without_anndata_pkg(self, hd5ad_file, empty_sys_path):
+        with pytest.raises(RuntimeError):
+            Dataset.load_h5ad(hd5ad_file)
 
     def test_save_txt(self, tmp_path, dataset):
         path = dataset.save_txt(tmp_path / 'dataset')
-        data = { 
+        data = {
             'time_points': np.loadtxt(path/'time_points.txt'),
             'count_matrix': np.loadtxt(path/'count_matrix.txt', dtype=np.uint)
         }
@@ -275,7 +295,7 @@ class TestIO:
         data = ad.read_h5ad(path)
 
         assert np.array_equal(
-            np.array(data.obs['time_points']), 
+            np.array(data.obs['time_points']),
             dataset.time_points
         )
         assert np.array_equal(data.X, dataset.count_matrix)
@@ -285,7 +305,7 @@ class TestIO:
     #     data = ad.read_zarr(path)
 
     #     assert np.array_equal(
-    #         np.array(data.obs['time_points']), 
+    #         np.array(data.obs['time_points']),
     #         dataset.time_points
     #     )
     #     assert np.array_equal(data.X, dataset.count_matrix)
