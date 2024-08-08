@@ -20,16 +20,23 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install packaging tools
-        run : pip install build twine
+        run : pip install build twine pip-tools
       - name: Build package
         run: python -m build
       - name: Check package
         run: twine check dist/*
+      - name: Compile dependecies
+        run: pip-compile --strip-extras --extra extra -o requirements.txt pyproject.toml
       - name: Upload distribution
         uses: actions/upload-artifact@v4
         with:
           name: distribution
           path: dist
+      - name: Upload requirements
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements
+          path: requirements.txt
 
   test:
     name: Run tests
@@ -50,12 +57,19 @@ jobs:
         with:
           name: distribution
           path: dist
+      - name: Dowload requirements artifact 
+        uses: actions/download-artifact@v4
+        with:
+          name: requirements
+          path: requirements.txt
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install harissa depencies
+        run: pip install -r requirements.txt
       - name: Install harissa
-        run: pip install -f dist harissa[extra]
+        run: pip install --no-index -f dist harissa
       - name: Install pytest
         run: pip install pytest pytest-cov
       - name: Run tests and coverage
