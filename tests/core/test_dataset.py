@@ -164,6 +164,11 @@ def test_from_anndata(adata: ad.AnnData):
     assert np.array_equal(adata.X, dataset.count_matrix)
     assert np.array_equal(adata.obs['time_points'], dataset.time_points)
 
+
+def test_from_anndata_wrong_type(dataset):
+    with pytest.raises(TypeError):
+        Dataset.from_annData(dataset)
+
 def test_from_anndata_with_gene_names(adata_with_gene_names: ad.AnnData):
     dataset = Dataset.from_annData(adata_with_gene_names)
 

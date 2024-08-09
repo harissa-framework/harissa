@@ -116,7 +116,7 @@ class Dataset:
             from anndata import AnnData
 
             if not isinstance(adata, AnnData):
-                raise RuntimeError('adata must be an AnnData object.')
+                raise TypeError('adata must be an AnnData object.')
 
             if isinstance(adata.X, DataFrame):
                 count_matrix = adata.X.to_numpy()
