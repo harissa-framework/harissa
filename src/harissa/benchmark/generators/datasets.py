@@ -4,6 +4,7 @@ from typing import (
     List, 
     Union, 
     Optional,
+    Literal,
     TypeAlias
 )
 
@@ -46,7 +47,8 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         include: List[K] = [('*', '*')], 
         exclude: List[K] = [],
         path: Optional[Union[str, Path]] = None,
-        verbose: bool = False
+        verbose: bool = False,
+        save_format: Literal['.npz', '.h5ad'] = '.npz'
     ) -> None:
         self.networks = NetworksGenerator(verbose=verbose)
         
@@ -57,6 +59,7 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         self._model = NetworkModel(
             simulation=BurstyPDMP(use_numba=True)
         )
+        self.save_format = save_format
 
     def _set_path(self, path: Path):
         """
@@ -95,10 +98,14 @@ class DatasetsGenerator(GenericGenerator[K, V]):
         network = self.networks[key[0]]
         path = self._to_path(key).with_suffix('.npz')
         
-        if not path.exists():
-            raise KeyError(f'{key} is invalid. {path} does not exist.')
-         
-        dataset = Dataset.load(path)
+        if path.exists():
+            dataset = Dataset.load(path)
+        else:
+            path = path.with_suffix('.h5ad')
+            if path.exists():
+                dataset = Dataset.load_h5ad(path)
+            else:
+                raise KeyError(f'{key} is invalid. {path} does not exist.')
         
         return network, dataset
 
@@ -202,10 +209,13 @@ class DatasetsGenerator(GenericGenerator[K, V]):
 
         """
         key, (network, dataset) = item
-        output = self._to_path(key, path).with_suffix('.npz')
+        output = self._to_path(key, path)
         output.parent.mkdir(parents=True, exist_ok=True)
 
-        dataset.save(output)
+        if self.save_format == '.npz':
+            dataset.save(output.with_suffix('.npz'))
+        else:
+            dataset.save_h5ad(output.with_suffix('.h5ad'))
         self.networks.save_item(path, key[0], network)
 
     
@@ -213,7 +223,8 @@ if __name__ == '__main__':
     n_datasets = {'BN8': 2, 'CN5': 5, 'FN4': 10, 'FN8': 1}
     gen = DatasetsGenerator(
         n_datasets=n_datasets, 
-        verbose=True
+        verbose=True,
+        save_format='.h5ad'
     )
     gen.networks.include = list(n_datasets.keys())
     gen.save('test_datasets')

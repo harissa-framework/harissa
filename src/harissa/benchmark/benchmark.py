@@ -106,7 +106,7 @@ class Benchmark(GenericGenerator[K, V]):
             raise KeyError(f'{key} is invalid. {path} does not exist.')
         
         result = inf[0].Result.load(path / 'result.npz', load_extra=True)
-        runtime_in_sec = float(np.load(path / 'runtime.npy')[0])
+        runtime_in_sec = np.load(path / 'runtime.npy').item()
 
         return network, inf, dataset, result, runtime_in_sec
 
@@ -200,7 +200,7 @@ class Benchmark(GenericGenerator[K, V]):
         output.mkdir(parents=True, exist_ok=True)
 
         result.save(output / 'result', True)
-        np.save(output / 'runtime.npy', np.array([runtime]))
+        np.save(output / 'runtime.npy', np.array(runtime))
 
         keys = [(key[0], key[2]), key[1]]
         values = [(network, dataset), inf]
@@ -310,7 +310,7 @@ class Benchmark(GenericGenerator[K, V]):
 
 if __name__ == '__main__':
     benchmark = Benchmark()
-    # benchmark.path = 'test_benchmark.zip'
+    # benchmark.datasets.path = 'test_datasets2'
     # benchmark.networks.include = ['BN8']
     print(benchmark.save_reports('test_benchmark', None, True, True))
     
