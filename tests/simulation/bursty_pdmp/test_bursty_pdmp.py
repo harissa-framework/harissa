@@ -27,7 +27,7 @@ def network_parameter():
     param.interaction[2,3] = -10
     param.interaction[3,1] = -10
     scale = param.burst_size_inv / param.burst_frequency_max
-    param.creation_rna[:] = param.degradation_rna * scale 
+    param.creation_rna[:] = param.degradation_rna * scale
     param.creation_protein[:] = param.degradation_protein * scale
 
     return param
@@ -110,21 +110,21 @@ def test_run_with_numba(time_points, initial_state, network_parameter):
         for thin_adapt in [True, False]:
             sim = base.BurstyPDMP(
                 thin_adapt=thin_adapt,
-                verbose=True, 
+                verbose=True,
                 use_numba=True
             )
-
-            res = sim.run(time_points, initial_state, network_parameter)
+            stim = np.ones(time_points.shape)
+            res = sim.run(time_points, initial_state, stim, network_parameter)
             assert isinstance(res, Simulation.Result)
 
 
 def test_run_without_numba(time_points, initial_state, network_parameter):
     for thin_adapt in [True, False]:
         sim = base.BurstyPDMP(
-            thin_adapt=thin_adapt, 
-            verbose=True, 
+            thin_adapt=thin_adapt,
+            verbose=True,
             use_numba=False
         )
-
-        res = sim.run(time_points, initial_state, network_parameter)
+        stim = np.ones(time_points.shape)
+        res = sim.run(time_points, initial_state, stim, network_parameter)
         assert isinstance(res, Simulation.Result)

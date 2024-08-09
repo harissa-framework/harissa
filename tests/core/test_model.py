@@ -3,10 +3,10 @@ import pytest
 from inspect import getmembers
 
 from harissa.core import (
-    NetworkModel, 
-    NetworkParameter, 
+    NetworkModel,
+    NetworkParameter,
     Inference,
-    Simulation, 
+    Simulation,
     Dataset
 )
 from harissa.inference import default_inference, Hartree
@@ -29,10 +29,9 @@ def test_init(param, inf, sim):
             assert model.parameter is param
     else:
         assert model.parameter is None
-            
 
     assert isinstance(model.inference, Inference)
-    assert isinstance(model.simulation, Simulation) 
+    assert isinstance(model.simulation, Simulation)
 
 @pytest.mark.parametrize('param,inf,sim', [
     (5.0, default_inference(), default_simulation()),
@@ -66,8 +65,8 @@ def test_setters(param, inf, sim):
     assert isinstance(model.simulation, Simulation)
 
     assert model.parameter is param
-    assert model.inference is inf 
-    assert model.simulation is sim 
+    assert model.inference is inf
+    assert model.simulation is sim
 
 @pytest.mark.parametrize('param,inf,sim', [
     (None, None, None),
@@ -75,7 +74,7 @@ def test_setters(param, inf, sim):
     (default_simulation(), NetworkParameter(2), default_inference()),
     (default_inference(), default_simulation(), NetworkParameter(2))
 ], ids=[
-    'None, None, None', 
+    'None, None, None',
     'int, float, str',
     'Simulation, NetworkParameter, Inference',
     'Inference, Simulation, NetworkParameter'
@@ -84,7 +83,7 @@ def test_setter_wrong_type(param, inf, sim):
     model = NetworkModel()
     with pytest.raises(TypeError):
         model.parameter = param
-    
+
     with pytest.raises(TypeError):
         model.inference = inf
 
@@ -101,7 +100,7 @@ def test_parameter_shortcuts():
     props = [
         key
         for key, _ in getmembers(
-            type(model), 
+            type(model),
             lambda o: isinstance(o, property)
         ) if key not in ['parameter', 'inference', 'simulation']
     ]
@@ -153,7 +152,7 @@ def test_fit_wrong_type(data):
 @pytest.fixture
 def network_parameter():
     param = NetworkParameter(3)
-    
+
     param.degradation_rna[:] = 1
     param.degradation_protein[:] = 0.2
     param.basal[1] = 5
@@ -163,7 +162,7 @@ def network_parameter():
     param.interaction[2,3] = -10
     param.interaction[3,1] = -10
     scale = param.burst_size_inv / param.burst_frequency_max
-    param.creation_rna[:] = param.degradation_rna * scale 
+    param.creation_rna[:] = param.degradation_rna * scale
     param.creation_protein[:] = param.degradation_protein * scale
 
     return param
@@ -173,9 +172,9 @@ def test_simulate(network_parameter):
 
     with pytest.raises(AttributeError):
         model.simulate(np.arange(10))
-    
+
     model.parameter = network_parameter
-    
+
     for time_points in [np.array(10.0), np.arange(10.0)]:
         res = model.simulate(time_points)
 
@@ -291,4 +290,3 @@ def test_simulate_dataset_wrong_values(network_parameter,time_points,n_cells):
 
     with pytest.raises(ValueError):
         model.simulate_dataset(time_points, n_cells)
-    

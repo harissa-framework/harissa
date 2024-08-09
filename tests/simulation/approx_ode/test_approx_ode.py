@@ -27,7 +27,7 @@ def network_parameter():
     param.interaction[2,3] = -10
     param.interaction[3,1] = -10
     scale = param.burst_size_inv / param.burst_frequency_max
-    param.creation_rna[:] = param.degradation_rna * scale 
+    param.creation_rna[:] = param.degradation_rna * scale
     param.creation_protein[:] = param.degradation_protein * scale
 
     return param
@@ -112,13 +112,15 @@ def test_run_with_numba(time_points, initial_state, network_parameter):
 
         sim = base.ApproxODE(verbose=True, use_numba=True)
         for tp in [time_points, np.array([time_points[-1]])]:
-            res = sim.run(tp, initial_state, network_parameter)
+            stimulus = np.ones(tp.shape)
+            res = sim.run(tp, initial_state, stimulus, network_parameter)
 
             assert isinstance(res, Simulation.Result)
 
 
 def test_run_without_numba(time_points, initial_state, network_parameter):
     sim = base.ApproxODE(verbose=True, use_numba=False)
-    res = sim.run(time_points, initial_state, network_parameter)
+    stimulus = np.ones(time_points.shape)
+    res = sim.run(time_points, initial_state, stimulus, network_parameter)
 
     assert isinstance(res, Simulation.Result)
