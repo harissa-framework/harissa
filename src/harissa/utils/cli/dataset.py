@@ -3,11 +3,16 @@ import argparse as ap
 from pathlib import Path
 
 from harissa import NetworkModel, NetworkParameter
-from harissa.core.dataset import Dataset
 from harissa.processing import binarize
 from harissa.utils.progress_bar import alive_bar
-from harissa.utils.cli.infer import add_export_options, export_choices
+from harissa.utils.cli.infer import (
+    add_export_options, 
+    export_choices, 
+    load_dataset
+)
 from harissa.utils.cli.trajectory import add_methods
+
+export_choices = (*export_choices, 'h5ad')
 
 def simulate_dataset(args):
     if args.output is not None:
@@ -20,10 +25,7 @@ def simulate_dataset(args):
     else:
         network_param = NetworkParameter.load(args.network_parameter_path)
 
-    if args.dataset_path.suffix == '.npz':
-        dataset = Dataset.load(args.dataset_path)        
-    else:
-        dataset = Dataset.load_txt(args.dataset_path)
+    dataset = load_dataset(args.dataset_path)
 
     model= NetworkModel(network_param, simulation=args.create_simulation(args))
 
@@ -60,10 +62,15 @@ def simulate_dataset(args):
 
             
     dataset.count_matrix[:] = data_sim
-    print(
-        dataset.save_txt(output) if args.format == export_choices[1] else 
-        dataset.save(output)
-    )
+
+    if args.format == export_choices[0]:
+        path = dataset.save(output)
+    elif args.format == export_choices[1]:
+        path = dataset.save_txt(output)
+    else:
+        path = dataset.save_h5ad(output)
+
+    print(path)
 
 def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser(
@@ -78,7 +85,7 @@ def add_subcommand(main_subparsers):
         type=Path,
         help='path to network parameter. It is a .npz file or a directory.'
     )
-    add_export_options(parser)
+    add_export_options(parser, export_choices)
 
     parser.set_defaults(run=simulate_dataset)
 

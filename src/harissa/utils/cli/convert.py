@@ -14,14 +14,16 @@ names_allowed = {
 }
 
 def convert(args) -> None: 
-    path = Path(args.path)
+    path = args.path
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
 
     is_dir = path.is_dir()
-    suffixes = ('.npz', '.txt')
+    suffixes = ('.npz', '.txt', '.h5ad')
     if path.suffix == suffixes[1]:
         data = Dataset.load_txt(path).as_dict()
+    elif path.suffix == suffixes[2]:
+        data = Dataset.load_h5ad(path).as_dict()
     elif is_dir or path.suffix == suffixes[0]:
         load_fn = load_dir if is_dir else load_npz
         loads = []
@@ -43,15 +45,23 @@ def convert(args) -> None:
         raise RuntimeError(f'{path} must be a '
                             f'{"or ".join(suffixes)} file or a directory.')
 
-    if args.output_path is not None:
-        path = Path(args.output_path)
-        is_dir = path.is_dir() or path.suffix == ''
-        if not (path.suffix == suffixes[0] or is_dir):
-            raise ValueError(f'{path} must be a '
-                             f'{suffixes[0]} file or a directory.')
-        is_dir = not is_dir
-        
-    print(save_npz(path, data) if is_dir else save_dir(path, data))
+
+    path = args.output_path
+    is_dir = path.is_dir() or path.suffix == ''
+    if not (path.suffix == suffixes[0] or path.suffix == suffixes[2] or is_dir):
+        raise ValueError(
+            f'{path} must be a {suffixes[0]} or {suffixes[2]} file or '
+                'a directory.'
+        )
+    
+    if is_dir:
+        path = save_dir(path, data)
+    elif path.suffix == suffixes[0]:
+        path = save_npz(path, data)
+    else:
+        path = Dataset(**data).save_h5ad(path)
+
+    print(path)
 
 def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser(
@@ -67,7 +77,6 @@ def add_subcommand(main_subparsers):
     )
     parser.add_argument(
         'output_path',
-        nargs='?', 
         type=Path,
         help='destination path. It is a .npz file or a directory.'
     )
