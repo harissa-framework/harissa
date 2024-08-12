@@ -2,9 +2,8 @@ import pytest
 import sys
 from inspect import getmembers, isclass
 import numpy as np
-
 from harissa.core import Simulation, NetworkParameter
-import harissa.simulation
+# import harissa.simulation
 
 def _create_test_group(cls):
     class Test:
@@ -18,7 +17,7 @@ def _create_test_group(cls):
         def test_run_input_with_empty_network_parameter(self):
             sim = cls()
             with pytest.raises(AttributeError):
-                sim.run(np.empty(1), np.empty((2, 1)), None)
+                sim.run(np.empty(1), np.empty((2, 1)), np.empty(1), None)
 
         def test_run_output_type(self):
             param = NetworkParameter(3)
@@ -31,15 +30,16 @@ def _create_test_group(cls):
             param.interaction[2,3] = -10
             param.interaction[3,1] = -10
             scale = param.burst_size_inv / param.burst_frequency_max
-            param.creation_rna[:] = param.degradation_rna * scale 
+            param.creation_rna[:] = param.degradation_rna * scale
             param.creation_protein[:] = param.degradation_protein * scale
-            
+
             time_points = np.arange(10, dtype=np.float64)
             initial_state = np.zeros((2, param.n_genes_stim))
             initial_state[1, 0] = 1
-            
+
             for tp in [time_points, np.array([time_points[-1]])]:
-                res = cls().run(tp, initial_state, param)
+                stimulus = np.ones(tp.shape)
+                res = cls().run(tp, initial_state, stimulus, param)
 
                 assert isinstance(res, Simulation.Result)
                 assert res.rna_levels.shape[1] == param.n_genes_stim
