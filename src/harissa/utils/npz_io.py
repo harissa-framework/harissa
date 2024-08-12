@@ -20,7 +20,7 @@ class ParamInfos:
         return iter(astuple(self))
 
 
-def _check_names(
+def check_names(
     names: Iterable[str], 
     param_names: Dict[str, ParamInfos]
 ) -> None:
@@ -63,7 +63,7 @@ def load_dir(
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
     suffix = ".txt"
-    _check_names(map(lambda p: p.stem, path.glob(f"*{suffix}")), param_names)
+    check_names(map(lambda p: p.stem, path.glob(f"*{suffix}")), param_names)
 
     data: dict[str, npt.NDArray[Any]] = {}
     for name, (required, dtype, ndim) in param_names.items():
@@ -101,7 +101,7 @@ def load_npz(
     with np.load(path) as npz_file:
         data = dict(npz_file)
 
-    _check_names(data.keys(), param_names)
+    check_names(data.keys(), param_names)
 
     return data
 

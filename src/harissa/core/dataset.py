@@ -54,7 +54,7 @@ class Dataset:
              
             if gene_names.shape[0] != count_matrix.shape[1]:
                 raise TypeError(
-                    'genes_names must have the same number of elements' 
+                    'gene_names must have the same number of elements' 
                     ' than the columns of count_matrix.' 
                     f'({gene_names.shape[0]} != {count_matrix.shape[1]})'
                 )
