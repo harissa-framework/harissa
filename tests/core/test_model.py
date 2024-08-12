@@ -32,7 +32,6 @@ def test_init(param, inf, sim):
     else:
         assert model.parameter is None
 
-
     assert isinstance(model.inference, Inference)
     assert isinstance(model.simulation, Simulation)
 
@@ -376,7 +375,6 @@ def test_simulate_dataset_wrong_values(network_parameter,time_points,n_cells):
 
     with pytest.raises(ValueError):
         model.simulate_dataset(time_points, n_cells)
-
 
 def test_simulate_anndata(network_parameter):
     model = NetworkModel(network_parameter)

@@ -179,7 +179,8 @@ class NetworkModel:
     def simulate(self,
         time_points: np.ndarray,
         initial_state: Optional[np.ndarray] = None,
-        initial_time: float = 0.0
+        initial_time: float = 0.0,
+        stimulus: Optional[np.ndarray] = None
     ) -> Simulation.Result:
         """
         Perform simulation of the network model.
@@ -220,10 +221,23 @@ class NetworkModel:
                                 f'of shape {state_shape}.'))
             initial_state = initial_state.copy()
 
+        # Stimulus
+        if stimulus is None:
+            stimulus = initial_state[1, 0] * np.ones(time_points.shape)
+        else:
+            if (not isinstance(stimulus, np.ndarray)
+                or stimulus.shape != time_points.shape):
+                raise TypeError(('stimulus must be a 1D np.ndarray with '
+                                 'same size as time_points (or None).'))
+            stimulus = stimulus.copy()
+            # Copy the first stimulus to initial state
+            initial_state[1, 0] = stimulus[0]
+
         # Main simulation
         res = self.simulation.run(
             time_points - initial_time,
             initial_state,
+            stimulus,
             parameter
         )
         # Set time points
@@ -258,11 +272,11 @@ class NetworkModel:
         return final_state
 
     def simulate_dataset(self,
-            time_points: np.ndarray,
-            n_cells: Union[int, List[int], Tuple[int], np.ndarray],
-            burn_in_duration: float = 5.0,
-            return_format: Literal['dataset', 'anndata'] = 'dataset'
-        ):
+        time_points: np.ndarray,
+        n_cells: Union[int, List[int], Tuple[int], np.ndarray],
+        burn_in_duration: float = 5.0,
+        return_format: Literal['dataset', 'anndata'] = 'dataset'
+    ):
         """
         Generate a dataset
 
