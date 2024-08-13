@@ -1,12 +1,14 @@
 import numpy as np
+import sys
+from anndata import AnnData
 import pytest
 from inspect import getmembers
 
 from harissa.core import (
-    NetworkModel, 
-    NetworkParameter, 
+    NetworkModel,
+    NetworkParameter,
     Inference,
-    Simulation, 
+    Simulation,
     Dataset
 )
 from harissa.inference import default_inference, Hartree
@@ -29,10 +31,9 @@ def test_init(param, inf, sim):
             assert model.parameter is param
     else:
         assert model.parameter is None
-            
 
     assert isinstance(model.inference, Inference)
-    assert isinstance(model.simulation, Simulation) 
+    assert isinstance(model.simulation, Simulation)
 
 @pytest.mark.parametrize('param,inf,sim', [
     (5.0, default_inference(), default_simulation()),
@@ -66,8 +67,8 @@ def test_setters(param, inf, sim):
     assert isinstance(model.simulation, Simulation)
 
     assert model.parameter is param
-    assert model.inference is inf 
-    assert model.simulation is sim 
+    assert model.inference is inf
+    assert model.simulation is sim
 
 @pytest.mark.parametrize('param,inf,sim', [
     (None, None, None),
@@ -75,7 +76,7 @@ def test_setters(param, inf, sim):
     (default_simulation(), NetworkParameter(2), default_inference()),
     (default_inference(), default_simulation(), NetworkParameter(2))
 ], ids=[
-    'None, None, None', 
+    'None, None, None',
     'int, float, str',
     'Simulation, NetworkParameter, Inference',
     'Inference, Simulation, NetworkParameter'
@@ -84,7 +85,7 @@ def test_setter_wrong_type(param, inf, sim):
     model = NetworkModel()
     with pytest.raises(TypeError):
         model.parameter = param
-    
+
     with pytest.raises(TypeError):
         model.inference = inf
 
@@ -101,7 +102,7 @@ def test_parameter_shortcuts():
     props = [
         key
         for key, _ in getmembers(
-            type(model), 
+            type(model),
             lambda o: isinstance(o, property)
         ) if key not in ['parameter', 'inference', 'simulation']
     ]
@@ -119,9 +120,23 @@ def test_parameter_shortcuts():
     assert np.array_equal(model.inter, model.parameter.interaction)
 
 @pytest.fixture
-def dataset():
-    time_points = np.array([0.0, 0.0, 1.0, 1.0, 1.0])
-    count_matrix = np.array([
+def empty_sys_path():
+    sys_path = sys.path
+    sys.path = []
+    if 'anndata' in sys.modules:
+        del sys.modules['anndata']
+
+    yield None
+
+    sys.path = sys_path
+
+@pytest.fixture
+def time_points():
+    return np.array([0.0, 0.0, 1.0, 1.0, 1.0])
+
+@pytest.fixture
+def count_matrix():
+    return np.array([
         # s g1 g2 g3
         [0, 4, 1, 0], # Cell 1
         [0, 5, 0, 1], # Cell 2
@@ -129,8 +144,15 @@ def dataset():
         [1, 2, 0, 8], # Cell 4
         [1, 0, 0, 3], # Cell 5
     ], dtype=np.uint)
-    data = Dataset(time_points, count_matrix)
-    return data
+
+
+@pytest.fixture
+def dataset(time_points, count_matrix):
+    return Dataset(time_points, count_matrix)
+
+@pytest.fixture
+def adata(time_points, count_matrix):
+    return AnnData(count_matrix, {'time_points' : time_points})
 
 def test_fit(dataset):
     model = NetworkModel()
@@ -138,6 +160,23 @@ def test_fit(dataset):
 
     assert model.parameter is not None
     assert model.parameter is res.parameter
+
+def test_fit_anndata(adata):
+    model = NetworkModel()
+    res = model.fit(adata)
+
+    assert model.parameter is not None
+    assert model.parameter is res.parameter
+
+def test_fit_without_anndata_pkg(dataset, adata, empty_sys_path):
+    model = NetworkModel()
+    res = model.fit(dataset)
+
+    assert model.parameter is not None
+    assert model.parameter is res.parameter
+
+    with pytest.raises(TypeError):
+        model.fit(adata)
 
 @pytest.mark.parametrize('data', [
     None,
@@ -153,7 +192,7 @@ def test_fit_wrong_type(data):
 @pytest.fixture
 def network_parameter():
     param = NetworkParameter(3)
-    
+
     param.degradation_rna[:] = 1
     param.degradation_protein[:] = 0.2
     param.basal[1] = 5
@@ -162,9 +201,8 @@ def network_parameter():
     param.interaction[1,2] = -10
     param.interaction[2,3] = -10
     param.interaction[3,1] = -10
-    scale = param.burst_size_inv / param.burst_frequency_max
-    param.creation_rna[:] = param.degradation_rna * scale 
-    param.creation_protein[:] = param.degradation_protein * scale
+    param.creation_rna[:] = param.degradation_rna * param.rna_scale()
+    param.creation_protein[:]=param.degradation_protein * param.protein_scale()
 
     return param
 
@@ -173,9 +211,9 @@ def test_simulate(network_parameter):
 
     with pytest.raises(AttributeError):
         model.simulate(np.arange(10))
-    
+
     model.parameter = network_parameter
-    
+
     for time_points in [np.array(10.0), np.arange(10.0)]:
         res = model.simulate(time_points)
 
@@ -266,6 +304,52 @@ def test_simulate_dataset(network_parameter):
     dataset = model.simulate_dataset(time_points, n_cells)
     assert dataset.time_points.size == 0.5 * n_cells.size * (n_cells.size + 1)
 
+def test_simulate_dataset_anndata(network_parameter):
+    model = NetworkModel(network_parameter)
+
+    time_points = np.arange(10)
+    n_cells = 10
+
+    # int
+    dataset = model.simulate_dataset(
+        time_points,
+        n_cells,
+        return_format='anndata'
+    )
+    assert dataset.obs['time_points'].size == time_points.size * n_cells
+
+    # list[int]
+    n_cells = [10-i for i in range(10)]
+
+    dataset = model.simulate_dataset(
+        time_points,
+        n_cells,
+        return_format='anndata'
+    )
+    assert dataset.obs['time_points'].size == 0.5*len(n_cells)*(len(n_cells)+1)
+
+    # ndarray
+    n_cells = np.array(n_cells, dtype=np.int_)
+
+    dataset = model.simulate_dataset(
+        time_points,
+        n_cells,
+        return_format='anndata'
+    )
+    assert dataset.obs['time_points'].size == 0.5*n_cells.size*(n_cells.size+1)
+
+def test_simulate_dataset_wrong_return_format(network_parameter):
+    model = NetworkModel(network_parameter)
+
+    time_points = np.arange(10)
+    n_cells = 10
+    with pytest.raises(RuntimeError):
+        model.simulate_dataset(
+            time_points,
+            n_cells,
+            return_format='foo'
+        )
+
 @pytest.mark.parametrize('time_points,n_cells', [
     (5.0, 2),
     (np.array([5.0]), 2.0),
@@ -291,4 +375,17 @@ def test_simulate_dataset_wrong_values(network_parameter,time_points,n_cells):
 
     with pytest.raises(ValueError):
         model.simulate_dataset(time_points, n_cells)
-    
+
+def test_simulate_anndata(network_parameter):
+    model = NetworkModel(network_parameter)
+
+    time_points = np.arange(10)
+    n_cells = 10
+
+    dataset = model.simulate_dataset(
+        time_points,
+        n_cells,
+        return_format='anndata'
+    )
+    assert isinstance(dataset, AnnData)
+    assert dataset.obs['time_points'].size == time_points.size * n_cells

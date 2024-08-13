@@ -45,6 +45,12 @@ def dataset_old(dataset, data_dir):
     np.savetxt(fname, data)
     return fname
 
+@fixture(scope='module')
+def dataset_h5ad(dataset, data_dir):
+    fname = data_dir / 'dataset.h5ad'
+    dataset.save_h5ad(fname)
+    return fname
+
 
 def test_help():
     process = subprocess.run(cmd_to_args('harissa convert -h'))
@@ -63,8 +69,26 @@ def test_convert_npz_to_txt(dataset_npz, outputs_dir):
     for fname in Dataset.load(dataset_npz).as_dict():
         assert (output / f'{fname}.txt').is_file()
 
+def test_convert_npz_to_h5ad(dataset_npz, outputs_dir):
+    output = outputs_dir / 'dataset.h5ad'
+    process = subprocess.run(
+        cmd_to_args(f'harissa convert {dataset_npz} {output}')
+    )
+
+    assert process.returncode == 0
+    assert output.is_file()
+
 def test_convert_txt_to_npz(dataset_dir, outputs_dir):
     output = outputs_dir / 'dataset.npz'
+    process = subprocess.run(
+        cmd_to_args(f'harissa convert {dataset_dir} {output}')
+    )
+
+    assert process.returncode == 0
+    assert output.is_file()
+
+def test_convert_txt_to_h5ad(dataset_dir, outputs_dir):
+    output = outputs_dir / 'dataset.h5ad'
     process = subprocess.run(
         cmd_to_args(f'harissa convert {dataset_dir} {output}')
     )
@@ -90,4 +114,35 @@ def test_convert_old_txt_to_txt(dataset_old, outputs_dir):
     assert process.returncode == 0
     assert output.is_dir()
     for fname in Dataset.load_txt(dataset_old).as_dict():
+        assert (output / f'{fname}.txt').is_file()
+
+def test_convert_old_txt_to_h5ad(dataset_old, outputs_dir):
+    output = outputs_dir / 'dataset_old.h5ad'
+    process = subprocess.run(
+        cmd_to_args(f'harissa convert {dataset_old} {output}')
+    )
+
+    assert process.returncode == 0
+    assert output.is_file()
+
+
+def test_convert_h5ad_to_npz(dataset_h5ad, outputs_dir):
+    output = outputs_dir / 'dataset.npz'
+    process = subprocess.run(
+        cmd_to_args(f'harissa convert {dataset_h5ad} {output}')
+    )
+
+    assert process.returncode == 0
+    assert output.is_file()
+
+
+def test_convert_h5ad_to_txt(dataset_h5ad, outputs_dir):
+    output = outputs_dir / 'dataset'
+    process = subprocess.run(
+        cmd_to_args(f'harissa convert {dataset_h5ad} {output}')
+    )
+
+    assert process.returncode == 0
+    assert output.is_dir()
+    for fname in Dataset.load_h5ad(dataset_h5ad).as_dict():
         assert (output / f'{fname}.txt').is_file()
