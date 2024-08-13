@@ -16,7 +16,7 @@ jobs:
       with:
         python-version: '3.10'
     - name: Install harissa
-      run: pip install -e .
+      run: pip install -e .[extra]
     - name: Install pytest
       run: pip install pytest pytest-cov
     - name: Run tests and coverage
