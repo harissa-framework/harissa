@@ -350,7 +350,7 @@ _numba_functions = {
 class Cardamom(Inference):
 
     class Result(Inference.Result):
-        def __init__(self, 
+        def __init__(self,
             parameter: NetworkParameter,
             variations: np.ndarray,
             basal_time: Dict[float, np.ndarray],
@@ -358,8 +358,8 @@ class Cardamom(Inference):
             data_bool: np.ndarray
         ) -> None:
             super().__init__(
-                parameter, 
-                variations=variations, 
+                parameter,
+                variations=variations,
                 basal_time=basal_time,
                 interaction_time=interaction_time,
                 data_bool=data_bool
@@ -434,7 +434,7 @@ class Cardamom(Inference):
             save_npz(path + '_variations', {'variations': self.variations})
             save_npz(path + '_data_bool', {'data_bool': self.data_bool})
 
-    def __init__(self, 
+    def __init__(self,
         threshold: float = 1e-3,
         pseudo_l1_coeff: float = 5e-3, # sl
         penalization: float = 0.4, # p
@@ -443,6 +443,15 @@ class Cardamom(Inference):
         verbose: bool = False,
         use_numba: bool = True
     ) -> None:
+        super().__init__(
+            threshold=threshold,
+            pseudo_l1_coeff=pseudo_l1_coeff,
+            penalization=penalization,
+            tolerance=tolerance,
+            max_iteration=max_iteration,
+            verbose=verbose,
+            use_numba=use_numba
+        )
         self.threshold: float = threshold
         self.pseudo_l1_coeff: float = pseudo_l1_coeff
         self.penalization: float = penalization
@@ -455,7 +464,7 @@ class Cardamom(Inference):
     @property
     def use_numba(self) -> bool:
         return self._use_numba
-    
+
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
         global _numba_functions

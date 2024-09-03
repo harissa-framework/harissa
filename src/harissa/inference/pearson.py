@@ -4,10 +4,10 @@ from scipy import stats
 from harissa.core.inference import Inference, NetworkParameter, Dataset
 
 class Pearson(Inference):
-    @property    
+    @property
     def directed(self) -> bool:
         return False
-    
+
     def run(self,
         dataset: Dataset,
         param: NetworkParameter

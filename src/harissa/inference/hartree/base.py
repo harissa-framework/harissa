@@ -340,12 +340,20 @@ class Hartree(Inference):
             save_npz(path + '_y', {'y': self.y})
             # np.save(path + '_y', self.y)
 
-    def __init__(self, 
-                 penalization_strength: float = 1.0, 
-                 tolerance: float = 1e-5, 
-                 max_iteration: int = 100, 
-                 verbose: bool = False,
-                 use_numba: bool = True):
+    def __init__(self,
+        penalization_strength: float = 1.0,
+        tolerance: float = 1e-5,
+        max_iteration: int = 100,
+        verbose: bool = False,
+        use_numba: bool = True
+    ) -> None:
+        super().__init__(
+            penalization_strength=penalization_strength,
+            tolerance=tolerance,
+            max_iteration=max_iteration,
+            verbose=verbose,
+            use_numba=use_numba
+        )
         self.penalization_strength: float = penalization_strength
         self.tolerance: float = tolerance
         self.max_iteration: int = max_iteration
@@ -358,7 +366,7 @@ class Hartree(Inference):
     @property
     def use_numba(self) -> bool:
         return self._use_numba
-    
+
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
         global _numba_functions
