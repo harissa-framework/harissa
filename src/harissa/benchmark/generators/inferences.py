@@ -10,7 +10,7 @@ from typing import (
 from collections.abc import Iterator
 
 from pathlib import Path
-from dill import loads, dumps
+from json import load, dump
 
 import matplotlib.colors
 import matplotlib.pyplot
@@ -33,13 +33,14 @@ class InferencesGenerator(GenericGenerator[K, V]):
         str,
         Tuple[
             Union[Inference, Callable[[], Inference]],
-            npt.NDArray[np.float64]
+            npt.NDArray[np.float64],
+            Dict
         ]
     ] = {}
     color_map: matplotlib.colors.Colormap = matplotlib.pyplot.get_cmap('tab20')
 
     def __init__(self,
-        include: List[str] = ['*'], 
+        include: List[str] = ['*'],
         exclude: List[str] = [],
         path: Optional[Union[str, Path]] = None,
         verbose: bool = False
@@ -47,10 +48,11 @@ class InferencesGenerator(GenericGenerator[K, V]):
         super().__init__('inferences', include, exclude, path, verbose)
 
     @classmethod
-    def register(cls, 
-        name: str, 
+    def register(cls,
+        name: str,
         inference: Union[Inference, Callable[[], Inference]],
-        colors: npt.NDArray[np.float64]
+        colors: npt.NDArray[np.float64],
+        inference_kwargs: Dict = {}
     ) -> None:
         """
         Register inferences instances or function that creates inferences,
@@ -65,6 +67,8 @@ class InferencesGenerator(GenericGenerator[K, V]):
         colors
             2D array representing RGBA colors (foreground and background) used
             during plots.
+        inference_kwargs
+            keywords arguments used by the function to generate an inference
 
         Raises
         ------
@@ -75,27 +79,27 @@ class InferencesGenerator(GenericGenerator[K, V]):
         """
         if name not in cls._inferences:
             if isinstance(inference, (Inference, Callable)):
-                cls._inferences[name] = (inference, colors)
+                cls._inferences[name] = (inference, colors, inference_kwargs)
             else:
                 raise TypeError(('inference_callable must be a callable '
                              'that returns a Inference sub class.'))
         else:
             raise ValueError((f'{name} is already taken. '
                               f'Cannot register {inference}.'))
-        
+
     @classmethod
     def register_defaults(cls) -> None:
         """
         Register the default inference methods.
         """
         cls.register(
-            'Hartree', 
+            'Hartree',
             Hartree,
             np.array([cls.color_map(6), cls.color_map(7)])
         )
         cls.register(
             'Cardamom',
-            Cardamom, 
+            Cardamom,
             np.array([cls.color_map(8), cls.color_map(9)])
         )
         cls.register(
@@ -118,37 +122,33 @@ class InferencesGenerator(GenericGenerator[K, V]):
 
         """
         return list(cls._inferences.keys())
-    
-    # @classmethod
-    # def getInferenceInfo(cls, name: str) -> InferenceInfo:
-    #     return cls._inferences[name]
-    
+
     def _load_value(self, key: K) -> V:
         """
         Load a value from a key.
 
         Parameters
         ----------
-        key : 
+        key:
             input key
 
         Raises
         ------
         KeyError
         """
-        path = self._to_path(key).with_suffix('.npz')
+        path = self._to_path(key).with_suffix('.json')
 
         if not path.exists():
             raise KeyError(f'{key} is invalid. {path} does not exist.')
 
-        with np.load(path) as data:
-            inf = loads(data['inference'].item())
-            colors = data['colors']
-            if not isinstance(inf, Inference):
-                raise RuntimeError(
-                    f'{inf} is not an Inference object.'
-                )
-        
+        inf = Inference.load_json(path)
+        if not isinstance(inf, Inference):
+            raise RuntimeError(
+                f'{inf} is not an Inference object.'
+            )
+        with open(path, 'r') as fp:
+            colors = np.array(load(fp)['benchmark_colors'])
+
         return inf, colors
 
     def _generate_value(self, key: K) -> V:
@@ -167,12 +167,12 @@ class InferencesGenerator(GenericGenerator[K, V]):
         if key not in self._inferences:
             raise KeyError(f'{key} is invalid. {key} is not registered.')
 
-        inference, colors = self._inferences[key]
+        inference, colors, kwargs = self._inferences[key]
         if isinstance(inference, Inference):
             inf = inference
         else:
-            inf = inference()
-        
+            inf = inference(**kwargs)
+
         if not isinstance(inf, Inference):
             raise RuntimeError(
                 (f'{inference} is not an Inference subclass.')
@@ -200,23 +200,37 @@ class InferencesGenerator(GenericGenerator[K, V]):
         ----------
         path
             path where to save
-        item : 
+        item
             item to save
 
         """
         key, (inf, colors) = item
-        output = self._to_path(key, path).with_suffix('.npz')
+        output = self._to_path(key, path).with_suffix('.json')
         output.parent.mkdir(parents=True, exist_ok=True)
 
-        np.savez_compressed(
-            output,
-            inference=np.array(dumps(inf)),
-            colors=colors
-        )
+        inf.save_json(output)
+        with open(output, 'r') as fp:
+            inf_dict = load(fp)
+        # inf_dict['benchmark_key'] = key
+        inf_dict['benchmark_colors'] = colors.tolist()
+
+        with open(output, 'w') as fp:
+            dump(inf_dict, fp, indent=4)
 
 InferencesGenerator.register_defaults()
 
 if __name__ == '__main__':
     print(InferencesGenerator.available_inferences())
-    for name, (inf, colors) in InferencesGenerator(verbose=True).items():
-        print(name, inf, colors)
+    gen = InferencesGenerator(verbose=True)
+    for name, (inf, colors) in gen.items():
+        print(name)
+        print(inf)
+        print(colors)
+
+    gen.save('test_inferences')
+    gen.path = 'test_inferences'
+
+    for name, (inf, colors) in gen.items():
+        print(name)
+        print(inf)
+        print(colors)

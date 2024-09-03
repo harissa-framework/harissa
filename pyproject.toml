@@ -30,8 +30,7 @@ dependencies = [
     "numba>=0.55",
     "matplotlib>=3.4",
     "networkx>=2.6",
-    "scikit-learn",
-    "dill"
+    "scikit-learn"
 ]
 dynamic = ["version"]
 
