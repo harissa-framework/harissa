@@ -24,7 +24,9 @@ default_burst_frequency_min = 0.0 * default_degradation_rna
 default_burst_frequency_max = 2.0 * default_degradation_rna
 default_burst_size_inv = 0.02
 
-SPARSE_INTERACTION_KEY_PATTERN = re.compile(r'^\s*(\d+)\s*->\s*(\d+)\s*$')
+SPARSE_INTERACTION_KEY_PATTERN = re.compile(
+    r'^\s*(\d+|stimulus)\s*->\s*(\d+)\s*$'
+)
 
 # Main class
 class NetworkParameter:
@@ -95,9 +97,8 @@ class NetworkParameter:
                 test.append(bool(
                     np.all(getattr(other, k) == getattr(self, k))))
             return all(test)
-        
+
         raise NotImplementedError
-    
 
     @classmethod
     def load_txt(cls, path: Union[str, Path]) -> NetworkParameter:
@@ -122,51 +123,72 @@ class NetworkParameter:
             getattr(network_param, key)[:] = value[:]
 
         return network_param
-    
+
     @classmethod
     def load_json(cls, path : Union[str, Path]) -> NetworkParameter:
         with open(path, 'r') as fp:
             data = json.load(fp)
+        n_genes = len(data['basal'])
         check_names(data.keys(), cls.param_names)
-
-        kwargs = dict(map(
-            lambda i: (i[0], (
-                i[1] if i[1] is None 
-                else np.array(i[1], dtype=cls.param_names[i[0]].dtype)
-            )),
+        data_optional = dict(
             map(
-                lambda i: (i[0], data.pop(i[0], None)),  
+                lambda i: (i[0], data.pop(i[0], None)),
                 filter(lambda i: not i[1].required, cls.param_names.items())
             )
-        ))
-        
+        )
+        kwargs = {
+            k:(
+                np.empty((
+                    (n_genes + 1,)
+                    if cls.param_names[k].ndim == 1 else
+                    (n_genes + 1, 2)), dtype=cls.param_names[k].dtype)
+                if v is not None else v
+            )
+            for k, v in data_optional.items()
+        }
+
+        for key, value in data_optional.items():
+            if value is not None:
+                if len(value) == n_genes + 1:
+                    for k, v in value.items():
+                        i = 0 if k == 'stimulus' else int(k)
+                        if isinstance(v, list):
+                            kwargs[key][i] = np.array(v)
+                        else:
+                            kwargs[key][i] = v
+                else:
+                    raise RuntimeError(f'{key} must have {n_genes+1} items')
+
+
         spare_interaction = data.pop('interaction')
 
-        data = {
-            k:np.array(v, dtype=cls.param_names[k].dtype) 
-            for k,v in data.items()
-        }
-        
-        network_param = cls(len(data['basal']) - 1, **kwargs)
+        network_param = cls(n_genes, **kwargs)
 
         for key, value in data.items():
-            getattr(network_param, key)[:] = value[:]
+            if len(value) == n_genes:
+                for k, v in value.items():
+                    getattr(network_param, key)[int(k)] = v
+            else:
+                raise RuntimeError(f'{key} must have {n_genes} items')
 
         marked_indices = []
         for key, value in spare_interaction.items():
-            result = SPARSE_INTERACTION_KEY_PATTERN.fullmatch(key)
-            if result is not None:
-                i, j = [int(group) for group in result.group(1, 2)]
+            res = SPARSE_INTERACTION_KEY_PATTERN.fullmatch(key)
+            if res is not None:
+                i = int(res.group(1)) if res.group(1) != 'stimulus' else 0
+                j = int(res.group(2))
                 if (i, j) not in marked_indices:
                     network_param.interaction[i, j] = value
                     marked_indices.append((i, j))
                 else:
-                    raise RuntimeError(f'{i} -> {j} must be unique.')
+                    raise RuntimeError(
+                        f'{res.group(1)} -> {res.group(2)} must be unique.'
+                    )
             else:
                 raise RuntimeError('key format invalid. TODO find better msg')
 
         return network_param
-    
+
     def as_dict(self):
         param_dict = {}
         for attr_name, attr_info in self.param_names.items():
@@ -175,33 +197,38 @@ class NetworkParameter:
                 param_dict[attr_name] = attr_array
 
         return param_dict
-        
+
     def save_txt(self, path: Union[str, Path]) -> Path:
         return save_dir(path, self.as_dict())
 
     def save(self, path: Union[str, Path]) -> Path:
         return save_npz(path, self.as_dict())
-    
+
     def save_json(self, path: Union[str, Path]) -> Path:
         path = Path(path).with_suffix('.json')
-        serialized_dict = {
-            k:(
-                v.filled(0.0) if isinstance(v,np.ma.MaskedArray) else v
-            ).tolist() for k,v in self.as_dict().items()
-        }
         sparse_interaction = {}
         with np.nditer(
-            np.array(serialized_dict['interaction']), 
+            self.interaction.filled(0.0),
             flags=['multi_index']
         ) as it:
             for x in it:
                 i, j = it.multi_index
                 if x != 0.0:
+                    if i == 0:
+                        i = 'stimulus'
                     sparse_interaction[f'{i} -> {j}'] = x.item()
+        serialized_dict = {
+            k:({
+                (i if i != 0 else 'stimulus'):x.tolist()
+                for i, x in enumerate(v) if x is not np.ma.masked
+            } if k != 'interaction' else sparse_interaction)
+            for k,v in self.as_dict().items()
+        }
+        print(serialized_dict)
         serialized_dict['interaction'] = sparse_interaction
         with open(path, 'w') as fp:
             json.dump(serialized_dict, fp, indent=4)
-        
+
         return path
 
 
@@ -419,3 +446,6 @@ def _masked_zeros(shape):
     mask = np.zeros(shape, dtype=bool)
     mask[..., 0] = True # Handle both 1D and 2D arrays
     return np.ma.array(np.zeros(shape), mask=mask, hard_mask=True)
+
+if __name__ == '__main__':
+    NetworkParameter.load_json('bn8.json')

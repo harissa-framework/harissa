@@ -351,7 +351,7 @@ class NetworkModel:
 
             offset += n_cell
 
-        dataset = Dataset(cells_time, count_matrix, self.parameter.genes_names)
+        dataset = Dataset(cells_time, count_matrix, self.parameter.gene_names)
 
         transforms = {
             'dataset': lambda d: d,
