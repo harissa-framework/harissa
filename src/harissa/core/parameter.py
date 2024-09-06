@@ -224,7 +224,7 @@ class NetworkParameter:
             } if k != 'interaction' else sparse_interaction)
             for k,v in self.as_dict().items()
         }
-        print(serialized_dict)
+
         serialized_dict['interaction'] = sparse_interaction
         with open(path, 'w') as fp:
             json.dump(serialized_dict, fp, indent=4)
