@@ -1,4 +1,4 @@
-import sys
+from importlib import import_module
 from inspect import getmembers, isclass
 import numpy as np
 from json import load
@@ -6,18 +6,21 @@ from json import load
 from harissa.core import Inference, NetworkParameter, Dataset
 import harissa.inference
 
-def _create_test_group(cls):
+def _create_test_group(classname, classmodule):
     class Test:
         def test_subclass(self):
+            cls = vars(import_module(classmodule))[classname]
             assert issubclass(cls, Inference)
 
         def test_instance(self):
+            cls = vars(import_module(classmodule))[classname]
             inf = cls()
             assert hasattr(inf, 'run')
             assert hasattr(inf, 'directed')
             assert hasattr(inf, '_serialize')
 
         def test_run_output(self):
+            cls = vars(import_module(classmodule))[classname]
             inf = cls()
             time_points = np.array([0.0, 0.0, 1.0, 1.0, 1.0])
             count_matrix = np.array([
@@ -41,6 +44,7 @@ def _create_test_group(cls):
             assert res.parameter.n_genes_stim == n_genes_stim
 
         def test_json(self, tmp_path):
+            cls = vars(import_module(classmodule))[classname]
             inf = cls()
             inf_file = tmp_path / f'{cls.__name__.lower()}.json'
             inf.save_json(inf_file)
@@ -70,9 +74,12 @@ def _create_test_group(cls):
             assert inf_loaded is not inf_loaded2
 
 
-    return (f'{Test.__name__}{cls.__name__}', Test)
+    return (f'{Test.__name__}{classname}', Test)
 
 
-for members_class in getmembers(sys.modules['harissa.inference'], isclass):
-    name, group = _create_test_group(members_class[1])
+for cls in set(map(
+    lambda member_class : member_class[1],
+    getmembers(harissa.inference, isclass)
+)):
+    name, group = _create_test_group(cls.__name__, cls.__module__)
     globals()[name] = group
