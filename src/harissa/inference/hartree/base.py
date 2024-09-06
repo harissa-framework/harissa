@@ -107,14 +107,16 @@ def grad_theta(theta, theta0, x, y, a, c, d, l, t, s):
     dq = l*grad_penalization(theta, theta0, t, s) - dq/C
     return dq.reshape(nb_genes**2)
 
-def infer_kinetics(x: np.ndarray, 
-                   time_points: np.ndarray,
-                   times_unique: np.ndarray, 
-                   tolerance: float, 
-                   max_iteration: int) -> Tuple[np.ndarray, np.ndarray, int]:
+def infer_kinetics(
+    x: np.ndarray,
+    time_points: np.ndarray,
+    times_unique: np.ndarray,
+    tolerance: float,
+    max_iteration: int
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
-    Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson 
-    model with time-dependant a and constant b 
+    Infer parameters a[0], ..., a[m-1] and b of a Gamma-Poisson
+    model with time-dependant a and constant b
     for a given gene at m time points.
 
     Parameters
@@ -127,7 +129,7 @@ def infer_kinetics(x: np.ndarray,
         The sorted unique elements of times points. (`np.unique(time_points)`)
     """
     # t = np.sort(list(set(times_points)))
-    # t = np.unique(time_points) 
+    # t = np.unique(time_points)
     m = times_unique.size
     n = np.zeros(m) # Number of cells for each time point
     a = np.zeros(m)
@@ -153,7 +155,7 @@ def infer_kinetics(x: np.ndarray,
                 h = p1 - n[i]*polygamma(1, a[i])
                 da[i] = -d/h
         anew = a + da
-        if np.sum(anew < 0) == 0: 
+        if np.sum(anew < 0) == 0:
             a[:] = anew
         else:
             max_test = 5
@@ -162,13 +164,13 @@ def infer_kinetics(x: np.ndarray,
             while (np.sum(a + da < 0) > 0) and (test < max_test):
                 da *= 0.5
                 test += 1
-            if test < max_test: 
+            if test < max_test:
                 a[:] = a + da
-            else: 
+            else:
                 print('Warning: parameter a not improved')
         if np.sum(a == 0) == 0:
             b = np.sum(n*a)/sx
-        else: 
+        else:
             b = 1
         c = np.max(np.abs(da))
         k += 1
@@ -176,7 +178,7 @@ def infer_kinetics(x: np.ndarray,
     if (k == max_iteration) and (c > tolerance):
         print(f'Warning: bad convergence (b = {b})')
         a, b = a/b, 1
-    if np.any(a < 0): 
+    if np.any(a < 0):
         neg_a_indices =np.argwhere(a < 0)[:, 0]
         neg_a_tuple = [(i, a[i]) for i in neg_a_indices]
         raise RuntimeError(
@@ -214,8 +216,8 @@ def infer_network(time_points: np.ndarray,
                     x: np.ndarray,
                     y: np.ndarray,
                     a: np.ndarray,
-                    c: np.ndarray, 
-                    penalization_strength: float, 
+                    c: np.ndarray,
+                    penalization_strength: float,
                     tolerance: float,
                     smoothing_threshold: float) -> Tuple[np.ndarray, int]:
     """
@@ -231,21 +233,21 @@ def infer_network(time_points: np.ndarray,
     optimization_params = {
         'fun': objective,
         'jac': grad_theta,
-        'method': 'L-BFGS-B', 
+        'method': 'L-BFGS-B',
         'tol': tolerance
     }
     # Inference routine
     for t, time in enumerate(times_unique):
         res = minimize(
-            **optimization_params, 
+            **optimization_params,
             x0=theta0.reshape(nb_genes_stim**2),
             args= (
-                theta0, 
-                x[time_points==time], 
-                y[time_points==time], 
-                a, c, d, 
-                penalization_strength, 
-                t, 
+                theta0,
+                x[time_points==time],
+                y[time_points==time],
+                a, c, d,
+                penalization_strength,
+                t,
                 smoothing_threshold
             )
         )
@@ -269,14 +271,15 @@ _numba_functions = {
 
 class Hartree(Inference):
     class Result(Inference.Result):
-        def __init__(self, 
-                     parameter: NetworkParameter,
-                     basal_time: Dict[float, np.ndarray],
-                     interaction_time: Dict[float, np.ndarray],
-                     y: np.ndarray) -> None:
+        def __init__(self,
+            parameter: NetworkParameter,
+            basal_time: Dict[float, np.ndarray],
+            interaction_time: Dict[float, np.ndarray],
+            y: np.ndarray
+        ) -> None:
             super().__init__(
-                parameter, 
-                basal_time=basal_time, 
+                parameter,
+                basal_time=basal_time,
                 interaction_time= interaction_time,
                 y=y
             )
@@ -286,20 +289,20 @@ class Hartree(Inference):
             if load_extra:
                 path_extra = Path(path) / 'extra'
                 return cls(
-                    NetworkParameter.load_txt(path), 
+                    NetworkParameter.load_txt(path),
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        f.stem.split('_')[1]:np.loadtxt(f)
                         for f in (path_extra / 'basal_time').iterdir()
-                    }, 
+                    },
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        f.stem.split('_')[1]:np.loadtxt(f)
                         for f in (path_extra / 'interaction_time').iterdir()
-                    }, 
+                    },
                     np.loadtxt(path_extra / 'y.txt')
                 )
             else:
                 return super().load_txt(path)
-        
+
         @classmethod
         def load(cls, path: Union[str, Path], load_extra: bool = False):
             if load_extra:
@@ -319,7 +322,6 @@ class Hartree(Inference):
                 return cls(param, basal_time, inter_time, y)
             else:
                 return super().load(path)
-            
 
         def save_extra_txt(self, path: Union[str, Path]):
             path = Path(path) / 'extra'
@@ -329,12 +331,12 @@ class Hartree(Inference):
             save_dir(path / 'basal_time', basal_time)
             save_dir(path / 'interaction_time', inter_time)
             np.savetxt(path / 'y.txt', self.y)
-        
+
         def save_extra(self, path: Union[str, Path]):
             path = f'{Path(path).with_suffix("")}_extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
             inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
-            
+
             save_npz(path + '_basal_time', basal_time)
             save_npz(path + '_interaction_time', inter_time)
             save_npz(path + '_y', {'y': self.y})
@@ -344,24 +346,27 @@ class Hartree(Inference):
         penalization_strength: float = 1.0,
         tolerance: float = 1e-5,
         max_iteration: int = 100,
+        smoothing_threshold: float = 0.1,
         verbose: bool = False,
         use_numba: bool = True
     ) -> None:
-        super().__init__(
-            penalization_strength=penalization_strength,
-            tolerance=tolerance,
-            max_iteration=max_iteration,
-            verbose=verbose,
-            use_numba=use_numba
-        )
         self.penalization_strength: float = penalization_strength
         self.tolerance: float = tolerance
         self.max_iteration: int = max_iteration
         self.is_verbose: bool = verbose
-        # Smoothing threshold
-        self.smoothing_threshold: float = 0.1
+        self.smoothing_threshold = smoothing_threshold
         self._use_numba = False
         self.use_numba: bool = use_numba
+
+    def _serialize(self) -> Dict:
+        return {
+            'penalization_strength': self.penalization_strength,
+            'tolerance': self.tolerance,
+            'max_iteration': self.max_iteration,
+            'smoothing_threshold': self.smoothing_threshold,
+            'verbose' : self.is_verbose,
+            'use_numba': self.use_numba
+        }
 
     @property
     def use_numba(self) -> bool:
@@ -382,9 +387,8 @@ class Hartree(Inference):
 
             for fname, f in _numba_functions[use_numba].items():
                 globals()[fname] = f
-            
+
             self._use_numba = use_numba
-            
 
     def directed(self) -> bool:
         return True
@@ -415,7 +419,7 @@ class Hartree(Inference):
             self.smoothing_threshold
         )
 
-        if self.is_verbose: 
+        if self.is_verbose:
             print(f'Fitted theta in {nb_iterations} iterations')
         # Build the results
         basal_time = {time: np.zeros(nb_genes_stim) for time in times}
@@ -436,9 +440,10 @@ class Hartree(Inference):
 
         return self.Result(param, basal_time, inter_time, y)
 
-    def _get_kinetics(self, 
-                      data: Dataset, 
-                      times_unique: np.ndarray) -> np.ndarray:
+    def _get_kinetics(self,
+        data: Dataset,
+        times_unique: np.ndarray
+    ) -> np.ndarray:
         """
         Compute the basal parameters of all genes.
         """
@@ -456,14 +461,14 @@ class Hartree(Inference):
                 tolerance=self.tolerance,
                 max_iteration=self.max_iteration
             )
-            
+
             if self.is_verbose:
                 print(f'Estimation done in {k} iterations')
             a[0, g] = np.min(a_g)
             a[1, g] = np.max(a_g)
             a[2, g] = b_g
         return a
-    
+
     def binarize(self, data: Dataset) -> Dataset:
         """
         Return a binarized version of the data using gene-specific thresholds
@@ -476,4 +481,4 @@ class Hartree(Inference):
                 self._get_kinetics(data, np.unique(data.time_points))
             )
         )
-        return Dataset(data.time_points, y.astype(np.uint), data.gene_names) 
+        return Dataset(data.time_points, y.astype(np.uint), data.gene_names)

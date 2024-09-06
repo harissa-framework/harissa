@@ -48,9 +48,6 @@ class Inference(ABC):
         def save_extra(self, path):
             return
 
-    def __init__(self, **kwargs) -> None:
-        self._kwargs = kwargs
-
     @classmethod
     def load_json(cls, path: Union[str, Path]):
         path = Path(path).with_suffix('.json')
@@ -74,12 +71,11 @@ class Inference(ABC):
     def _deserialize(cls, kwargs: Dict) -> Dict:
         return kwargs
 
-
     def save_json(self, path: Union[str, Path]) -> Path:
         inference_info = {
             'classname' : self.__class__.__name__,
             'module': self.__module__,
-            'kwargs': self._serialize(self._kwargs)
+            'kwargs': self._serialize()
         }
         path = Path(path).with_suffix('.json')
         with open(path, 'w') as fp:
@@ -87,8 +83,8 @@ class Inference(ABC):
 
         return path
 
-    def _serialize(self, kwargs: Dict) -> Dict:
-        return kwargs
+    def _serialize(self) -> Dict:
+        return {}
 
 
     @property

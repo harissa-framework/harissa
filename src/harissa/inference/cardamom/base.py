@@ -443,15 +443,6 @@ class Cardamom(Inference):
         verbose: bool = False,
         use_numba: bool = True
     ) -> None:
-        super().__init__(
-            threshold=threshold,
-            pseudo_l1_coeff=pseudo_l1_coeff,
-            penalization=penalization,
-            tolerance=tolerance,
-            max_iteration=max_iteration,
-            verbose=verbose,
-            use_numba=use_numba
-        )
         self.threshold: float = threshold
         self.pseudo_l1_coeff: float = pseudo_l1_coeff
         self.penalization: float = penalization
@@ -460,6 +451,17 @@ class Cardamom(Inference):
         self.verbose: bool = verbose
         self._use_numba = False
         self.use_numba: bool = use_numba
+
+    def _serialize(self) -> Dict:
+        return {
+            'threshold': self.threshold,
+            'pseudo_l1_coeff': self.pseudo_l1_coeff,
+            'penalization': self.penalization,
+            'tolerance': self.tolerance,
+            'max_iteration': self.max_iteration,
+            'verbose': self.tolerance,
+            'use_numba': self.use_numba
+        }
 
     @property
     def use_numba(self) -> bool:
