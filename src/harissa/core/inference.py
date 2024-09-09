@@ -57,10 +57,9 @@ class Inference(ABC):
         mod = import_module(inference_info['module'])
         inference_class = vars(mod)[inference_info['classname']]
 
-        if not issubclass(inference_class, cls):
+        if not issubclass(inference_class, Inference):
             raise RuntimeError(
-                f'{inference_class} is neither the same class '
-                f'nor a subclass of {cls}.'
+                f'{inference_class} must be a subclass of {cls}.'
             )
 
         return inference_class(

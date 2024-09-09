@@ -1,9 +1,8 @@
 import pytest
-import sys
 from inspect import getmembers, isclass
 import numpy as np
 from harissa.core import Simulation, NetworkParameter
-# import harissa.simulation
+import harissa.simulation
 
 def _create_test_group(cls):
     class Test:
@@ -46,6 +45,9 @@ def _create_test_group(cls):
 
     return (f'{Test.__name__}{cls.__name__}', Test)
 
-for members_class in getmembers(sys.modules['harissa.simulation'], isclass):
-    name, group = _create_test_group(members_class[1])
+for cls in set(map(
+    lambda member_class : member_class[1],
+    getmembers(harissa.simulation, isclass)
+)):
+    name, group = _create_test_group(cls)
     globals()[name] = group
