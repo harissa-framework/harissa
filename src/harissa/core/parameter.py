@@ -138,10 +138,14 @@ class NetworkParameter:
         )
         kwargs = {
             k:(
-                np.empty((
-                    (n_genes + 1,)
+                np.empty(
+                    ((n_genes + 1,)
                     if cls.param_names[k].ndim == 1 else
-                    (n_genes + 1, 2)), dtype=cls.param_names[k].dtype)
+                    (n_genes + 1, 2)),
+                    dtype=cls.param_names[k].dtype
+                    if cls.param_names[k].dtype != np.str_ else
+                    f'U{len(max(v.values(), key=len))}'
+                )
                 if v is not None else v
             )
             for k, v in data_optional.items()
@@ -244,11 +248,11 @@ class NetworkParameter:
     def n_genes_stim(self):
         """Number of genes in the network model, including stimulus."""
         return self._n_genes + 1
-    
+
     @property
     def gene_names(self):
         return self._gene_names
-    
+
     @gene_names.setter
     def gene_names(self, gene_names):
         self._gene_names = _check_gene_names(gene_names, self.n_genes_stim)
@@ -256,7 +260,7 @@ class NetworkParameter:
     @property
     def layout(self):
         return self._layout
-    
+
     @layout.setter
     def layout(self, layout):
         self._layout = _check_layout(layout, self.n_genes_stim)
@@ -335,7 +339,7 @@ class NetworkParameter:
     def d(self):
         """mRNA and protein degradation rates."""
         return self._degradation
-    
+
     @property
     def a(self):
         """Bursting kinetics (not normalized)."""
@@ -381,9 +385,9 @@ class NetworkParameter:
         If shallow is True, underlying arrays are only referenced."""
         new_param = NetworkParameter(self._n_genes)
         for k in self._array_names():
-            if shallow: 
+            if shallow:
                 setattr(new_param, k, getattr(self, k))
-            else: 
+            else:
                 getattr(new_param, k)[:] = getattr(self, k)
         return new_param
 
@@ -402,42 +406,41 @@ def _check_n_genes(arg):
 
 def _check_gene_names(gene_names, n_genes_stim):
     if gene_names is not None:
-        if (not isinstance(gene_names, np.ndarray) 
+        if (not isinstance(gene_names, np.ndarray)
             or gene_names.ndim != 1
             or gene_names.dtype.type is not np.str_):
             raise TypeError('gene_names must be a str 1D ndarray.')
-        
+
         if gene_names.size != n_genes_stim:
             raise TypeError(
-                'gene_names size must be equal to the number of genes' 
-                ' (including the stimulus)' 
+                'gene_names size must be equal to the number of genes'
+                ' (including the stimulus)'
                 f'({gene_names.size} != {n_genes_stim})'
             )
-        
+
     return gene_names
 
 def _check_layout(layout, n_genes_stim):
     if layout is not None:
-        if (not isinstance(layout, np.ndarray) 
-            or layout.ndim != 2 
+        if (not isinstance(layout, np.ndarray)
+            or layout.ndim != 2
             or layout.dtype != np.float64):
             raise TypeError('layout must be a float 2D ndarray.')
-        
+
         if layout.shape[0] != n_genes_stim:
             raise TypeError(
-                'layout number of row must be equal to the number of genes' 
-                ' (including the stimulus)' 
+                'layout number of row must be equal to the number of genes'
+                ' (including the stimulus)'
                 f'({layout.size} != {n_genes_stim})'
             )
-        
+
         if layout.shape[1] != 2:
             raise TypeError(
-                'layout number of colum must be equal 2' 
+                'layout number of colum must be equal 2'
                 f'({layout.size} != 2)'
             )
-    
+
     return layout
-        
 
 def _masked_zeros(shape):
     """Array of zeros with given shape and hard-masked first column.
@@ -446,6 +449,3 @@ def _masked_zeros(shape):
     mask = np.zeros(shape, dtype=bool)
     mask[..., 0] = True # Handle both 1D and 2D arrays
     return np.ma.array(np.zeros(shape), mask=mask, hard_mask=True)
-
-if __name__ == '__main__':
-    NetworkParameter.load_json('bn8.json')
