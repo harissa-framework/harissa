@@ -70,6 +70,10 @@ def load_dir(
         file_name = (path / name).with_suffix(suffix)
         if required or file_name.exists():
             data[name] = np.loadtxt(file_name, dtype=dtype, ndmin=ndim)
+        if dtype == np.str_:
+            data[name] = np.vectorize(
+                lambda e: e if e != "''" else ''
+            )(data[name])
 
     return data
 
@@ -112,14 +116,14 @@ def save_dir(
 ) -> Path:
     """
     Save multiple arrays inside a directory.
-    Each array is stored inside a `.txt` file. 
+    Each array is stored inside a `.txt` file.
 
     Parameters
     ----------
     path :
-        Path to the directory. 
+        Path to the directory.
         If the directory doesn't exist it will be created.
-    output_dict : 
+    output_dict :
         Dictionary containing the arrays.
     """
     path = Path(path).with_suffix("")
@@ -132,7 +136,11 @@ def save_dir(
             width = 1 if max_val == 0 else int(np.log10(max_val) + 1.0)
             np.savetxt(file_name, value, fmt=f"%{width}d")
         elif value.dtype.type is np.str_:
-            np.savetxt(file_name, value, fmt="%s")
+            np.savetxt(
+                file_name,
+                np.vectorize(lambda e: e if e != '' else "''")(value),
+                fmt="%s"
+            )
         else:
             np.savetxt(file_name, value)
 
