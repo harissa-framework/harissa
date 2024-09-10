@@ -21,7 +21,7 @@ class ParamInfos:
 
 
 def check_names(
-    names: Iterable[str], 
+    names: Iterable[str],
     param_names: Dict[str, ParamInfos]
 ) -> None:
     cur_required_names: list[str] = []
@@ -40,11 +40,11 @@ def check_names(
 
 
 def load_dir(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
     """
-    Load multiple arrays from a directory. 
+    Load multiple arrays from a directory.
     Each array is stored inside a `.txt` file.
 
     Parameters
@@ -70,16 +70,16 @@ def load_dir(
         file_name = (path / name).with_suffix(suffix)
         if required or file_name.exists():
             data[name] = np.loadtxt(file_name, dtype=dtype, ndmin=ndim)
-        if dtype == np.str_:
-            data[name] = np.vectorize(
-                lambda e: e if e != "''" else ''
-            )(data[name])
+            if dtype == np.str_:
+                data[name] = np.vectorize(
+                    lambda e: e if e != "''" else ''
+                )(data[name])
 
     return data
 
 
 def load_npz(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
     """
@@ -111,7 +111,7 @@ def load_npz(
 
 
 def save_dir(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
     """
@@ -148,7 +148,7 @@ def save_dir(
 
 
 def save_npz(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
     """
