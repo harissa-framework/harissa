@@ -1,6 +1,26 @@
 import pytest
 import numpy as np
 from harissa.core import Inference, Dataset, NetworkParameter
+from harissa.benchmark.generators.networks import bn8
+
+@pytest.fixture(scope='module')
+def network_parameter():
+    return bn8()
+
+@pytest.fixture(scope='module')
+def res_npz(tmp_path_factory, network_parameter):
+    path = tmp_path_factory.mktemp('inference_result') / 'result.npz'
+    network_parameter.save(path)
+
+    return path
+
+@pytest.fixture(scope='module')
+def res_txt(tmp_path_factory, network_parameter):
+    path = tmp_path_factory.mktemp('inference_result') / 'result'
+    network_parameter.save_txt(path)
+
+    return path
+
 
 class InferenceMissing(Inference):
     pass
@@ -22,11 +42,11 @@ class TestInference:
     def test_inference_missing_run(self):
         with pytest.raises(TypeError):
             InferenceMissing()
-    
+
     def test_inference_missing_directed(self):
         with pytest.raises(TypeError):
             InferenceMissing()
-        
+
     def test_inference_super_run(self):
         inf = InferenceSuper()
         net = NetworkParameter(1)
@@ -55,6 +75,16 @@ class TestInferenceResult:
     def test_init_wrong_type(self):
         with pytest.raises(TypeError):
             Inference.Result(1)
+
+    def test_load(self, res_npz, network_parameter):
+        res = Inference.Result.load(res_npz)
+
+        assert res.parameter == network_parameter
+
+    def test_load_txt(self, res_txt, network_parameter):
+        res = Inference.Result.load_txt(res_txt)
+
+        assert res.parameter == network_parameter
 
     def test_save(self, tmp_path):
         res = Inference.Result(NetworkParameter(1))
