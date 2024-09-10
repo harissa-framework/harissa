@@ -2,6 +2,7 @@ import pytest
 import sys
 import re
 from importlib.metadata import version, PackageNotFoundError
+from importlib import import_module
 
 import harissa
 
@@ -13,13 +14,19 @@ version_pattern = re.compile(
 @pytest.fixture
 def __version__():
     sys_path = sys.path
+    sys_modules = sys.modules
     sys.path = [harissa.__path__[0]]
+    if 'alive_progress.animations.spinners' in sys.modules:
+        del sys.modules['alive_progress.animations.spinners']
+    if 'alive_progress' in sys.modules:
+        del sys.modules['alive_progress']
 
-    from __init__ import __version__
+    mod = import_module('__init__')
 
-    yield __version__
+    yield mod.__version__
 
     sys.path = sys_path
+    sys.modules = sys_modules
 
 def test_version():
     assert re.match(version_pattern, harissa.__version__) is not None
@@ -30,6 +37,3 @@ def test_unknown_version(__version__):
         version('harissa')
 
     assert __version__ == 'unknown version'
-
-    
-
