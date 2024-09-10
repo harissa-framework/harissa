@@ -7,7 +7,11 @@ from harissa import NetworkModel, NetworkParameter
 from harissa.simulation import default_simulation, BurstyPDMP, ApproxODE
 from harissa.plot import plot_simulation
 from harissa.utils.npz_io import ParamInfos, load_dir, load_npz
-from harissa.utils.cli.infer import add_export_options, export_choices
+from harissa.utils.cli.infer import (
+    add_export_options,
+    export_choices,
+    load_network_parameter
+)
 
 simulation_param_names = {
     'time_points': ParamInfos(True, np.float64, 1),
@@ -21,7 +25,7 @@ def _create_load_simulation_parameter(load_fn):
         sim_param['time_points'] = np.unique(sim_param['time_points'])
 
         return sim_param
-    
+
     return load_simulation_parameter
 
 load_simulation_parameter_txt = _create_load_simulation_parameter(load_dir)
@@ -35,7 +39,7 @@ def create_bursty(args):
         options['use_numba'] = args.use_numba
     if args.thin_adapt is not None:
         options['thin_adapt'] = args.thin_adapt
-    
+
     return BurstyPDMP(**options)
 
 def create_ode(args):
@@ -49,15 +53,12 @@ def create_ode(args):
 def simulate(args):
     if args.output is not None:
         output = args.output.with_suffix('')
-    else: 
+    else:
         output = Path(
             args.simulation_parameter_path.stem + '_simulation_result'
         )
 
-    if args.network_parameter_path.is_dir():
-        network_param = NetworkParameter.load_txt(args.network_parameter_path)
-    else:
-        network_param = NetworkParameter.load(args.network_parameter_path)
+    network_param = load_network_parameter(args.network_parameter_path)
 
     if args.simulation_parameter_path.is_dir():
         param = load_simulation_parameter_txt(args.simulation_parameter_path)
@@ -69,7 +70,7 @@ def simulate(args):
     if args.burn_in is not None:
         # override initial state
         param['initial_state'] = model.burn_in(args.burn_in)
-    
+
     res = model.simulate(**param)
 
     print(
@@ -86,10 +87,10 @@ def add_methods(parser):
 
     # Simulation methods bursty and ode
     subparsers = parser.add_subparsers(
-        title='simulation methods (optional)', 
+        title='simulation methods (optional)',
         required=False,
         help='specify it to choose the simulation method '
-             'and to parametrize it. ' 
+             'and to parametrize it. '
              'If not specified the bursty method is used by default.'
     )
     bursty_parser = subparsers.add_parser('bursty')
@@ -101,7 +102,7 @@ def add_methods(parser):
     bursty_parser.add_argument('-v', '--verbose', action='store_true')
     bursty_parser.add_argument('--use-numba', action='store_true')
     bursty_parser.set_defaults(create_simulation=create_bursty)
-    
+
     # Ode parser
     ode_parser.add_argument('-v', '--verbose', action='store_true')
     ode_parser.add_argument('--use-numba', action='store_true')
@@ -114,16 +115,17 @@ def add_subcommand(main_subparsers):
         help='simulate a trajectory',
         formatter_class=ap.ArgumentDefaultsHelpFormatter
     )
-    
+
     parser.add_argument(
-        'simulation_parameter_path', 
+        'simulation_parameter_path',
         type=Path,
         help='path to simulation parameter. It is a .npz file or a directory.'
     )
     parser.add_argument(
-        'network_parameter_path', 
+        'network_parameter_path',
         type=Path,
-        help='path to network parameter. It is a .npz file or a directory.'
+        help='path to network parameter. '
+             'It is a .npz or .json file or a directory.'
     )
     parser.add_argument(
         '-b', '--burn-in',
@@ -132,7 +134,7 @@ def add_subcommand(main_subparsers):
         help='burn in duration. (override the initial state)'
     )
     add_export_options(parser, plot_option=True)
-    # set command function (called in the main of cli.py) 
+    # set command function (called in the main of cli.py)
     parser.set_defaults(run=simulate)
-    
+
     add_methods(parser)
