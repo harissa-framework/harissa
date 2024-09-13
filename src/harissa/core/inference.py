@@ -25,37 +25,40 @@ class Inference(ABC):
         # Add load methods
         @classmethod
         def load(cls, path, load_extra=False):
-            return Inference.Result(NetworkParameter.load(path))
+            return cls(NetworkParameter.load(path))
 
         @classmethod
         def load_txt(cls, path, load_extra=False):
-            return Inference.Result(NetworkParameter.load_txt(path))
+            return cls(NetworkParameter.load_txt(path))
 
         @classmethod
         def load_json(cls, path, load_extra=False):
-            return Inference.Result(NetworkParameter.load_json(path))
+            return cls(NetworkParameter.load_json(path))
 
         # Add a "save" methods
         def save(self, path, save_extra=False):
+            path = self.parameter.save(path)
             if save_extra:
                 self.save_extra(path)
-            return self.parameter.save(path)
+            return path
 
         def save_extra(self, path):
             return
 
         def save_txt(self, path, save_extra=False):
+            path = self.parameter.save_txt(path)
             if save_extra:
                 self.save_extra_txt(path)
-            return self.parameter.save_txt(path)
+            return path
 
         def save_extra_txt(self, path):
             return
 
         def save_json(self, path, save_extra=False):
+            path = self.parameter.save_json(path)
             if save_extra:
                 self.save_extra_json(path)
-            return self.parameter.save_json(path)
+            return path
 
         def save_extra_json(self, path):
             return

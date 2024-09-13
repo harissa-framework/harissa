@@ -2,7 +2,7 @@
 Main class for network parameters
 """
 from __future__ import annotations
-from typing import Union
+from typing import Union, Dict
 import numpy as np
 from pathlib import Path
 import json
@@ -27,6 +27,18 @@ default_burst_size_inv = 0.02
 SPARSE_INTERACTION_KEY_PATTERN = re.compile(
     r'^\s*(\d+|stimulus)\s*->\s*(\d+)\s*$'
 )
+
+def serialize_interaction(inter: np.ndarray) -> Dict:
+    sparse_interaction = {}
+    with np.nditer(inter, flags=['multi_index']) as it:
+        for x in it:
+            i, j = it.multi_index
+            if x != 0.0:
+                if i == 0:
+                    i = 'stimulus'
+                sparse_interaction[f'{i} -> {j}'] = x.item()
+
+    return sparse_interaction
 
 # Main class
 class NetworkParameter:
@@ -202,6 +214,17 @@ class NetworkParameter:
 
         return param_dict
 
+    def as_serialized_dict(self):
+        return {
+            k:({
+                (i if i != 0 else 'stimulus'):x.tolist()
+                for i, x in enumerate(v) if x is not np.ma.masked
+            } if k != 'interaction' else serialize_interaction(
+                self.interaction.filled(0.0)
+            ))
+            for k,v in self.as_dict().items()
+        }
+
     def save_txt(self, path: Union[str, Path]) -> Path:
         return save_dir(path, self.as_dict())
 
@@ -210,28 +233,9 @@ class NetworkParameter:
 
     def save_json(self, path: Union[str, Path]) -> Path:
         path = Path(path).with_suffix('.json')
-        sparse_interaction = {}
-        with np.nditer(
-            self.interaction.filled(0.0),
-            flags=['multi_index']
-        ) as it:
-            for x in it:
-                i, j = it.multi_index
-                if x != 0.0:
-                    if i == 0:
-                        i = 'stimulus'
-                    sparse_interaction[f'{i} -> {j}'] = x.item()
-        serialized_dict = {
-            k:({
-                (i if i != 0 else 'stimulus'):x.tolist()
-                for i, x in enumerate(v) if x is not np.ma.masked
-            } if k != 'interaction' else sparse_interaction)
-            for k,v in self.as_dict().items()
-        }
-
-        serialized_dict['interaction'] = sparse_interaction
+        path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'w') as fp:
-            json.dump(serialized_dict, fp, indent=4)
+            json.dump(self.as_serialized_dict(), fp, indent=4)
 
         return path
 
