@@ -334,15 +334,14 @@ class Hartree(Inference):
 
                 with open(path + '_basal_time.json') as fp:
                     for t, v in json.load(fp).items():
-                        basal = np.zeros(len(v) + 1)
+                        basal = np.zeros(param.basal.shape)
                         for k, x in v.items():
                             basal[int(k)] = x
                         basal_time[float(t.split('_')[1])] = basal
 
                 with open(path + '_interaction_time.json') as fp:
                     for t, v in json.load(fp).items():
-                        size = len(v) + 1
-                        inter = np.zeros((size, size))
+                        inter = np.zeros(param.interaction.shape)
                         for k, x in v.items():
                             i, j = map(
                                 lambda s: 0 if s == 'stimulus' else int(s),
