@@ -437,6 +437,7 @@ class Hartree(Inference):
 
             self._use_numba = use_numba
 
+    @property
     def directed(self) -> bool:
         return True
 
