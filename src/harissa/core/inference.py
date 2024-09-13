@@ -31,7 +31,19 @@ class Inference(ABC):
         def load_txt(cls, path, load_extra=False):
             return Inference.Result(NetworkParameter.load_txt(path))
 
+        @classmethod
+        def load_json(cls, path, load_extra=False):
+            return Inference.Result(NetworkParameter.load_json(path))
+
         # Add a "save" methods
+        def save(self, path, save_extra=False):
+            if save_extra:
+                self.save_extra(path)
+            return self.parameter.save(path)
+
+        def save_extra(self, path):
+            return
+
         def save_txt(self, path, save_extra=False):
             if save_extra:
                 self.save_extra_txt(path)
@@ -40,13 +52,16 @@ class Inference(ABC):
         def save_extra_txt(self, path):
             return
 
-        def save(self, path, save_extra=False):
+        def save_json(self, path, save_extra=False):
             if save_extra:
-                self.save_extra(path)
-            return self.parameter.save(path)
+                self.save_extra_json(path)
+            return self.parameter.save_json(path)
 
-        def save_extra(self, path):
+        def save_extra_json(self, path):
             return
+
+    def __init__(self, *init_keys) -> None:
+        self._init_keys = init_keys
 
     @classmethod
     def load_json(cls, path: Union[str, Path]):
@@ -83,7 +98,7 @@ class Inference(ABC):
         return path
 
     def _serialize(self) -> Dict:
-        return {}
+        return {k:getattr(self, k) for k in self._init_keys}
 
 
     @property
