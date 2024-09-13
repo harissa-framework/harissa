@@ -352,7 +352,7 @@ class Hartree(Inference):
                         inter_time[float(t.split('_')[1])] = inter
 
                 with open(path + '_y.json') as fp:
-                    y = json.load(fp)
+                    y = np.array(json.load(fp))
 
                 return cls(param, basal_time, inter_time, y)
             else:
