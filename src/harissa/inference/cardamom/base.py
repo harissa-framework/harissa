@@ -2,12 +2,13 @@
 Main class for network inference
 """
 from pathlib import Path
+import json
 from typing import Dict, Union
 import numpy as np
 from scipy.optimize import minimize
 from scipy.special import expit
 
-from harissa.core.parameter import NetworkParameter
+from harissa.core.parameter import NetworkParameter, serialize_interaction
 from harissa.core.inference import Inference
 from harissa.core.dataset import Dataset
 from harissa.inference.hartree.base import infer_kinetics
@@ -414,6 +415,54 @@ class Cardamom(Inference):
             else:
                 return super().load(path)
 
+        @classmethod
+        def load_json(cls, path: Union[str, Path], load_extra: bool = False):
+            if load_extra:
+                param = NetworkParameter.load_json(path)
+                path = f'{Path(path).with_suffix("")}_extra'
+                basal_time = {}
+                inter_time = {}
+
+                with open(path + '_basal_time.json') as fp:
+                    for t, v in json.load(fp).items():
+                        basal = np.zeros(param.basal.shape)
+                        for k, x in v.items():
+                            basal[int(k)] = x
+                        basal_time[float(t.split('_')[1])] = basal
+
+                def get_indices(key):
+                    return map(
+                        lambda s: 0 if s == 'stimulus' else int(s),
+                        map(lambda s: s.strip(), k.split('->'))
+                    )
+
+                with open(path + '_interaction_time.json') as fp:
+                    for t, v in json.load(fp).items():
+                        inter = np.zeros(param.interaction.shape)
+                        for k, x in v.items():
+                            i, j = get_indices(k)
+                            inter[i, j] = x
+                        inter_time[float(t.split('_')[1])] = inter
+
+                with open(path + '_variations.json') as fp:
+                    variations = np.zeros(param.interaction.shape)
+                    for k, x in json.load(fp).items():
+                        i, j = get_indices(k)
+                        variations[i, j] = x
+
+                with open(path + '_data_bool.json') as fp:
+                    data_bool = np.array(json.load(fp))
+
+                return cls(
+                    param,
+                    variations,
+                    basal_time,
+                    inter_time,
+                    data_bool
+                )
+            else:
+                return super().load_json(path)
+
         def save_extra_txt(self, path: Union[str, Path]):
             path = Path(path) / 'extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
@@ -433,6 +482,34 @@ class Cardamom(Inference):
             save_npz(path + '_interaction_time', inter_time)
             save_npz(path + '_variations', {'variations': self.variations})
             save_npz(path + '_data_bool', {'data_bool': self.data_bool})
+
+        def save_extra_json(self, path):
+            path = f'{Path(path).with_suffix("")}_extra'
+            json_opts = {'indent':4}
+            basal_time = {
+                f't_{t}':{i:float(x) for i, x in enumerate(v[1:], 1)}
+                for t,v in self.basal_time.items()
+            }
+            inter_time = {
+                f't_{t}':serialize_interaction(v)
+                for t,v in self.interaction_time.items()
+            }
+
+            with open(path + '_basal_time.json', 'w') as fp:
+                json.dump(basal_time, fp, **json_opts)
+
+            with open(path + '_interaction_time.json', 'w') as fp:
+                json.dump(inter_time, fp, **json_opts)
+
+            with open(path + '_variations.json', 'w') as fp:
+                json.dump(
+                    serialize_interaction(self.variations),
+                    fp,
+                    **json_opts
+                )
+
+            with open(path + '_data_bool.json', 'w') as fp:
+                json.dump(self.data_bool.tolist(), fp, **json_opts)
 
     def __init__(self,
         threshold: float = 1e-3,
@@ -552,7 +629,7 @@ class Cardamom(Inference):
         if self.verbose:
             print('TOT', param.interaction, param.basal)
 
-        basal_t = {t:v for t,v in zip(times_unique, basal_t)}
-        inter_t = {t:v for t,v in zip(times_unique, inter_t)}
+        basal_t = {float(t):v for t,v in zip(times_unique, basal_t)}
+        inter_t = {float(t):v for t,v in zip(times_unique, inter_t)}
 
         return self.Result(param, variations, basal_t, inter_t, data_bool)
