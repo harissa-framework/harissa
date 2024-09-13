@@ -12,7 +12,7 @@ from harissa.core.inference import Inference
 from harissa.core.dataset import Dataset
 from harissa.inference.hartree.base import infer_kinetics
 from harissa.inference.cardamom.utils import (
-    core_basins_binary, 
+    core_basins_binary,
     # estim_gamma_poisson,
     # build_cnt
 )
@@ -57,7 +57,7 @@ from harissa.utils.npz_io import save_npz, save_dir
 #                 h = p1 - n[i]*polygamma(1, a[i])
 #                 da[i] = -d/h
 #         anew = a + da
-#         if np.sum(anew < 0) == 0: 
+#         if np.sum(anew < 0) == 0:
 #             a[:] = anew
 #         else:
 #             max_test = 5
@@ -66,26 +66,26 @@ from harissa.utils.npz_io import save_npz, save_dir
 #             while (np.sum(a + da < 0) > 0) and (test < max_test):
 #                 da *= 0.5
 #                 test += 1
-#             if test < max_test: 
+#             if test < max_test:
 #                 a[:] = a + da
-#             else: 
+#             else:
 #                 print('Warning: parameter a not improved')
 #         if np.sum(a == 0) == 0:
 #             b = np.sum(n*a)/sx
-#         else: 
+#         else:
 #             b = b
 #         c = np.max(np.abs(da))
 #         k += 1
 #     if (k == max_iter) and (c > tol):
 #         print('Warning: bad convergence (b = {})'.format(b))
 #         a, b = a/b, 1
-#     if verb: 
+#     if verb:
 #         print(f'Estimation done in {k} iterations')
-#     if np.sum(a < 0) > 0: 
+#     if np.sum(a < 0) > 0:
 #         print('WARNING: a < 0')
-#     if b < 0: 
+#     if b < 0:
 #         print('WARNING: b < 0')
-#     if np.all(a == 0): 
+#     if np.all(a == 0):
 #         print('WARNING: a == 0')
 #     # if k > 20 and np.max(a/b) > 2: print(k, np.max(a/b))
 
@@ -112,23 +112,23 @@ def penalization(Q, X, X_init, time_init, l, sc, G, cnt_move, j, p):
         )
         Q += penalization_l1(X[i] - X_init[j, i], sc) * l_inter * tmp
     tmp_diag = (
-        cnt_move[j] / (1 + np.sum(np.abs(X_init[j, :-1])) 
+        cnt_move[j] / (1 + np.sum(np.abs(X_init[j, :-1]))
         - abs(X_init[j, j]))
     )
     Q += (
-        l_diag * (penalization_l1(X[j] - X_init[j, j], sc) 
+        l_diag * (penalization_l1(X[j] - X_init[j, j], sc)
         + (X[j] - X_init[j, j]) ** 2) * tmp_diag
     )
     return Q
-    
+
 def grad_penalization(dq, X, X_init, time_init, l, sc, G, cnt_move, j, p):
 
     l_inter, l_diag = l[0], l[1]
-    if not time_init: 
+    if not time_init:
         dq[-1] += (
             grad_penalization_l1(X[-1] - X_init[j, -1], sc) * l_inter * p
         )
-    else: 
+    else:
         dq[-1] = 0
     if time_init == 1:
         dq[0] += (
@@ -145,11 +145,11 @@ def grad_penalization(dq, X, X_init, time_init, l, sc, G, cnt_move, j, p):
             grad_penalization_l1(X[i] - X_init[j, i], sc) * l_inter * tmp
         )
     tmp_diag = (
-        cnt_move[j] / (1 + np.sum(np.abs(X_init[j, :-1])) 
+        cnt_move[j] / (1 + np.sum(np.abs(X_init[j, :-1]))
         - abs(X_init[j, j]))
     )
     dq[j] += (
-        l_diag * (grad_penalization_l1(X[j] - X_init[j, j], sc) 
+        l_diag * (grad_penalization_l1(X[j] - X_init[j, j], sc)
         + 2 * (X[j] - X_init[j, j])) * tmp_diag
     )
     return dq
@@ -158,13 +158,13 @@ def objective(
     X, y, vect_kon, ko, X_init, time_init, l, sc, G, cnt_move, j, p
 ):
     """
-    Objective function to be maximized 
+    Objective function to be maximized
     (all cells, one gene, all timepoints).
     """
     sigma = expit(X[-1] + y @ X[:-1])
     Q = np.sum((ko + (1 - ko) * sigma - vect_kon) ** 2)
     return penalization(Q, X, X_init, time_init, l, sc, G, cnt_move, j, p)
-    
+
 def grad_theta(
     X, y, vect_kon, ko, X_init, time_init, l, sc, G, cnt_move, j, p
 ):
@@ -175,7 +175,7 @@ def grad_theta(
     dq = np.zeros(G + 1)
     sigma = expit(X[-1] + y @ X[:-1])
     tmp = (
-        2 * (ko + (1 - ko) * sigma - vect_kon) 
+        2 * (ko + (1 - ko) * sigma - vect_kon)
         * (1 - ko) * sigma * (1 - sigma)
     )
     for i in range(0, G):
@@ -188,15 +188,15 @@ def grad_theta(
 
 def core_inference(
     variations,
-    time_points, 
-    times_unique, 
-    y, 
-    vect_kon, 
-    ko, 
-    Xo, 
-    l, 
-    sl, 
-    G, 
+    time_points,
+    times_unique,
+    y,
+    vect_kon,
+    ko,
+    Xo,
+    l,
+    sl,
+    G,
     cnt_init,
     cnt_end,
     p,
@@ -208,11 +208,11 @@ def core_inference(
         penalization_strength = l * np.sum(time_points == time) * 2.5 / 100
         # if cnt + cnt_init > 1:
         #     cnt_move = build_cnt(
-        #         cnt + cnt_init, 
-        #         cnt_move, 
-        #         vect_kon, 
-        #         vect_t, 
-        #         times, 
+        #         cnt + cnt_init,
+        #         cnt_move,
+        #         vect_kon,
+        #         vect_t,
+        #         times,
         #         G,
         #         p
         #     )
@@ -221,7 +221,7 @@ def core_inference(
         optimization_params = {
             'fun': objective,
             'jac': grad_theta,
-            'method': 'L-BFGS-B', 
+            'method': 'L-BFGS-B',
             'tol': tolerance
         }
 
@@ -238,7 +238,7 @@ def core_inference(
                 )
             )
 
-            if not res.success: 
+            if not res.success:
                 print(f'Warning, minimization time {time} failed')
             variations[cnt][j, :] += np.abs(res.x[:-1] - Xo[j, :-1])
             Xo[j, :] = res.x[:]
@@ -251,7 +251,7 @@ def inference_optim(
 ):
     """
     Network inference procedure.
-    Return the inferred network (basal + network) and the time at which 
+    Return the inferred network (basal + network) and the time at which
     each edge has been detected with strongest intensity.
     """
     G = np.size(y, 1)
@@ -269,15 +269,15 @@ def inference_optim(
     Xo, variations, theta_t = core_inference(
         variations,
         time_points,
-        times_unique, 
-        y, 
-        vect_kon, 
-        ko, 
-        Xo, 
-        l, 
-        sl, 
-        G, 
-        0, 
+        times_unique,
+        y,
+        vect_kon,
+        ko,
+        Xo,
+        l,
+        sl,
+        G,
+        0,
         times_unique.size,
         p,
         tolerance
@@ -312,10 +312,10 @@ def core_optim(x, time_points, times_unique, n_genes_stim, sl, p, tolerance):
 
     # Inference procedure
     basal, inter, variations_time, basal_t, inter_t = inference_optim(
-        time_points, 
-        times_unique, 
-        y, 
-        vect_kon, 
+        time_points,
+        times_unique,
+        y,
+        vect_kon,
         ko,
         sl,
         p,
@@ -371,20 +371,20 @@ class Cardamom(Inference):
                 path_extra = Path(path) / 'extra'
                 return cls(
                     NetworkParameter.load_txt(path),
-                    np.loadtxt(path_extra / 'variations.txt'), 
+                    np.loadtxt(path_extra / 'variations.txt'),
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        f.stem.split('_')[1]:np.loadtxt(f)
                         for f in (path_extra / 'basal_time').iterdir()
-                    }, 
+                    },
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f) 
+                        f.stem.split('_')[1]:np.loadtxt(f)
                         for f in (path_extra / 'interaction_time').iterdir()
-                    }, 
+                    },
                     np.loadtxt(path_extra / 'data_bool.txt')
                 )
             else:
                 return super().load_txt(path)
-            
+
         @classmethod
         def load(cls, path: Union[str, Path], load_extra: bool = False):
             if load_extra:
@@ -403,12 +403,12 @@ class Cardamom(Inference):
                     variations = data['variations']
                 with np.load(path + '_data_bool.npz') as data:
                     data_bool = data['data_bool']
-                
+
                 return cls(
-                    param, 
-                    variations, 
-                    basal_time, 
-                    inter_time, 
+                    param,
+                    variations,
+                    basal_time,
+                    inter_time,
                     data_bool
                 )
             else:
@@ -423,12 +423,12 @@ class Cardamom(Inference):
             save_dir(path / 'interaction_time', inter_time)
             np.savetxt(path / 'variations.txt', self.variations)
             np.savetxt(path / 'data_bool.txt', self.data_bool)
-        
+
         def save_extra(self, path: Union[str, Path]):
             path = f'{Path(path).with_suffix("")}_extra'
             basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
             inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
-            
+
             save_npz(path + '_basal_time', basal_time)
             save_npz(path + '_interaction_time', inter_time)
             save_npz(path + '_variations', {'variations': self.variations})
@@ -443,6 +443,7 @@ class Cardamom(Inference):
         verbose: bool = False,
         use_numba: bool = True
     ) -> None:
+        super().__init__(*[*locals().keys()][1:-1])
         self.threshold: float = threshold
         self.pseudo_l1_coeff: float = pseudo_l1_coeff
         self.penalization: float = penalization
@@ -451,17 +452,6 @@ class Cardamom(Inference):
         self.verbose: bool = verbose
         self._use_numba = False
         self.use_numba: bool = use_numba
-
-    def _serialize(self) -> Dict:
-        return {
-            'threshold': self.threshold,
-            'pseudo_l1_coeff': self.pseudo_l1_coeff,
-            'penalization': self.penalization,
-            'tolerance': self.tolerance,
-            'max_iteration': self.max_iteration,
-            'verbose': self.tolerance,
-            'use_numba': self.use_numba
-        }
 
     @property
     def use_numba(self) -> bool:
@@ -479,16 +469,16 @@ class Cardamom(Inference):
                     jited_f = njit()(f)
                     _numba_functions[True][name] = jited_f
                     globals()[name] = jited_f
-            
+
             for fname, f in _numba_functions[use_numba].items():
                 globals()[fname] = f
-            
+
             self._use_numba = use_numba
 
     @property
     def directed(self) -> bool:
         return True
-    
+
     def run(self, data: Dataset, param: NetworkParameter) -> Inference.Result:
         """
         Fit a network parameter to the data.
@@ -505,7 +495,7 @@ class Cardamom(Inference):
         for g in range(1, n_genes_stim):
             x = data.count_matrix[:, g]
             at, a[-1, g], k = infer_kinetics(
-                x, 
+                x,
                 data.time_points,
                 times_unique,
                 self.tolerance,
@@ -514,23 +504,23 @@ class Cardamom(Inference):
             a[0, g] = max(np.min(at), self.threshold)
             a[1, g] = max(np.max(at), self.threshold)
             if self.verbose:
-                print(f'Estimation done in {k} iterations') 
+                print(f'Estimation done in {k} iterations')
                 print(f'Gene {g} calibrated...', a[:, g])
-                
+
 
             core_basins_binary(
-                x, 
-                data_bool[:, g], 
-                a[:-1, g], 
-                a[-1, g], 
+                x,
+                data_bool[:, g],
+                a[:-1, g],
+                a[-1, g],
                 weight[:, g, :]
             )
-        
+
         # # Remove genes with too small variations
         # mask = np.ones(n_genes_stim, dtype='bool')
         # for g in range(1, n_genes_stim):
         #     mean_g = [
-        #         np.mean(data.count_matrix[data.time_points == time, g]) 
+        #         np.mean(data.count_matrix[data.time_points == time, g])
         #         for time in times
         #     ]
         #     if np.max(mean_g) - np.min(mean_g) < 0.1:
@@ -542,9 +532,9 @@ class Cardamom(Inference):
         #     getattr(param, attr).mask[..., ~mask] = True
 
         basal, inter, variations, basal_t, inter_t = core_optim(
-            data_bool, 
-            data.time_points, 
-            times_unique, 
+            data_bool,
+            data.time_points,
+            times_unique,
             n_genes_stim,
             self.pseudo_l1_coeff,
             self.penalization,
