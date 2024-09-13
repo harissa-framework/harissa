@@ -4,15 +4,17 @@ Core functions for network inference using likelihood maximization
 from typing import Tuple, Dict, Union
 
 from pathlib import Path
+import json
 import numpy as np
 from scipy.special import psi, polygamma, expit, gammaln
 from scipy.optimize import minimize
 
-from harissa.core.parameter import NetworkParameter
+from harissa.core.parameter import NetworkParameter, serialize_interaction
 from harissa.core.inference import Inference
 from harissa.core.dataset import Dataset
 from harissa.inference.hartree.utils import estimate_gamma_poisson
 from harissa.utils.npz_io import save_dir, save_npz
+
 def p1(x, s):
     """
     Smoothed L1 penalization.
@@ -280,9 +282,28 @@ class Hartree(Inference):
             super().__init__(
                 parameter,
                 basal_time=basal_time,
-                interaction_time= interaction_time,
+                interaction_time=interaction_time,
                 y=y
             )
+        @classmethod
+        def load(cls, path: Union[str, Path], load_extra: bool = False):
+            if load_extra:
+                param = NetworkParameter.load(path)
+                path = f'{Path(path).with_suffix("")}_extra'
+                basal_time = {}
+                inter_time = {}
+
+                with np.load(path + '_basal_time.npz') as data:
+                    for k, v in dict(data).items():
+                        basal_time[float(k.split('_')[1])] = v
+                with np.load(path + '_interaction_time.npz') as data:
+                    for k, v in dict(data).items():
+                        inter_time[float(k.split('_')[1])] = v
+                with np.load(path + '_y.npz') as data:
+                    y = data['y']
+                return cls(param, basal_time, inter_time, y)
+            else:
+                return super().load(path)
 
         @classmethod
         def load_txt(cls, path: Union[str, Path], load_extra: bool = False):
@@ -304,33 +325,38 @@ class Hartree(Inference):
                 return super().load_txt(path)
 
         @classmethod
-        def load(cls, path: Union[str, Path], load_extra: bool = False):
+        def load_json(cls, path: Union[str, Path], load_extra: bool = False):
             if load_extra:
-                param = NetworkParameter.load(path)
+                param = NetworkParameter.load_json(path)
                 path = f'{Path(path).with_suffix("")}_extra'
                 basal_time = {}
                 inter_time = {}
 
-                with np.load(path + '_basal_time.npz') as data:
-                    for k, v in dict(data).items():
-                        basal_time[float(k.split('_')[1])] = v
-                with np.load(path + '_interaction_time.npz') as data:
-                    for k, v in dict(data).items():
-                        inter_time[float(k.split('_')[1])] = v
-                with np.load(path + '_y.npz') as data:
-                    y = data['y']
+                with open(path + '_basal_time.json') as fp:
+                    for t, v in json.load(fp).items():
+                        basal = np.zeros(len(v) + 1)
+                        for k, x in v.items():
+                            basal[int(k)] = x
+                        basal_time[float(t.split('_')[1])] = basal
+
+                with open(path + '_interaction_time.json') as fp:
+                    for t, v in json.load(fp).items():
+                        size = len(v) + 1
+                        inter = np.zeros((size, size))
+                        for k, x in v.items():
+                            i, j = map(
+                                lambda s: 0 if s == 'stimulus' else int(s),
+                                map(lambda s: s.strip(), k.split('->'))
+                            )
+                            inter[i, j] = x
+                        inter_time[float(t.split('_')[1])] = inter
+
+                with open(path + '_y.json') as fp:
+                    y = json.load(fp)
+
                 return cls(param, basal_time, inter_time, y)
             else:
-                return super().load(path)
-
-        def save_extra_txt(self, path: Union[str, Path]):
-            path = Path(path) / 'extra'
-            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
-            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
-
-            save_dir(path / 'basal_time', basal_time)
-            save_dir(path / 'interaction_time', inter_time)
-            np.savetxt(path / 'y.txt', self.y)
+                return super().load_json(path)
 
         def save_extra(self, path: Union[str, Path]):
             path = f'{Path(path).with_suffix("")}_extra'
@@ -342,6 +368,37 @@ class Hartree(Inference):
             save_npz(path + '_y', {'y': self.y})
             # np.save(path + '_y', self.y)
 
+        def save_extra_txt(self, path: Union[str, Path]):
+            path = Path(path) / 'extra'
+            basal_time = {f't_{t}':v for t,v in self.basal_time.items()}
+            inter_time = {f't_{t}':v for t,v in self.interaction_time.items()}
+
+            save_dir(path / 'basal_time', basal_time)
+            save_dir(path / 'interaction_time', inter_time)
+            np.savetxt(path / 'y.txt', self.y)
+
+        def save_extra_json(self, path: Union[str, Path]):
+            path = f'{Path(path).with_suffix("")}_extra'
+            json_opts = {'indent':4}
+            basal_time = {
+                f't_{t}':{i:float(x) for i, x in enumerate(v[1:], 1)}
+                for t,v in self.basal_time.items()
+            }
+            inter_time = {
+                f't_{t}':serialize_interaction(v)
+                for t,v in self.interaction_time.items()
+            }
+
+            with open(path + '_basal_time.json', 'w') as fp:
+                json.dump(basal_time, fp, **json_opts)
+
+            with open(path + '_interaction_time.json', 'w') as fp:
+                json.dump(inter_time, fp, **json_opts)
+
+            with open(path + '_y.json', 'w') as fp:
+                json.dump(self.y.tolist(), fp, **json_opts)
+
+
     def __init__(self,
         penalization_strength: float = 1.0,
         tolerance: float = 1e-5,
@@ -350,23 +407,14 @@ class Hartree(Inference):
         verbose: bool = False,
         use_numba: bool = True
     ) -> None:
+        super().__init__(*[*locals().keys()][1:-1])
         self.penalization_strength: float = penalization_strength
         self.tolerance: float = tolerance
         self.max_iteration: int = max_iteration
-        self.is_verbose: bool = verbose
+        self.verbose: bool = verbose
         self.smoothing_threshold = smoothing_threshold
         self._use_numba = False
         self.use_numba: bool = use_numba
-
-    def _serialize(self) -> Dict:
-        return {
-            'penalization_strength': self.penalization_strength,
-            'tolerance': self.tolerance,
-            'max_iteration': self.max_iteration,
-            'smoothing_threshold': self.smoothing_threshold,
-            'verbose' : self.is_verbose,
-            'use_numba': self.use_numba
-        }
 
     @property
     def use_numba(self) -> bool:
@@ -419,12 +467,13 @@ class Hartree(Inference):
             self.smoothing_threshold
         )
 
-        if self.is_verbose:
+        if self.verbose:
             print(f'Fitted theta in {nb_iterations} iterations')
         # Build the results
-        basal_time = {time: np.zeros(nb_genes_stim) for time in times}
+        basal_time = {float(time): np.zeros(nb_genes_stim) for time in times}
         inter_time = {
-            time: np.zeros((nb_genes_stim, nb_genes_stim)) for time in times
+            float(time):np.zeros((nb_genes_stim, nb_genes_stim))
+            for time in times
         }
         for i, time in enumerate(times):
             basal_time[time] = theta[i, :, 0]
@@ -452,7 +501,7 @@ class Hartree(Inference):
         a = np.empty((3, nb_genes_stim))
         a[:, 0] = 1.0
         for g in range(1, nb_genes_stim):
-            if self.is_verbose:
+            if self.verbose:
                 print(f'Calibrating gene {g}...')
             a_g, b_g, k = infer_kinetics(
                 x=data.count_matrix[:, g],
@@ -462,7 +511,7 @@ class Hartree(Inference):
                 max_iteration=self.max_iteration
             )
 
-            if self.is_verbose:
+            if self.verbose:
                 print(f'Estimation done in {k} iterations')
             a[0, g] = np.min(a_g)
             a[1, g] = np.max(a_g)
