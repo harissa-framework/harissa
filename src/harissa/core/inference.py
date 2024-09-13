@@ -25,15 +25,15 @@ class Inference(ABC):
         # Add load methods
         @classmethod
         def load(cls, path, load_extra=False):
-            return cls(NetworkParameter.load(path))
+            return Inference.Result(NetworkParameter.load(path))
 
         @classmethod
         def load_txt(cls, path, load_extra=False):
-            return cls(NetworkParameter.load_txt(path))
+            return Inference.Result(NetworkParameter.load_txt(path))
 
         @classmethod
         def load_json(cls, path, load_extra=False):
-            return cls(NetworkParameter.load_json(path))
+            return Inference.Result(NetworkParameter.load_json(path))
 
         # Add a "save" methods
         def save(self, path, save_extra=False):
