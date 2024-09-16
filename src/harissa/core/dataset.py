@@ -112,15 +112,12 @@ class Dataset:
     @classmethod
     def from_annData(cls, adata) -> Dataset:
         try:
-            from pandas import DataFrame
             from anndata import AnnData
 
             if not isinstance(adata, AnnData):
                 raise TypeError('adata must be an AnnData object.')
 
-            if isinstance(adata.X, DataFrame):
-                count_matrix = adata.X.to_numpy()
-            elif issparse(adata.X):
+            if issparse(adata.X):
                 count_matrix = adata.X.toarray()
             else:
                 count_matrix = adata.X
