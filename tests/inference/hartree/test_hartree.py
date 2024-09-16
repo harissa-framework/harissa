@@ -39,6 +39,11 @@ def dataset_one():
     return Dataset(time_points, count_matrix)
 
 class TestHartree:
+
+    def test_is_directed(self):
+        inf = base.Hartree()
+
+        assert inf.directed
     def test_use_numba_default(self, reload_base):
         inf = base.Hartree()
         assert inf.use_numba
@@ -107,7 +112,7 @@ class TestHartree:
 
             assert isinstance(res, base.Hartree.Result)
             assert isinstance(res, Inference.Result)
-            
+
             assert hasattr(res, 'parameter')
             assert isinstance(res.parameter, NetworkParameter)
 
@@ -115,13 +120,13 @@ class TestHartree:
 
     def test_run_without_numba(self, dataset):
         n_genes_stim = dataset.count_matrix.shape[1]
-        
+
         inf = base.Hartree(verbose= True, use_numba=False)
         res = inf.run(dataset, NetworkParameter(n_genes_stim - 1))
 
         assert isinstance(res, base.Hartree.Result)
         assert isinstance(res, Inference.Result)
-        
+
         assert hasattr(res, 'parameter')
         assert isinstance(res.parameter, NetworkParameter)
 
@@ -144,17 +149,35 @@ def test_save_extra_txt(tmp_path, dataset):
     res.save_txt(path, True)
     assert path.is_dir()
 
-    path = path / 'extra'
-    assert path.is_dir()
+    path_extra = path / 'extra'
+    assert path_extra.is_dir()
+    extra_infos = ['basal_time', 'interaction_time', 'y']
 
-    for extra, ext in zip(
-        ['basal_time', 'interaction_time', 'y'], 
-        [None, None, '.txt']
-        ):
+    for extra, ext in zip(extra_infos, [None, None, '.txt']):
         if ext is not None:
-            assert (path / extra).with_suffix(ext).is_file()
+            assert (path_extra / extra).with_suffix(ext).is_file()
         else:
-            assert (path / extra).is_dir()
+            assert (path_extra / extra).is_dir()
+
+    res2 = base.Hartree.Result.load_txt(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Hartree.Result.load_txt(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.y, res2.y)
 
 
 def test_save_extra(tmp_path, dataset):
@@ -167,5 +190,60 @@ def test_save_extra(tmp_path, dataset):
     res.save(path, True)
 
     assert path.with_suffix('.npz').is_file()
-    for extra in ['basal_time', 'interaction_time', 'y']:
+    extra_infos = ['basal_time', 'interaction_time', 'y']
+    for extra in extra_infos:
         assert Path(f'{path}_extra_{extra}').with_suffix('.npz').is_file()
+
+    res2 = base.Hartree.Result.load(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Hartree.Result.load(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.y, res2.y)
+
+def test_save_extra_json(tmp_path, dataset):
+    inf = base.Hartree(use_numba=False)
+    net = NetworkParameter(dataset.count_matrix.shape[1] - 1)
+    res = inf.run(dataset, net)
+
+    path = tmp_path / 'foo'
+
+    res.save_json(path, True)
+
+    assert path.with_suffix('.json').is_file()
+    extra_infos = ['basal_time', 'interaction_time', 'y']
+    for extra in extra_infos:
+        assert Path(f'{path}_extra_{extra}').with_suffix('.json').is_file()
+
+    res2 = base.Hartree.Result.load_json(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Hartree.Result.load_json(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.y, res2.y)

@@ -95,7 +95,6 @@ class TestInference:
             inf.directed
 
     def test_load_not_Inference(self, inf_error_json):
-
         with pytest.raises(RuntimeError):
             Inference.load_json(inf_error_json)
 

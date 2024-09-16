@@ -17,7 +17,6 @@ def _create_test_group(classname, classmodule):
             inf = cls()
             assert hasattr(inf, 'run')
             assert hasattr(inf, 'directed')
-            assert hasattr(inf, '_serialize')
 
         def test_run_output(self):
             cls = vars(import_module(classmodule))[classname]

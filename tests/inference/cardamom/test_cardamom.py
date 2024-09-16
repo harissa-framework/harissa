@@ -2,7 +2,7 @@ import pytest
 import sys
 from pathlib import Path
 import numpy as np
-from harissa.core import NetworkParameter, Dataset, Inference
+from harissa.core import NetworkModel, NetworkParameter, Dataset, Inference
 import harissa.inference.cardamom.base as base
 from importlib import reload
 
@@ -38,7 +38,43 @@ def dataset_one():
     ], dtype=np.uint)
     return Dataset(time_points, count_matrix)
 
+@pytest.fixture
+def network_dataset_notebook2():
+    n_genes = 4
+    param = NetworkParameter(n_genes)
+    param.degradation_rna[:] = 1.0
+    param.degradation_protein[:] = 0.2
+    param.burst_frequency_min[:] = 0.0 * param.degradation_rna
+    param.burst_frequency_max[:] = 2.0 * param.degradation_rna
+    param.creation_rna[:] = param.degradation_rna * param.rna_scale()
+    param.creation_protein[:] = param.degradation_protein*param.protein_scale()
+    param.basal[1:] = -5.0
+    param.interaction[0,1] = 10.0
+    param.interaction[1,2] = 10.0
+    param.interaction[1,3] = 10.0
+    param.interaction[3,4] = 10.0
+    param.interaction[4,1] = -10.0
+    param.interaction[2,2] = 10.0
+    param.interaction[3,3] = 10.0
+    model = NetworkModel(param)
+
+    C = 1000
+    times = np.floor(np.linspace(0.0, 20.0, 10))
+    n_cells_per_time_point = C // times.size # 100
+    data = model.simulate_dataset(
+        time_points = times,
+        n_cells=n_cells_per_time_point,
+        burn_in_duration=5.0
+    )
+
+    return param, data
+
 class TestCardamom:
+    def test_is_directed(self):
+        inf = base.Cardamom()
+
+        assert inf.directed
+
     def test_use_numba_default(self, reload_base):
         inf = base.Cardamom()
         assert inf.use_numba
@@ -143,17 +179,36 @@ def test_save_extra_txt(tmp_path, dataset):
     res.save_txt(path, True)
     assert path.is_dir()
 
-    path = path / 'extra'
+    path_extra = path / 'extra'
     assert path.is_dir()
 
-    for extra, ext in zip(
-        ['basal_time', 'interaction_time', 'variations', 'data_bool'], 
-        [None, None, '.txt', '.txt']
-        ):
+    extra_infos = ['basal_time', 'interaction_time', 'variations', 'data_bool']
+    for extra, ext in zip(extra_infos, [None, None, '.txt', '.txt']):
         if ext is not None:
-            assert (path / extra).with_suffix(ext).is_file()
+            assert (path_extra / extra).with_suffix(ext).is_file()
         else:
-            assert (path / extra).is_dir()
+            assert (path_extra / extra).is_dir()
+
+    res2 = base.Cardamom.Result.load_txt(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Cardamom.Result.load_txt(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.variations, res2.variations)
+    assert np.array_equal(res.data_bool, res2.data_bool)
 
 
 def test_save_extra(tmp_path, dataset):
@@ -164,7 +219,63 @@ def test_save_extra(tmp_path, dataset):
     path = tmp_path / 'foo'
 
     res.save(path, True)
-
+    extra_infos = ['basal_time', 'interaction_time', 'variations', 'data_bool']
     assert path.with_suffix('.npz').is_file()
-    for extra in ['basal_time', 'interaction_time', 'variations', 'data_bool']:
+    for extra in extra_infos:
         assert Path(f'{path}_extra_{extra}').with_suffix('.npz').is_file()
+
+    res2 = base.Cardamom.Result.load(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Cardamom.Result.load(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.variations, res2.variations)
+    assert np.array_equal(res.data_bool, res2.data_bool)
+
+def test_save_extra_json(tmp_path, network_dataset_notebook2):
+    inf = base.Cardamom(use_numba=False)
+    net, dataset = network_dataset_notebook2
+    res = inf.run(dataset, net)
+
+    path = tmp_path / 'foo'
+
+    res.save_json(path, True)
+    extra_infos = ['basal_time', 'interaction_time', 'variations', 'data_bool']
+
+    assert path.with_suffix('.json').is_file()
+    for extra in extra_infos:
+        assert Path(f'{path}_extra_{extra}').with_suffix('.json').is_file()
+
+    res2 = base.Cardamom.Result.load_json(path)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert not hasattr(res2, extra)
+
+    res2 = base.Cardamom.Result.load_json(path, True)
+
+    assert res.parameter == res2.parameter
+    for extra in extra_infos:
+        assert hasattr(res2, extra)
+
+    for t in res.basal_time.keys():
+        assert np.array_equal(res.basal_time[t], res2.basal_time[t])
+        assert np.array_equal(
+            res.interaction_time[t],
+            res2.interaction_time[t]
+        )
+    assert np.array_equal(res.variations, res2.variations)
+    assert np.array_equal(res.data_bool, res2.data_bool)
