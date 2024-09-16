@@ -138,6 +138,7 @@ class NetworkParameter:
 
     @classmethod
     def load_json(cls, path : Union[str, Path]) -> NetworkParameter:
+        path = Path(path).with_suffix('.json')
         with open(path, 'r') as fp:
             data = json.load(fp)
         n_genes = len(data['basal'])

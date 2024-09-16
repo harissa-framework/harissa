@@ -59,7 +59,7 @@ def load_dir(
     RuntimeError
         if `path` doesn't exist.
     """
-    path = Path(path)  # convert it to Path (needed for str)
+    path = Path(path).with_suffix('')  # convert it to Path (needed for str)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
     suffix = ".txt"
@@ -97,7 +97,7 @@ def load_npz(
     RuntimeError
         if `path` doesn't exist.
     """
-    path = Path(path)
+    path = Path(path).with_suffix('.npz')
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
 
@@ -126,7 +126,7 @@ def save_dir(
     output_dict :
         Dictionary containing the arrays.
     """
-    path = Path(path).with_suffix("")
+    path = Path(path).with_suffix('')
     path.mkdir(parents=True, exist_ok=True)
 
     for key, value in output_dict.items():
@@ -161,7 +161,7 @@ def save_npz(
     output_dict :
         Dictionary containing the arrays.
     """
-    path = Path(path).with_suffix(".npz")
+    path = Path(path).with_suffix('.npz')
 
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **output_dict)

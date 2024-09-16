@@ -374,11 +374,11 @@ class Cardamom(Inference):
                     NetworkParameter.load_txt(path),
                     np.loadtxt(path_extra / 'variations.txt'),
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f)
+                        float(f.stem.split('_')[1]):np.loadtxt(f)
                         for f in (path_extra / 'basal_time').iterdir()
                     },
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f)
+                        float(f.stem.split('_')[1]):np.loadtxt(f)
                         for f in (path_extra / 'interaction_time').iterdir()
                     },
                     np.loadtxt(path_extra / 'data_bool.txt')

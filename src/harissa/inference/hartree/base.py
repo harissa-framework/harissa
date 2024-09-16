@@ -312,11 +312,11 @@ class Hartree(Inference):
                 return cls(
                     NetworkParameter.load_txt(path),
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f)
+                        float(f.stem.split('_')[1]):np.loadtxt(f)
                         for f in (path_extra / 'basal_time').iterdir()
                     },
                     {
-                        f.stem.split('_')[1]:np.loadtxt(f)
+                        float(f.stem.split('_')[1]):np.loadtxt(f)
                         for f in (path_extra / 'interaction_time').iterdir()
                     },
                     np.loadtxt(path_extra / 'y.txt')
