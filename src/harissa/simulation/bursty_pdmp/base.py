@@ -155,6 +155,7 @@ def _create_simulation(step, flow):
                     true_jump_count += 1
                 else:
                     phantom_jump_count += 1
+            # state_old[1, 0] = stimulus[i]
             # Recording
             states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
 
