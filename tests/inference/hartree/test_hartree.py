@@ -50,7 +50,7 @@ class TestHartree:
         assert 'numba' in sys.modules
         assert base._numba_functions[True] is not None
         assert base._numba_functions[False] is not None
-        for name, f in base._numba_functions[True].items():
+        for name, f in base._numba_functions[False].items():
             assert vars(base)[name] is f
 
     def test_use_numba_False(self, reload_base):
@@ -68,7 +68,7 @@ class TestHartree:
         assert 'numba' in sys.modules
         assert base._numba_functions[True] is not None
         assert base._numba_functions[False] is not None
-        for name, f in base._numba_functions[True].items():
+        for name, f in base._numba_functions[False].items():
             assert vars(base)[name] is f
 
     def test_use_numba_False_True_False(self, reload_base):
@@ -87,7 +87,7 @@ class TestHartree:
         assert 'numba' in sys.modules
         assert base._numba_functions[True] is not None
         assert base._numba_functions[False] is not None
-        for name, f in base._numba_functions[True].items():
+        for name, f in base._numba_functions[False].items():
             assert vars(base)[name] is f
 
         inf.use_numba = False
