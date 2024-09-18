@@ -19,67 +19,68 @@ def _kon_jit(p: np.ndarray,
     k_on[0] = 0 # Ignore stimulus
     return k_on
 
-def _create_step(kon):
-    def step(state: np.ndarray,
-             basal: np.ndarray,
-             inter: np.ndarray,
-             d0: np.ndarray, d1: np.ndarray,
-             s1: np.ndarray, k0: np.ndarray, k1: np.ndarray, b: np.ndarray,
-             dt: float) -> np.ndarray:
-        """
-        Euler step for the deterministic limit model.
-        """
-        m, p = state
-        a = kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
-        m_new = a/b # Mean level of mRNA given protein levels
-        p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
-        m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
-        return np.vstack((m_new, p_new))
 
-    return step
+def step(state: np.ndarray,
+            basal: np.ndarray,
+            inter: np.ndarray,
+            d0: np.ndarray, d1: np.ndarray,
+            s1: np.ndarray, k0: np.ndarray, k1: np.ndarray, b: np.ndarray,
+            dt: float) -> np.ndarray:
+    """
+    Euler step for the deterministic limit model.
+    """
+    m, p = state
+    a = kon(p, basal, inter, k0, k1) / d0 # a = kon/d0, b = koff/s0
+    m_new = a/b # Mean level of mRNA given protein levels
+    p_new = (1 - dt*d1)*p + dt*s1*m_new # Protein-only ODE system
+    m_new[0], p_new[0] = m[0], p[0] # Discard stimulus
+    return np.vstack((m_new, p_new))
 
-step = _create_step(kon)
+def simulation(
+    state: np.ndarray,
+    time_points: np.ndarray,
+    stimulus: np.ndarray,
+    basal: np.ndarray,
+    inter: np.ndarray,
+    d0: np.ndarray,
+    d1: np.ndarray,
+    s1: np.ndarray,
+    k0: np.ndarray,
+    k1: np.ndarray,
+    b: np.ndarray,
+    euler_step:float
+) -> np.ndarray:
+    """
+    Simulation of the deterministic limit model, which is relevant when
+    promoters and mRNA are much faster than proteins.
+    1. Nonlinear ODE system involving proteins only
+    2. Mean level of mRNA given protein levels
+    """
+    states = np.empty((time_points.size, *state.shape))
+    dt = euler_step
+    if time_points.size > 1:
+        dt = min(dt, np.min(time_points[1:] - time_points[:-1]))
+    t, step_count = 0.0, 0
+    # Core loop for simulation and recording
+    for i, time_point in enumerate(time_points):
+        while t < time_point:
+            state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
+            t += dt
+            step_count += 1
+        state[1, 0] = stimulus[i]
+        states[i] = state
 
-def _create_simulation(step):
-    def simulation(state: np.ndarray,
-                   time_points: np.ndarray,
-                   stimulus: np.ndarray,
-                   basal: np.ndarray,
-                   inter: np.ndarray,
-                   d0: np.ndarray,
-                   d1: np.ndarray,
-                   s1: np.ndarray,
-                   k0: np.ndarray,
-                   k1: np.ndarray,
-                   b: np.ndarray,
-                   euler_step:float) -> np.ndarray:
-        """
-        Simulation of the deterministic limit model, which is relevant when
-        promoters and mRNA are much faster than proteins.
-        1. Nonlinear ODE system involving proteins only
-        2. Mean level of mRNA given protein levels
-        """
-        states = np.empty((time_points.size, *state.shape))
-        dt = euler_step
-        if time_points.size > 1:
-            dt = min(dt, np.min(time_points[1:] - time_points[:-1]))
-        t, step_count = 0.0, 0
-        # Core loop for simulation and recording
-        for i, time_point in enumerate(time_points):
-            while t < time_point:
-                state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
-                t += dt
-                step_count += 1
-            state[1, 0] = stimulus[i]
-            states[i] = state
+    # Remove the stimulus
+    return states, step_count, dt
 
-        # Remove the stimulus
-        return states, step_count, dt
-
-    return simulation
-
-simulation = _create_simulation(step)
-_simulation_jit = None
+_numba_functions = {
+    False : {
+        'kon': kon,
+        'step': step,
+        'simulation' : simulation
+    },
+    True: None
+}
 
 class ApproxODE(Simulation):
     """
@@ -87,7 +88,7 @@ class ApproxODE(Simulation):
     """
     def __init__(self, verbose: bool = False, use_numba: bool = False) -> None:
         self.is_verbose: bool  = verbose
-        self._use_numba, self._simulation = False, simulation
+        self._use_numba: bool = False
         self.use_numba: bool = use_numba
 
     @property
@@ -96,18 +97,25 @@ class ApproxODE(Simulation):
 
     @use_numba.setter
     def use_numba(self, use_numba: bool) -> None:
-        global _kon_jit, _simulation_jit
+        global _numba_functions, _kon_jit
 
         if self._use_numba != use_numba:
-            if use_numba:
-                if _simulation_jit is None:
-                    from numba import njit
-                    _kon_jit = njit()(_kon_jit)
-                    step_jit = njit()(_create_step(_kon_jit))
-                    _simulation_jit = njit()(_create_simulation(step_jit))
-                self._simulation = _simulation_jit
-            else:
-                self._simulation = simulation
+            if use_numba and _numba_functions[True] is None:
+                from numba import njit
+                _kon_jit = njit()(_kon_jit)
+                _numba_functions[True] = {
+                    'kon' : _kon_jit
+                }
+                for name, f in _numba_functions[False].items():
+                    if name != 'kon':
+                        jited_f = njit()(f)
+                        _numba_functions[True][name] = jited_f
+                    else:
+                        jited_f = _kon_jit
+                    globals()[name] = jited_f
+
+                for fname, f in _numba_functions[False].items():
+                    globals()[fname] = f
 
             self._use_numba = use_numba
 
@@ -124,10 +132,13 @@ class ApproxODE(Simulation):
         p: solution of a nonlinear ODE system involving proteins only
         m: mean mRNA levels given protein levels (quasi-steady state)
         """
+        for fname, f in _numba_functions[self.use_numba].items():
+            globals()[fname] = f
+
         k0 = parameter.burst_frequency_min
         k1 = parameter.burst_frequency_max
 
-        states, step_count, dt = self._simulation(
+        states, step_count, dt = simulation(
             state=initial_state,
             time_points=time_points,
             stimulus=stimulus,
@@ -145,5 +156,8 @@ class ApproxODE(Simulation):
             # Display info about steps
             print(f'ODE simulation used {step_count} steps '
                     f'(step size = {dt:.5f})')
+
+        for fname, f in _numba_functions[False].items():
+            globals()[fname] = f
 
         return Simulation.Result(time_points, states[:, 0], states[:, 1])

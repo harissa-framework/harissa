@@ -547,8 +547,8 @@ class Cardamom(Inference):
                     _numba_functions[True][name] = jited_f
                     globals()[name] = jited_f
 
-            for fname, f in _numba_functions[use_numba].items():
-                globals()[fname] = f
+                for fname, f in _numba_functions[False].items():
+                    globals()[fname] = f
 
             self._use_numba = use_numba
 
@@ -561,6 +561,9 @@ class Cardamom(Inference):
         Fit a network parameter to the data.
         Return the list of successive objective function values.
         """
+        for fname, f in _numba_functions[self.use_numba].items():
+            globals()[fname] = f
+
         n_cells, n_genes_stim = data.count_matrix.shape
         times_unique = np.unique(data.time_points)
 
@@ -631,5 +634,8 @@ class Cardamom(Inference):
 
         basal_t = {float(t):v for t,v in zip(times_unique, basal_t)}
         inter_t = {float(t):v for t,v in zip(times_unique, inter_t)}
+
+        for fname, f in _numba_functions[False].items():
+            globals()[fname] = f
 
         return self.Result(param, variations, basal_t, inter_t, data_bool)

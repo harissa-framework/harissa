@@ -432,8 +432,8 @@ class Hartree(Inference):
                     _numba_functions[True][name] = jited_f
                     globals()[name] = jited_f
 
-            for fname, f in _numba_functions[use_numba].items():
-                globals()[fname] = f
+                for fname, f in _numba_functions[False].items():
+                    globals()[fname] = f
 
             self._use_numba = use_numba
 
@@ -445,6 +445,9 @@ class Hartree(Inference):
         """
         Infers the network model from the data.
         """
+        for fname, f in _numba_functions[self.use_numba].items():
+            globals()[fname] = f
+
         x = data.count_matrix
         # Time points
         # times = np.sort(list(set(data.time_points)))
@@ -486,6 +489,9 @@ class Hartree(Inference):
         param.creation_protein[:] = param.degradation_protein * param.protein_scale()
         param.basal[:] = basal_time[times[-1]]
         param.interaction[:] = inter_time[times[-1]]
+
+        for fname, f in _numba_functions[False].items():
+            globals()[fname] = f
 
         return self.Result(param, basal_time, inter_time, y)
 
