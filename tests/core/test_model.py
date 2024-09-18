@@ -275,25 +275,33 @@ def test_simulate_wrong_type(
             stimulus=stimulus
         )
 
-@pytest.mark.parametrize('time_points,initial_time', [
-    (np.array([[[10.0]]]), None),
-    (np.array([[[[10.0]]]]), None),
-    (np.array([10.0, 10.0]), None),
-    (np.array([10.0, 5.0, 20.0]), None),
-    (np.array(-1.0), None),
-    (np.array(5.0), 10.0)
+@pytest.mark.parametrize('time_points,initial_time,initial_state,stimulus', [
+    (np.array([[[10.0]]]), None, None, None),
+    (np.array([[[[10.0]]]]), None, None, None),
+    (np.array([10.0, 10.0]), None, None, None),
+    (np.array([10.0, 5.0, 20.0]), None, None, None),
+    (np.array(-1.0), None, None, None),
+    (np.array(5.0), 10.0, None, None),
+    (np.array(5.0), 5.0, np.zeros((2, 4)), np.ones((1,)))
 ], ids=[
     '3D',
     '4D',
     'duplicate',
     'unsorted',
     'default initial_time > time_points',
-    'initial_time > time_points'
+    'initial_time > time_points',
+    'initial_time == time_points[0] and initial state != stimulus[0]'
 ])
 
-def test_simulate_wrong_values(network_parameter, time_points, initial_time):
+def test_simulate_wrong_values(
+    network_parameter,
+    time_points,
+    initial_time,
+    initial_state,
+    stimulus
+):
     model = NetworkModel(network_parameter)
-    kwargs = {}
+    kwargs = {'initial_state': initial_state, 'stimulus': stimulus}
 
     if initial_time is not None:
         kwargs['initial_time'] = initial_time

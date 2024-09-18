@@ -145,7 +145,6 @@ def _create_simulation(step, flow):
         t, t_old, state_old = 0.0, 0.0, state
         # Core loop for simulation
         for i, time_point in enumerate(time_points):
-            state[1, 0] = stimulus[i]
             while t < time_point:
                 t_old, state_old = t, state
                 U, jump, state = step(state, basal, inter, d0, d1,
@@ -155,9 +154,11 @@ def _create_simulation(step, flow):
                     true_jump_count += 1
                 else:
                     phantom_jump_count += 1
-            # state_old[1, 0] = stimulus[i]
+            # Update stimulus value
+            state[1, 0] = stimulus[i]
             # Recording
             states[i] = flow(time_point - t_old, state_old, d0, d1, s1)
+            states[i, 1, 0] = state[1, 0]
 
         # Remove the stimulus
         return states, phantom_jump_count, true_jump_count

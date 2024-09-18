@@ -66,11 +66,11 @@ def _create_simulation(step):
         t, step_count = 0.0, 0
         # Core loop for simulation and recording
         for i, time_point in enumerate(time_points):
-            state[1, 0] = stimulus[i]
             while t < time_point:
                 state = step(state, basal, inter, d0, d1, s1, k0, k1, b, dt)
                 t += dt
                 step_count += 1
+            state[1, 0] = stimulus[i]
             states[i] = state
 
         # Remove the stimulus
