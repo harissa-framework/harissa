@@ -71,7 +71,7 @@ class DirectedPlotter:
                 layout = self.network.layout
 
             if 'names' not in kwargs:
-                kwargs['names'] = self.network.genes_names
+                kwargs['names'] = self.network.gene_names
 
             plot_network(self.network.interaction, layout, **kwargs)
 

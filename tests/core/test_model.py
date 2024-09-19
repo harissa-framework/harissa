@@ -223,55 +223,98 @@ def test_simulate(network_parameter):
     state_copy = initial_state.copy()
     res = model.simulate(time_points, initial_state)
 
-    assert np.all(res.stimulus_levels== 0.0)
+    assert np.all(res.stimulus_levels == 0.0)
     assert np.array_equal(initial_state, state_copy)
 
-@pytest.mark.parametrize('time_points,initial_state', [
-    (10.0, None),
-    ([10.0], None),
-    ((10.0), None),
-    (np.array(10), 10),
-    (np.array(10), np.zeros((3, 4))),
-    (np.array(10), np.zeros((2, 3))),
-    (np.array(10), np.zeros((3, 3, 3))),
+    time_points = np.array([5.0, 10.0, 15.0])
+    stimulus = np.array([1.0, 0.0, 1.0])
+
+    res = model.simulate(
+        time_points,
+        initial_state=initial_state,
+        stimulus=stimulus
+    )
+
+    # assert np.array_equal(res.stimulus_levels, stimulus)
+    assert np.array_equal(initial_state, state_copy)
+
+
+
+@pytest.mark.parametrize('time_points,initial_state,stimulus', [
+    (10.0, None, None),
+    ([10.0], None, None),
+    ((10.0), None, None),
+    (np.array(10), 10, None),
+    (np.array(10), np.zeros((3, 4)), None),
+    (np.array(10), np.zeros((2, 3)), None),
+    (np.array(10), np.zeros((3, 3, 3)), None),
+    (np.array([1.0]), None, 0.0),
+    (np.array([1.0, 10.0]), None, np.array([0.0]))
 ], ids=[
-    'float, None',
-    'list, None',
-    'tuple, None',
-    'ndarray, int',
-    'ndarray, ndarray (3, 4)',
-    'ndarray, ndarray (2, 3)',
-    'ndarray, ndarray (3, 3, 3)',
+    'float, None, None',
+    'list, None, None',
+    'tuple, None, None',
+    'ndarray, int, None',
+    'ndarray, ndarray (3, 4), None',
+    'ndarray, ndarray (2, 3), None',
+    'ndarray, ndarray (3, 3, 3), None',
+    'stimulus not an np.array',
+    'stimulus wrong size'
 ])
-def test_simulate_wrong_type(network_parameter, time_points, initial_state):
+def test_simulate_wrong_type(
+    network_parameter,
+    time_points,
+    initial_state,
+    stimulus
+):
     model = NetworkModel(network_parameter)
-
     with pytest.raises(TypeError):
-        model.simulate(time_points, initial_state=initial_state)
+        model.simulate(
+            time_points,
+            initial_state=initial_state,
+            stimulus=stimulus
+        )
 
-@pytest.mark.parametrize('time_points,initial_time', [
-    (np.array([[[10.0]]]), None),
-    (np.array([[[[10.0]]]]), None),
-    (np.array([10.0, 10.0]), None),
-    (np.array([10.0, 5.0, 20.0]), None),
-    (np.array(-1.0), None),
-    (np.array(5.0), 10.0),
+@pytest.mark.parametrize('time_points,initial_time,initial_state,stimulus', [
+    (np.array([[[10.0]]]), None, None, None),
+    (np.array([[[[10.0]]]]), None, None, None),
+    (np.array([10.0, 10.0]), None, None, None),
+    (np.array([10.0, 5.0, 20.0]), None, None, None),
+    (np.array(-1.0), None, None, None),
+    (np.array(5.0), 10.0, None, None),
+    (np.array(5.0), 5.0, np.zeros((2, 4)), np.ones((1,))),
+    (np.array(5.0), 0.0, np.full((2, 4), -1.0), np.ones((1,))),
+    (np.array(5.0), 0.0, np.full((2, 4), 2.0), np.ones((1,))),
+    (np.array(5.0), 0.0, np.zeros((2, 4)), np.full((1,), -1.0)),
+    (np.array(5.0), 0.0, np.zeros((2, 4)), np.full((1,), 2.0))
 ], ids=[
     '3D',
     '4D',
     'duplicate',
     'unsorted',
     'default initial_time > time_points',
-    'initial_time > time_points'
+    'initial_time > time_points',
+    'initial_time == time_points[0] and initial state != stimulus[0]',
+    'initial_state[1,0] < 0',
+    'initial_state[1,0] > 1',
+    'stimulus < 0',
+    'stimulus > 1'
 ])
-def test_simulate_wrong_values(network_parameter, time_points, initial_time):
+def test_simulate_wrong_values(
+    network_parameter,
+    time_points,
+    initial_time,
+    initial_state,
+    stimulus
+):
     model = NetworkModel(network_parameter)
+    kwargs = {'initial_state': initial_state, 'stimulus': stimulus}
+
+    if initial_time is not None:
+        kwargs['initial_time'] = initial_time
 
     with pytest.raises(ValueError):
-        if initial_time is None:
-            model.simulate(time_points)
-        else:
-            model.simulate(time_points, initial_time=initial_time)
+            model.simulate(time_points, **kwargs)
 
 def test_burn_in(network_parameter):
     model = NetworkModel(network_parameter)

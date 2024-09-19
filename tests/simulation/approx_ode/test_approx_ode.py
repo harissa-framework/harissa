@@ -43,66 +43,75 @@ def test_use_numba_default(reload_base):
     sim = base.ApproxODE()
     assert not sim.use_numba
     assert 'numba' not in sys.modules
-    assert base._simulation_jit is None
-    assert sim._simulation is base.simulation
+    assert base._numba_functions[True] is None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
 def test_use_numba_False(reload_base):
     sim = base.ApproxODE(use_numba=False)
     assert 'numba' not in sys.modules
     assert not sim.use_numba
-    assert base._simulation_jit is None
-    assert sim._simulation is base.simulation
+    assert base._numba_functions[True] is None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
 
 def test_use_numba_True(reload_base):
     sim = base.ApproxODE(use_numba=True)
     assert sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base._simulation_jit
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
 
 def test_use_numba_False_True_False(reload_base):
     sim = base.ApproxODE(use_numba=False)
     assert not sim.use_numba
     assert 'numba' not in sys.modules
-    assert base._simulation_jit is None
-    assert sim._simulation is base.simulation
+    assert base._numba_functions[True] is None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
     sim.use_numba = True
 
     assert sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base._simulation_jit
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
     sim.use_numba = False
 
     assert not sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base.simulation
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
 def test_use_numba_True_False_True(reload_base):
     sim = base.ApproxODE(use_numba=True)
     assert sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base._simulation_jit
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
     sim.use_numba = False
 
     assert not sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base.simulation
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
     sim.use_numba = True
 
     assert sim.use_numba
     assert 'numba' in sys.modules
-    assert base._simulation_jit is not None
-    assert sim._simulation is base._simulation_jit
+    assert base._numba_functions[True] is not None
+    for name, f in base._numba_functions[False].items():
+        assert vars(base)[name] is f
 
 def test_run_with_numba(time_points, initial_state, network_parameter):
     from numba.core import config

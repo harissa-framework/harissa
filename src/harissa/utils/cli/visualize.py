@@ -22,20 +22,20 @@ def visualize(args):
 
     if args.output is not None:
         output = args.output.with_suffix('')
-    else: 
+    else:
         output = Path(args.ref_dataset_path.stem)
 
     output.mkdir(parents=True, exist_ok=True)
 
     if args.distributions:
         plot_data_distrib(
-            dataset_ref, 
-            dataset_sim, 
-            output / 'marginals.pdf', 
-            t_ref, 
+            dataset_ref,
+            dataset_sim,
+            output / 'marginals.pdf',
+            t_ref,
             t_sim
         )
-    
+
     if args.pvalues:
         compare_marginals(
             dataset_ref,
@@ -47,8 +47,8 @@ def visualize(args):
 
     if args.umap:
         plot_data_umap(
-            dataset_ref, 
-            dataset_sim, 
+            dataset_ref,
+            dataset_sim,
             output / 'umap.pdf',
             t_ref,
             t_sim
@@ -61,12 +61,12 @@ def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser('visualize', help='visualize help')
     parser.add_argument(
         'ref_dataset_path',
-        type=Path, 
+        type=Path,
         help='path to the reference dataset'
     )
     parser.add_argument(
         'sim_dataset_path',
-        type=Path, 
+        type=Path,
         help='path to the simulated dataset'
     )
     parser.add_argument(

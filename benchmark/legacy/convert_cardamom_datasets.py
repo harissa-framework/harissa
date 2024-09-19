@@ -30,7 +30,7 @@ def convert(cardamom_article, output_dir):
                 for i, path in enumerate(old_datasets, 1):
                     old_dataset = np.loadtxt(path, dtype=int, delimiter='\t')
                     dataset = Dataset(
-                        old_dataset[0, 1:].astype(np.float_),
+                        old_dataset[0, 1:].astype(np.float64),
                         old_dataset[1:, 1:].T.astype(np.uint)
                     )
                     
@@ -57,7 +57,7 @@ def convert(cardamom_article, output_dir):
                     tree_name = path.stem.split("_")[1]
                     old_dataset = np.loadtxt(path, dtype=int, delimiter='\t')
                     dataset = Dataset(
-                        old_dataset[0, 1:].astype(np.float_),
+                        old_dataset[0, 1:].astype(np.float64),
                         old_dataset[1:, 1:].T.astype(np.uint)
                     )
                     output = datasets_output/ tree_name / 'd1.npz'

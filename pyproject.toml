@@ -30,8 +30,7 @@ dependencies = [
     "numba>=0.55",
     "matplotlib>=3.4",
     "networkx>=2.6",
-    "scikit-learn",
-    "dill"
+    "scikit-learn"
 ]
 dynamic = ["version"]
 
@@ -89,7 +88,11 @@ testpaths = ["tests"]
 [tool.coverage.run]
 source = ['harissa']
 branch = true
-omit = ['*/harissa/plot/*', '*/harissa/utils/cli/*', '*/harissa/benchmark/*']
+omit = [
+    '*/harissa/plot/*', 
+    '*/harissa/utils/cli/*', 
+    '*/harissa/benchmark/*'
+]
 
 [tool.coverage.report]
 fail_under = 80

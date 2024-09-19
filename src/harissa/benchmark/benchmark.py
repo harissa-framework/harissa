@@ -1,11 +1,9 @@
 from typing import (
     List,
     Tuple,
-    Union, 
-    Optional,
-    TypeAlias
+    Union,
+    Optional
 )
-from collections.abc import Iterator
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -21,16 +19,17 @@ from harissa.benchmark.generators import (
     DatasetsGenerator,
     InferencesGenerator
 )
+from harissa.benchmark.generators.generic import Iterator
 
 from harissa.plot.plot_benchmark import plot_benchmark
 from harissa.utils.progress_bar import alive_bar
 
-K : TypeAlias = Tuple[str, str, str, str]
-V : TypeAlias = Tuple[
-    NetworkParameter, 
-    Tuple[Inference, npt.NDArray[np.float64]], 
-    Dataset, 
-    Inference.Result, 
+K = Tuple[str, str, str, str]
+V = Tuple[
+    NetworkParameter,
+    Tuple[Inference, npt.NDArray[np.float64]],
+    Dataset,
+    Inference.Result,
     float
 ]
 class Benchmark(GenericGenerator[K, V]):

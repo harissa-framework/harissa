@@ -40,42 +40,52 @@ def create_cardamom(args):
 
 def load_dataset(path: Path):
     if path.suffix == '.npz':
-        dataset = Dataset.load(path) 
+        dataset = Dataset.load(path)
     elif path.suffix == '.h5ad':
         dataset = Dataset.load_h5ad(path)
     else:
         dataset = Dataset.load_txt(path)
 
     return dataset
-        
+
+def load_network_parameter(path: Path) -> NetworkParameter:
+    if path.is_dir():
+        parameter = NetworkParameter.load_txt(path)
+    elif path.suffix == '.npz':
+        parameter = NetworkParameter.load(path)
+    else:
+        parameter = NetworkParameter.load_json(path)
+
+    return parameter
+
 def infer(args):
     model = NetworkModel(inference=args.create_inference(args))
     dataset = load_dataset(args.dataset_path)
 
     if args.network_path is not None:
-        model.parameter = (
-            NetworkParameter.load(args.network_path) 
-            if args.network_path.suffix == '.npz'
-            else NetworkParameter.load_txt(args.network_path) 
-        )
-    
+        model.parameter = load_network_parameter(args.network_path)
+
     res = model.fit(dataset)
 
     if args.output is not None:
         output = args.output.with_suffix('')
-    else: 
+    else:
         output = Path(args.dataset_path.stem + '_inference_result')
 
     print(
         res.save(output, args.save_extra) if args.format == 'npz' else
         res.save_txt(output, args.save_extra)
     )
-    
+
     if args.save_plot:
         inter = (np.abs(model.interaction) > args.cut_off) * model.interaction
         plot_network(inter, build_pos(inter), file=output.with_suffix('.pdf'))
 
-def add_export_options(parser, export_choices=export_choices, plot_option=False):
+def add_export_options(
+        parser,
+        export_choices=export_choices,
+        plot_option=False
+):
     parser.add_argument(
         '-f', '--format',
         choices=export_choices,
@@ -90,18 +100,23 @@ def add_export_options(parser, export_choices=export_choices, plot_option=False)
              ' else it is a .npz file.'
     )
     if plot_option:
-        parser.add_argument('--save-plot', action='store_true')    
+        parser.add_argument('--save-plot', action='store_true')
 
 def add_subcommand(main_subparsers):
     # Infer parser
     parser = main_subparsers.add_parser(
-        'infer', 
+        'infer',
         help='infer help',
         formatter_class=ap.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument('dataset_path', type=Path, help='path to data file')
-    parser.add_argument('-n', '--network_path', type=Path, help='path to network file')
+    parser.add_argument(
+        '-n',
+        '--network_path',
+        type=Path,
+        help='path to network file'
+    )
     add_export_options(parser, plot_option=True)
     parser.add_argument(
         '--cut-off',
@@ -113,12 +128,12 @@ def add_subcommand(main_subparsers):
     parser.set_defaults(
         create_inference=lambda args: default_inference()
     )
-    # set command function (called in the main of cli.py) 
+    # set command function (called in the main of cli.py)
     parser.set_defaults(run=infer)
 
-    # Inference methods hartree (cardamom TODO)
+    # Inference methods hartree
     subparsers = parser.add_subparsers(
-        title='inference methods', 
+        title='inference methods',
         required= False
     )
     hartree_parser = subparsers.add_parser('hartree')
