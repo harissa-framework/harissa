@@ -54,8 +54,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install harissa depencies
+        run: |
+          pip install pip-tools
+          pip-compile --strip-extras --extra extra -o requirements.txt pyproject.toml
+          pip install -r requirements.txt
       - name: Install harissa
-        run: pip install dist/*.whl
+        run: pip install --no-index -f dist harissa
       - name: Install pytest
         run: pip install pytest pytest-cov
       - name: Run tests and coverage

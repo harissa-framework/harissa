@@ -131,7 +131,7 @@ def add_subcommand(main_subparsers):
         # default=ap.SUPPRESS,
         help='burn in duration. (override the initial state)'
     )
-    add_export_options(parser, True)
+    add_export_options(parser, plot_option=True)
     # set command function (called in the main of cli.py) 
     parser.set_defaults(run=simulate)
     
