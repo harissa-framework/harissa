@@ -4,8 +4,8 @@ from harissa.benchmark.generators.inferences import InferencesGenerator
 from harissa.benchmark.generators.datasets import DatasetsGenerator
 
 __all__ = [
-    'GenericGenerator', 
-    'NetworksGenerator', 
+    'GenericGenerator',
+    'NetworksGenerator',
     'InferencesGenerator',
     'DatasetsGenerator'
 ]

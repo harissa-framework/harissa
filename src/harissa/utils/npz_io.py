@@ -20,8 +20,8 @@ class ParamInfos:
         return iter(astuple(self))
 
 
-def _check_names(
-    names: Iterable[str], 
+def check_names(
+    names: Iterable[str],
     param_names: Dict[str, ParamInfos]
 ) -> None:
     cur_required_names: list[str] = []
@@ -40,11 +40,11 @@ def _check_names(
 
 
 def load_dir(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
     """
-    Load multiple arrays from a directory. 
+    Load multiple arrays from a directory.
     Each array is stored inside a `.txt` file.
 
     Parameters
@@ -59,23 +59,27 @@ def load_dir(
     RuntimeError
         if `path` doesn't exist.
     """
-    path = Path(path)  # convert it to Path (needed for str)
+    path = Path(path).with_suffix('')  # convert it to Path (needed for str)
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
     suffix = ".txt"
-    _check_names(map(lambda p: p.stem, path.glob(f"*{suffix}")), param_names)
+    check_names(map(lambda p: p.stem, path.glob(f"*{suffix}")), param_names)
 
     data: dict[str, npt.NDArray[Any]] = {}
     for name, (required, dtype, ndim) in param_names.items():
         file_name = (path / name).with_suffix(suffix)
         if required or file_name.exists():
             data[name] = np.loadtxt(file_name, dtype=dtype, ndmin=ndim)
+            if dtype == np.str_:
+                data[name] = np.vectorize(
+                    lambda e: e if e != "''" else ''
+                )(data[name])
 
     return data
 
 
 def load_npz(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     param_names: Dict[str, ParamInfos]
 ) -> Dict[str, npt.NDArray[Any]]:
     """
@@ -93,7 +97,7 @@ def load_npz(
     RuntimeError
         if `path` doesn't exist.
     """
-    path = Path(path)
+    path = Path(path).with_suffix('.npz')
     if not path.exists():
         raise RuntimeError(f"{path} doesn't exist.")
 
@@ -101,28 +105,28 @@ def load_npz(
     with np.load(path) as npz_file:
         data = dict(npz_file)
 
-    _check_names(data.keys(), param_names)
+    check_names(data.keys(), param_names)
 
     return data
 
 
 def save_dir(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
     """
     Save multiple arrays inside a directory.
-    Each array is stored inside a `.txt` file. 
+    Each array is stored inside a `.txt` file.
 
     Parameters
     ----------
     path :
-        Path to the directory. 
+        Path to the directory.
         If the directory doesn't exist it will be created.
-    output_dict : 
+    output_dict :
         Dictionary containing the arrays.
     """
-    path = Path(path).with_suffix("")
+    path = Path(path).with_suffix('')
     path.mkdir(parents=True, exist_ok=True)
 
     for key, value in output_dict.items():
@@ -132,7 +136,11 @@ def save_dir(
             width = 1 if max_val == 0 else int(np.log10(max_val) + 1.0)
             np.savetxt(file_name, value, fmt=f"%{width}d")
         elif value.dtype.type is np.str_:
-            np.savetxt(file_name, value, fmt="%s")
+            np.savetxt(
+                file_name,
+                np.vectorize(lambda e: e if e != '' else "''")(value),
+                fmt="%s"
+            )
         else:
             np.savetxt(file_name, value)
 
@@ -140,7 +148,7 @@ def save_dir(
 
 
 def save_npz(
-    path: Union[str, Path], 
+    path: Union[str, Path],
     output_dict: Dict[str, npt.NDArray[Any]]
 ) -> Path:
     """
@@ -153,7 +161,7 @@ def save_npz(
     output_dict :
         Dictionary containing the arrays.
     """
-    path = Path(path).with_suffix(".npz")
+    path = Path(path).with_suffix('.npz')
 
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(path, **output_dict)

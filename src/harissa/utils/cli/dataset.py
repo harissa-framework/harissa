@@ -2,13 +2,14 @@ import numpy as np
 import argparse as ap
 from pathlib import Path
 
-from harissa import NetworkModel, NetworkParameter
+from harissa import NetworkModel
 from harissa.processing import binarize
 from harissa.utils.progress_bar import alive_bar
 from harissa.utils.cli.infer import (
-    add_export_options, 
-    export_choices, 
-    load_dataset
+    add_export_options,
+    export_choices,
+    load_dataset,
+    load_network_parameter
 )
 from harissa.utils.cli.trajectory import add_methods
 
@@ -17,14 +18,10 @@ export_choices = (*export_choices, 'h5ad')
 def simulate_dataset(args):
     if args.output is not None:
         output = args.output.with_suffix('')
-    else: 
+    else:
         output = Path(args.dataset_path.stem + '_dataset_result')
 
-    if args.network_parameter_path.is_dir():
-        network_param = NetworkParameter.load_txt(args.network_parameter_path)
-    else:
-        network_param = NetworkParameter.load(args.network_parameter_path)
-
+    network_param = load_network_parameter(args.network_parameter_path)
     dataset = load_dataset(args.dataset_path)
 
     model= NetworkModel(network_param, simulation=args.create_simulation(args))
@@ -32,7 +29,7 @@ def simulate_dataset(args):
     data_prot = binarize(dataset).count_matrix
     data_sim = np.empty(dataset.count_matrix.shape, dtype=np.uint)
 
-    # copy 1rst column because time points will be replaced by stimuli 
+    # copy 1rst column because time points will be replaced by stimuli
     non_zero_time_points = dataset.time_points != 0.0
 
     # set stimuli in 1rst column with non zero time points
@@ -60,7 +57,6 @@ def simulate_dataset(args):
                 )
             bar()
 
-            
     dataset.count_matrix[:] = data_sim
 
     if args.format == export_choices[0]:
@@ -74,16 +70,17 @@ def simulate_dataset(args):
 
 def add_subcommand(main_subparsers):
     parser = main_subparsers.add_parser(
-        'dataset', 
+        'dataset',
         help='simulate a dataset',
         formatter_class=ap.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument('dataset_path', type=Path, help="path to dataset file")
     parser.add_argument(
-        'network_parameter_path', 
+        'network_parameter_path',
         type=Path,
-        help='path to network parameter. It is a .npz file or a directory.'
+        help='path to network parameter. '
+             'It is a .npz or .json file or a directory.'
     )
     add_export_options(parser, export_choices)
 

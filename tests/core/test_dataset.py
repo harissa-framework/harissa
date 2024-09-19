@@ -2,6 +2,7 @@ import numpy as np
 import anndata as ad
 import pytest
 from harissa.core import Dataset
+from scipy.sparse import csr_matrix
 import sys
 
 @pytest.fixture
@@ -46,6 +47,10 @@ def dataset_with_gene_names(time_points, count_matrix, gene_names) -> Dataset:
 @pytest.fixture
 def adata(time_points, count_matrix) -> ad.AnnData:
     return ad.AnnData(count_matrix, {'time_points': time_points})
+
+@pytest.fixture
+def adata_sparse(time_points, count_matrix) -> ad.AnnData:
+    return ad.AnnData(csr_matrix(count_matrix), {'time_points': time_points})
 
 @pytest.fixture
 def adata_with_gene_names(time_points, count_matrix, gene_names) -> ad.AnnData:
@@ -163,6 +168,12 @@ def test_from_anndata(adata: ad.AnnData):
 
     assert np.array_equal(adata.X, dataset.count_matrix)
     assert np.array_equal(adata.obs['time_points'], dataset.time_points)
+
+def test_from_anndata_sparse(adata_sparse: ad.AnnData):
+    dataset = Dataset.from_annData(adata_sparse)
+
+    assert np.array_equal(adata_sparse.X.toarray(), dataset.count_matrix)
+    assert np.array_equal(adata_sparse.obs['time_points'], dataset.time_points)
 
 
 def test_from_anndata_wrong_type(dataset):

@@ -13,7 +13,7 @@ def fn4():
     param.interaction[2, 2] = 10
     param.interaction[3, 3] = 10
 
-    param.genes_names = np.array(['', '1', '2', '3', '4'])
+    param.gene_names = np.array(['', '1', '2', '3', '4'])
 
     param.layout = np.array([
         [-0.84145247, -0.63293029],
@@ -47,7 +47,7 @@ def fn8():
     param.interaction[7, 6] = 10
     param.interaction[8, 8] = 10
 
-    param.genes_names = np.array(['', '1', '2', '3', '4', '5', '6', '7', '8'])
+    param.gene_names = np.array(['', '1', '2', '3', '4', '5', '6', '7', '8'])
 
     param.layout = np.array([
         [-0.55941181, -0.79131586],

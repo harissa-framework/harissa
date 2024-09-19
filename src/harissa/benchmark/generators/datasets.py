@@ -1,25 +1,22 @@
 from typing import (
     Dict,
-    Tuple, 
-    List, 
-    Union, 
+    Tuple,
+    List,
+    Union,
     Optional,
-    Literal,
-    TypeAlias
+    Literal
 )
-
-from collections.abc import Iterator
 
 from pathlib import Path
 import numpy as np
 
 from harissa.core import Dataset, NetworkModel, NetworkParameter
 from harissa.simulation import BurstyPDMP
-from harissa.benchmark.generators.generic import GenericGenerator
+from harissa.benchmark.generators.generic import GenericGenerator, Iterator
 from harissa.benchmark.generators.networks import NetworksGenerator
 
-K: TypeAlias = Tuple[str, str]
-V: TypeAlias = Tuple[NetworkParameter, Dataset]
+K = Tuple[str, str]
+V = Tuple[NetworkParameter, Dataset]
 
 default_simulate_parameters: Dict = {
     'time_points': np.array([
@@ -32,8 +29,8 @@ default_simulate_parameters: Dict = {
 default_n_datasets: int = 10
 
 
-N_DatasetsType: TypeAlias = Union[
-    Union[int, List[str]], 
+N_DatasetsType = Union[
+    Union[int, List[str]],
     Dict[str, Union[int, List[str]]]
 ]
 
