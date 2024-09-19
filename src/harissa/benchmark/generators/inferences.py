@@ -1,11 +1,10 @@
 from typing import (
-    Dict, 
+    Dict,
     List,
-    Tuple, 
-    Callable, 
-    Union, 
-    Optional,
-    TypeAlias
+    Tuple,
+    Callable,
+    Union,
+    Optional
 )
 from collections.abc import Iterator
 
@@ -22,8 +21,8 @@ from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.core import Inference
 from harissa.inference import Hartree, Cardamom, Pearson
 
-K: TypeAlias = str
-V: TypeAlias = Tuple[Inference, npt.NDArray[np.float64]]
+K = str
+V = Tuple[Inference, npt.NDArray[np.float64]]
 class InferencesGenerator(GenericGenerator[K, V]):
     """
     Generator of inference methods

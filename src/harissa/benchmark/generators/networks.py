@@ -1,11 +1,10 @@
 from typing import (
-    Dict, 
+    Dict,
     List,
     Tuple,
-    Callable, 
-    Union, 
-    Optional,
-    TypeAlias
+    Callable,
+    Union,
+    Optional
 )
 
 from collections.abc import Iterator
@@ -22,7 +21,7 @@ def normalize(func):
     wraps(func)
     def wrapper(*args, **kwargs):
         net = func(*args, **kwargs)
-        
+
         net.burst_frequency_min[:] = 0.0 * net.degradation_rna
         net.burst_frequency_max[:] = 2.0 * net.degradation_rna
         net.creation_rna[:] = net.degradation_rna * net.rna_scale()
@@ -37,7 +36,7 @@ def bn8():
     net = networks.bn8()
     net.degradation_rna[:] = 0.25
     net.degradation_protein[:] = 0.05
-    
+
     return net
 
 @normalize
@@ -45,7 +44,7 @@ def cn5():
     net = networks.cn5()
     net.degradation_rna[:] = 0.5
     net.degradation_protein[:] = 0.1
-    
+
     return net
 
 @normalize
@@ -75,8 +74,8 @@ def tree(n_genes):
 
     return net
 
-K: TypeAlias = str
-V: TypeAlias = NetworkParameter
+K = str
+V = NetworkParameter
 class NetworksGenerator(GenericGenerator[K, V]):
     """
     Generator of networks
