@@ -6,7 +6,6 @@ from typing import (
     Union,
     Optional
 )
-from collections.abc import Iterator
 
 from pathlib import Path
 from json import load, dump
@@ -17,7 +16,7 @@ import numpy as np
 import numpy.typing as npt
 import matplotlib
 
-from harissa.benchmark.generators.generic import GenericGenerator
+from harissa.benchmark.generators.generic import GenericGenerator, Iterator
 from harissa.core import Inference
 from harissa.inference import Hartree, Cardamom, Pearson
 

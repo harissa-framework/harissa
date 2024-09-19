@@ -4,7 +4,6 @@ from typing import (
     Union,
     Optional
 )
-from collections.abc import Iterator
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -20,6 +19,7 @@ from harissa.benchmark.generators import (
     DatasetsGenerator,
     InferencesGenerator
 )
+from harissa.benchmark.generators.generic import Iterator
 
 from harissa.plot.plot_benchmark import plot_benchmark
 from harissa.utils.progress_bar import alive_bar

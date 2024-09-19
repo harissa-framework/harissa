@@ -7,11 +7,9 @@ from typing import (
     Optional
 )
 
-from collections.abc import Iterator
-
 from pathlib import Path
 from harissa.core import NetworkParameter
-from harissa.benchmark.generators.generic import GenericGenerator
+from harissa.benchmark.generators.generic import GenericGenerator, Iterator
 from functools import wraps
 
 from harissa.plot import build_pos

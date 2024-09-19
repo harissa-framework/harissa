@@ -1,20 +1,23 @@
+from sys import version_info
 from typing import (
-    Dict, 
+    Dict,
     List,
-    Tuple, 
-    TypeVar, 
-    Union, 
+    Tuple,
+    TypeVar,
+    Union,
     Optional,
     Callable,
     Generic
 )
-
-from collections.abc import Iterator
-
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from shutil import make_archive, unpack_archive
 from harissa.utils.progress_bar import alive_bar
+
+if version_info.minor >= 9:
+    from collections.abc import Iterator
+else:
+    from typing import Iterator
 
 K = TypeVar('K', str, Tuple[str,...])
 V = TypeVar('V')

@@ -7,14 +7,12 @@ from typing import (
     Literal
 )
 
-from collections.abc import Iterator
-
 from pathlib import Path
 import numpy as np
 
 from harissa.core import Dataset, NetworkModel, NetworkParameter
 from harissa.simulation import BurstyPDMP
-from harissa.benchmark.generators.generic import GenericGenerator
+from harissa.benchmark.generators.generic import GenericGenerator, Iterator
 from harissa.benchmark.generators.networks import NetworksGenerator
 
 K = Tuple[str, str]
