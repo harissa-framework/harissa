@@ -282,7 +282,11 @@ def test_simulate_wrong_type(
     (np.array([10.0, 5.0, 20.0]), None, None, None),
     (np.array(-1.0), None, None, None),
     (np.array(5.0), 10.0, None, None),
-    (np.array(5.0), 5.0, np.zeros((2, 4)), np.ones((1,)))
+    (np.array(5.0), 5.0, np.zeros((2, 4)), np.ones((1,))),
+    (np.array(5.0), 0.0, np.full((2, 4), -1.0), np.ones((1,))),
+    (np.array(5.0), 0.0, np.full((2, 4), 2.0), np.ones((1,))),
+    (np.array(5.0), 0.0, np.zeros((2, 4)), np.full((1,), -1.0)),
+    (np.array(5.0), 0.0, np.zeros((2, 4)), np.full((1,), 2.0))
 ], ids=[
     '3D',
     '4D',
@@ -290,9 +294,12 @@ def test_simulate_wrong_type(
     'unsorted',
     'default initial_time > time_points',
     'initial_time > time_points',
-    'initial_time == time_points[0] and initial state != stimulus[0]'
+    'initial_time == time_points[0] and initial state != stimulus[0]',
+    'initial_state[1,0] < 0',
+    'initial_state[1,0] > 1',
+    'stimulus < 0',
+    'stimulus > 1'
 ])
-
 def test_simulate_wrong_values(
     network_parameter,
     time_points,

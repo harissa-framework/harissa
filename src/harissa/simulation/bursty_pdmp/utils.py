@@ -29,7 +29,7 @@ def kon_bound(state: np.ndarray,
     # Explicit upper bound for p
     time = np.log(d0/d1)/(d0-d1) # vector of critical times
     p_max = p + (s1/(d0-d1))*m*(np.exp(-time*d1) - np.exp(-time*d0))
-    p_max[0] = p[0] # Discard stimulus
+    p_max[0] = 1.0 # Maximal value for stimulus
     # Explicit upper bound for Kon
     sigma = expit(basal + p_max @ ((inter > 0) * inter))
     k_on = (1-sigma)*k0 + sigma*k1

@@ -237,6 +237,13 @@ class NetworkModel:
                     'stimulus[0] must match initial_state[1, 0]'
                 )
 
+        if (np.any(stimulus < 0) or np.any(stimulus > 1)
+            or initial_state[1,0] < 0 or initial_state[1,0] > 1):
+            raise ValueError(
+                'stimulus values must be between 0 (no stimulus)'
+                ' and 1 (full stimulus)'
+        )
+
         # Main simulation
         res = self.simulation.run(
             time_points - initial_time,
