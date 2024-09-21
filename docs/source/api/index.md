@@ -41,6 +41,8 @@
    harissa.core.simulation
    harissa.inference.hartree.base
    harissa.inference.hartree.utils
+   harissa.inference.cardamom.base
+   harissa.inference.cardamom.utils
    harissa.simulation.bursty_pdmp.base
    harissa.simulation.bursty_pdmp.utils
    harissa.simulation.approx_ode.base
