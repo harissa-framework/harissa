@@ -48,7 +48,7 @@
    harissa.utils.npz_io
    .. harissa.plot.plot_network
    .. harissa.plot.plot_simulation
-   harissa.plot.plot_datasets
+   .. harissa.plot.plot_datasets
    harissa.processing.binarize
    .. harissa.networks.cascade
    .. harissa.networks.random_tree

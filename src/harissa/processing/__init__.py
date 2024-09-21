@@ -1,7 +1,4 @@
 """
-harissa.processing
-------------------
-
 Tools for data processing.
 """
 from harissa.processing.binarize import binarize

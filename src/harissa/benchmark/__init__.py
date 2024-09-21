@@ -1,3 +1,6 @@
+"""
+Harissa's benchmarking tools
+"""
 from harissa.benchmark.benchmark import Benchmark
 from harissa.benchmark.generators import (
     NetworksGenerator as _NetworksGenerator,

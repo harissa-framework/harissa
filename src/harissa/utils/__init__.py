@@ -1,7 +1,4 @@
 """
-harissa.utils
--------------
-
 Various utility functions.
 """
 # from harissa.inference.hartree.utils import (estimate_gamma,
