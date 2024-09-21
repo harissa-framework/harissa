@@ -3,6 +3,9 @@
 * **Notebook 1 - Simulation**  
 Simulate a basic repressilator network with 3 genes
 
+* **Notebook 1.5 - Advanced simulation**  
+More examples of simulations (varying stimulus, burn-in)
+
 * **Notebook 2 - Inference**  
 Perform network inference from a small dataset with 4 genes
 
