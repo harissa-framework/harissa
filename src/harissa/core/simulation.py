@@ -1,3 +1,6 @@
+"""
+Abstract class for simulations
+"""
 from __future__ import annotations
 from typing import Dict, ClassVar, Union
 import numpy as np
@@ -95,7 +98,7 @@ class Simulation(ABC):
 
         def __add__(self, result: Simulation.Result):
             if isinstance(result, Simulation.Result):
-                if self.rna_levels.shape == result.rna_levels.shape:
+                if self.rna_levels.shape[1] == result.rna_levels.shape[1]:
                     if self.time_points[-1] < result.time_points[0]:
                         return Simulation.Result(
                             np.concatenate((
@@ -117,7 +120,7 @@ class Simulation(ABC):
                              'lower than that of second element.')
                         )
                 else:
-                    raise ValueError('The shapes of rna levels are not equal.')
+                    raise ValueError('The number of genes are not equal.')
             else:
                 raise NotImplementedError('The right operand must be a '
                                           'Simulation.Result object.')

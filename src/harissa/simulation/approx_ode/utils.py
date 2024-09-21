@@ -1,3 +1,6 @@
+"""
+Utilities functions for ODE simulation model
+"""
 import numpy as np
 from scipy.special import expit
 

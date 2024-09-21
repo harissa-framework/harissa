@@ -1,7 +1,4 @@
 """
-harissa.networks
-----------------
-
 Various network patterns.
 """
 from harissa.networks.cascade import cascade

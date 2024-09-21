@@ -1,3 +1,6 @@
+"""
+Main class used to infer from
+"""
 from __future__ import annotations
 from typing import Dict, Union, Optional, Literal
 import numpy as np

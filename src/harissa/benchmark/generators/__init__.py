@@ -1,3 +1,6 @@
+"""
+Generators used for the benchmark
+"""
 from harissa.benchmark.generators.generic import GenericGenerator
 from harissa.benchmark.generators.networks import NetworksGenerator
 from harissa.benchmark.generators.inferences import InferencesGenerator

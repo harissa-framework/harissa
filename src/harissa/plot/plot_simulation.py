@@ -11,7 +11,7 @@ def plot_simulation(sim: Simulation.Result, plot_stimulus: bool = False):
     """
     Basic plotting function for simulations.
     """
-    plt.figure(figsize=(10,4))
+    plt.figure(figsize=(10, 4 + 3 * plot_stimulus))
     gs = gridspec.GridSpec(2 + plot_stimulus, 1)
     if plot_stimulus:
         ax_stim = plt.subplot(gs[0, 0])
@@ -21,7 +21,7 @@ def plot_simulation(sim: Simulation.Result, plot_stimulus: bool = False):
     y_scale = 1.4
 
     if plot_stimulus:
-        ax_stim.plot(sim.time_points, sim.stimulus_levels, label='$Stimulus$')
+        ax_stim.step(sim.time_points, sim.stimulus_levels, label='$Stimulus$')
         ax_stim.set_xlim(sim.time_points[0], sim.time_points[-1])
         ax_stim.set_ylim(1.0-y_scale, y_scale)
         ax_stim.tick_params(axis='x', labelbottom=False)

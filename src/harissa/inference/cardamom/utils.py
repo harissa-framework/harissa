@@ -1,3 +1,6 @@
+"""
+Utilities functions for cardamom inference
+"""
 import numpy as np
 
 from scipy.special import gammaln

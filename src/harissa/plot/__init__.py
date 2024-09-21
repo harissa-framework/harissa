@@ -1,7 +1,4 @@
 """
-harissa.plot
-------------
-
 Harissa's plotting tools.
 """
 from harissa.plot.plot_network import build_pos, plot_network

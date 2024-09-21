@@ -1,7 +1,4 @@
 """
-harissa.core
-------------
-
 Core classes for the Harissa package.
 """
 from harissa.core.model import NetworkModel

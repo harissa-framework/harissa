@@ -1,7 +1,4 @@
 """
-Harissa
-=======
-
 Tools for mechanistic gene network inference from single-cell data
 ------------------------------------------------------------------
 

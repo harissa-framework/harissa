@@ -213,6 +213,9 @@ html_theme_options = {
    'pygments_light_style': 'default',
    'pygments_dark_style': 'material',
 }
+html_sidebars = {
+  "quickstart/index": []
+}
 html_copy_source = False
 
 
@@ -227,7 +230,7 @@ nb_execution_mode = 'off'
 
 # -- Options for myst-nb ----------------------------------------------------
 
-nb_number_source_lines = True
+nb_number_source_lines = False
 
 # myst_heading_anchors = 3
 
@@ -238,7 +241,7 @@ myst_enable_extensions = [
     'strikethrough',
     'tasklist',
 ]
-
+nb_render_markdown_format = 'myst'
 myst_fence_as_directive = {'mermaid'}
 mermaid_version ="10.9.1"
 mermaid_init_js = "mermaid.initialize({startOnLoad:true, theme: 'neutral', legacyMathML: true});"
@@ -428,13 +431,13 @@ def clean_up(app, exception):
             logger.info(f'\033[1mCleaning {current_version}\033[0m')
             rmtree(output.parent / current_version)
 
-        logger.info('\033[1mCleaning extras\033[0m')
-        for subpath in ['.doctrees', 'doctrees', 'objects.inv', '.buildinfo']:
-            path = output / subpath
-            if path.is_dir():
-                rmtree(path)
-            elif path.is_file():
-                path.unlink()
+        # logger.info('\033[1mCleaning extras\033[0m')
+        # for subpath in ['.doctrees', 'doctrees', 'objects.inv', '.buildinfo']:
+        #     path = output / subpath
+        #     if path.is_dir():
+        #         rmtree(path)
+        #     elif path.is_file():
+        #         path.unlink()
 
     myst_nb_jupyter_execute_dir = output.parent / 'jupyter_execute'
     if myst_nb_jupyter_execute_dir.is_dir():

@@ -1,3 +1,6 @@
+"""
+Utilities function to import or export `.npz` files
+"""
 from typing import Iterable, Dict, Any, Union
 
 import numpy as np
