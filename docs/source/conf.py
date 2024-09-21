@@ -241,7 +241,7 @@ myst_enable_extensions = [
     'strikethrough',
     'tasklist',
 ]
-
+nb_render_markdown_format = 'myst'
 myst_fence_as_directive = {'mermaid'}
 mermaid_version ="10.9.1"
 mermaid_init_js = "mermaid.initialize({startOnLoad:true, theme: 'neutral', legacyMathML: true});"

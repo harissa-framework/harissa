@@ -31,3 +31,11 @@ div.cell details.above-input div.cell_input {
 button.btn.version-switcher__button {
     margin-bottom: unset
 }
+
+div.cell_output tbody tr:nth-child(2n+1){
+    background: unset;
+}
+
+div.cell_output tbody tr:hover {
+    background: rgba(66, 165, 245, 0.2);
+  }
