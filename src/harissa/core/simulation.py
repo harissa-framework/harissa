@@ -1,3 +1,6 @@
+"""
+Abstract class for simulations
+"""
 from __future__ import annotations
 from typing import Dict, ClassVar, Union
 import numpy as np

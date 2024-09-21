@@ -1,3 +1,6 @@
+"""
+Utilities functions for hartree inference
+"""
 import numpy as np
 
 def estimate_gamma(x):
