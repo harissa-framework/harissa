@@ -27,7 +27,8 @@ def build_pos(inter, method=None):
     # Compute graph layout
     p = np.random.normal(size=(G,2))
     if method is None:
-        p = nx.kamada_kawai_layout(graph, pos=p)
+        # p = nx.spring_layout(graph.to_undirected())
+        p = nx.kamada_kawai_layout(graph.to_undirected(), pos=p)
     if method == 'graphviz':
         p = nx.nx_agraph.graphviz_layout(graph, prog='neato')
     # Return node positions
