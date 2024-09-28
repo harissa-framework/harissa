@@ -22,6 +22,11 @@ dist
 # VSCode
 .vscode
 
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Results
 build
 docs/source/**/api/*.rst
 html
