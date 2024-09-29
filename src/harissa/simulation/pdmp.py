@@ -75,22 +75,26 @@ class BurstyPDMP:
         if self.thin_cst is None:
             # Adaptive thinning parameter
             tau = np.sum(self.kon_bound())
-        else: tau = self.thin_cst
-        jump = False # Test if the jump is a true or phantom jump
+        else:
+            tau = self.thin_cst
+
         # 0. Draw the waiting time before the next jump
         U = np.random.exponential(scale=1/tau)
+
         # 1. Update the continuous states
         M, P = self.flow(U, self.state)
         self.state['M'], self.state['P'] = M, P
+
         # 2. Compute the next jump
-        G = self.basal.size # Genes plus stimulus
         v = self.kon(P)/tau # i = 1, ..., G-1 : burst of mRNA i
-        v[0] = 1 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
-        i = np.random.choice(G, p=v)
-        if i > 0:
+        v[0] = 1.0 - np.sum(v[1:]) # i = 0 : no change (phantom jump)
+        # Deal robustly with precision errors
+        i = np.searchsorted(np.cumsum(v), np.random.random(), side="right")
+        jump = i > 0 # Test if jump is a true (i > 0) or phantom jump (i == 0)
+        if jump:
             r = self.param['B'][i]
             self.state['M'][i] += np.random.exponential(1/r)
-            jump = True
+
         return U, jump
 
     def simulation(self, timepoints, verb=False):
@@ -109,8 +113,10 @@ class BurstyPDMP:
                 Told, state_old = T, self.state.copy()
                 U, jump = self.step()
                 T += U
-                if jump: c1 += 1
-                else: c0 += 1
+                if jump:
+                    c1 += 1
+                else:
+                    c0 += 1
             M, P = self.flow(t - Told, state_old)
             sim += [np.array([(M[i],P[i]) for i in range(1,G)], dtype=types)]
         # Update the current state
@@ -122,5 +128,6 @@ class BurstyPDMP:
                 print('Exact simulation used {} jumps '.format(ctot)
                     + 'including {} phantom jumps '.format(c0)
                     + '({:.2f}%)'.format(100*c0/ctot))
-            else: print('Exact simulation used no jump')
+            else:
+                print('Exact simulation used no jump')
         return np.array(sim)
