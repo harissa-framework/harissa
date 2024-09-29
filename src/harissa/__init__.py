@@ -23,5 +23,5 @@ __all__ = ['NetworkModel', 'Cascade', 'Tree']
 
 try:
     __version__ = _version('harissa')
-except:
+except Exception:
     __version__ = 'unknown version'
