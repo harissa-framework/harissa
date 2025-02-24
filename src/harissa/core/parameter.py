@@ -46,21 +46,25 @@ class NetworkParameter:
     Parameters of a network model.
 
     Bursting parameters:
-        burst_frequency_min # k[0]
-        burst_frequency_max # k[1]
-        burst_size_inv      # b
+
+        - burst_frequency_min # k[0]
+        - burst_frequency_max # k[1]
+        - burst_size_inv      # b
 
     Creation rates:
-        creation_rna        # s[0]
-        creation_protein    # s[1]
+
+        - creation_rna        # s[0]
+        - creation_protein    # s[1]
 
     Degradation rates:
-        degradation_rna     # d[0]
-        degradation_protein # d[1]
+
+        - degradation_rna     # d[0]
+        - degradation_protein # d[1]
 
     Network parameters:
-        basal               # beta
-        interaction         # theta
+    
+        - basal               # beta
+        - interaction         # theta
     """
 
     param_names : dict = {
